@@ -1,5 +1,5 @@
 /**
- * Move Controller (OPTIMIZED)
+ * Move Controller (OPTIMIZED v2)
  * 
  * Handles move submission and feedback generation.
  * After user moves, AI opponent responds.
@@ -8,9 +8,10 @@
  * - Parallelize coach explanation + AI move generation
  * - Single game read, pass object through
  * - Reduced engine analysis depth for validation
+ * - Pre-compute next turn asynchronously (returns immediately)
  */
 
-import { MoveRequest, MoveResponse, MoveFeedback } from '@master-academy/contracts';
+import { MoveRequest, MoveResponse, MoveFeedback, TurnPackage } from '@master-academy/contracts';
 import { EngineClient } from '../adapters/engine-client';
 import { CoachClient } from '../adapters/coach-client';
 import { IGameStore } from '../store/store-interface';
@@ -21,6 +22,10 @@ import { Chess } from 'chess.js';
 
 // Reduced depth for faster validation (was 10)
 const QUICK_ANALYSIS_DEPTH = 6;
+
+// In-memory cache for pre-computed turns (in production, use Redis)
+const precomputedTurns = new Map<string, TurnPackage>();
+const precomputeInProgress = new Set<string>();
 
 interface MoveControllerDeps {
   engineClient: EngineClient;
@@ -43,6 +48,13 @@ export class MoveController {
   async processMove(gameId: string, request: MoveRequest): Promise<MoveResponse> {
     const startTime = Date.now();
     
+    // Check if we have a pre-computed turn from a previous move
+    const cachedTurn = precomputedTurns.get(gameId);
+    if (cachedTurn) {
+      console.log(`[PERF] Using pre-computed turn for ${gameId}`);
+      precomputedTurns.delete(gameId);
+    }
+    
     // SINGLE READ: Get game state once
     const game = await this.deps.gameStore.getGame(gameId);
     if (!game) {
@@ -50,7 +62,7 @@ export class MoveController {
     }
 
     const fen = game.chess.fen();
-    const currentTurn = game.currentTurn;
+    const currentTurn = cachedTurn || game.currentTurn;
     if (!currentTurn) {
       throw new Error('No current turn package');
     }
@@ -114,7 +126,6 @@ export class MoveController {
     const isGameOverAfterUser = game.chess.isGameOver();
 
     // PARALLEL: Get eval after + coach explanation + AI move (if game not over)
-    // This is the BIG WIN - these were sequential before (~10s -> ~3s)
     const parallelPromises: [
       Promise<{ eval: number; pv: string[] }>,
       Promise<{ explanation: string; conceptTags: string[] }>,
@@ -186,17 +197,96 @@ export class MoveController {
     let nextTurn: MoveResponse['nextTurn'] = null;
 
     if (!isGameOver) {
-      // Build next turn package (this still has Bedrock calls, but user sees feedback first)
-      nextTurn = await this.deps.turnController.buildTurnPackage(gameId);
+      // ASYNC PRE-COMPUTATION: Start computing next turn in background
+      // Don't await - return response immediately
+      this.precomputeNextTurn(gameId, game.chess.fen()).catch(err => {
+        console.error('Pre-compute error:', err);
+      });
+      
+      // For now, return a minimal turn package so UI has something
+      // The frontend can poll for the full turn package
+      nextTurn = this.buildQuickTurnPackage(gameId, game.chess);
     }
 
-    console.log(`[PERF] Total time: ${Date.now() - startTime}ms`);
+    console.log(`[PERF] Total time (before async precompute): ${Date.now() - startTime}ms`);
 
     return {
       accepted: true,
       newFen: finalFen,
       feedback,
       nextTurn,
+    };
+  }
+
+  /**
+   * Pre-compute the next turn package in the background
+   */
+  private async precomputeNextTurn(gameId: string, fen: string): Promise<void> {
+    // Prevent duplicate computations
+    if (precomputeInProgress.has(gameId)) {
+      console.log(`[PRECOMPUTE] Already computing for ${gameId}`);
+      return;
+    }
+
+    precomputeInProgress.add(gameId);
+    const startTime = Date.now();
+    
+    try {
+      console.log(`[PRECOMPUTE] Starting for ${gameId}`);
+      const turnPackage = await this.deps.turnController.buildTurnPackage(gameId);
+      
+      // Cache the result
+      precomputedTurns.set(gameId, turnPackage);
+      console.log(`[PRECOMPUTE] Completed for ${gameId} in ${Date.now() - startTime}ms`);
+      
+      // Store in DB for persistence
+      await this.deps.gameStore.updateGame(gameId, { currentTurn: turnPackage });
+    } catch (error) {
+      console.error(`[PRECOMPUTE] Failed for ${gameId}:`, error);
+    } finally {
+      precomputeInProgress.delete(gameId);
+    }
+  }
+
+  /**
+   * Build a quick turn package with minimal choices
+   * This is returned immediately while full package is computed in background
+   */
+  private buildQuickTurnPackage(gameId: string, chess: Chess): TurnPackage {
+    const fen = chess.fen();
+    const legalMoves = chess.moves({ verbose: true });
+    const sideToMove = chess.turn() === 'w' ? 'w' : 'b';
+
+    // Get 3 random legal moves as placeholder choices
+    const shuffled = [...legalMoves].sort(() => Math.random() - 0.5);
+    const topMoves = shuffled.slice(0, 3);
+
+    const quickChoices = topMoves.map((move, idx) => ({
+      id: String.fromCharCode(65 + idx), // A, B, C
+      moveUci: `${move.from}${move.to}${move.promotion || ''}`,
+      styleId: (['fischer', 'tal', 'capablanca'] as const)[idx],
+      planOneLiner: 'Analyzing...',
+      pv: [`${move.from}${move.to}`],
+      eval: 0,
+      conceptTags: ['development'],
+    }));
+
+    return {
+      gameId,
+      fen,
+      sideToMove,
+      choices: quickChoices,
+      bestMove: {
+        moveUci: quickChoices[0]?.moveUci || '',
+        eval: 0,
+      },
+      difficulty: {
+        engineElo: 1400,
+        hintLevel: 2,
+      },
+      telemetryHints: {
+        timeBudgetMs: 250,
+      },
     };
   }
 
