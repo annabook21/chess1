@@ -35,8 +35,8 @@ Explanation:`;
 
 export function refineConceptTags(
   conceptTag: string,
-  evalDelta: number,
-  pv: string[]
+  evalDelta: number = 0,
+  pv: string[] = []
 ): string[] {
   const tags: string[] = [conceptTag];
 
@@ -48,7 +48,7 @@ export function refineConceptTags(
   }
 
   // Infer tags from PV length (longer = more strategic)
-  if (pv.length > 3) {
+  if (pv && pv.length > 3) {
     tags.push('long_term_plan');
   }
 

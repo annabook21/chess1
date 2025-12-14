@@ -30,9 +30,9 @@ router.post('/explain', async (req: Request, res: Response) => {
 
     // Refine concept tags
     const conceptTags = refineConceptTags(
-      request.conceptTag,
+      request.conceptTag || 'general',
       0, // evalDelta not available here, would need to be passed
-      request.pv
+      request.pv || []
     );
 
     const response: ExplainChoiceResponse = {
