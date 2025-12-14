@@ -5,6 +5,7 @@ import { amazonPredict } from './amazon';
 export interface MoveResult {
   move: string;
   justification: string;
+  threats?: string;  // What threats/plans this move creates
 }
 
 const provider = process.env.STYLE_MODEL_PROVIDER || 'anthropic';

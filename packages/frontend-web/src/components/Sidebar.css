@@ -229,6 +229,78 @@
   text-overflow: ellipsis;
 }
 
+/* Skill Rating Section */
+.rating-section {
+  background: linear-gradient(135deg, rgba(134, 184, 27, 0.08) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(134, 184, 27, 0.2);
+}
+
+.rating-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.rating-current,
+.rating-peak {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.rating-value {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 700;
+  color: #86b81b;
+}
+
+.rating-value.peak {
+  font-size: 20px;
+  color: #e6b100;
+}
+
+.rating-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rating-divider {
+  color: var(--text-muted);
+  opacity: 0.3;
+}
+
+.rating-accuracy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.accuracy-bar {
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.accuracy-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4a9eff 0%, #86b81b 100%);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.accuracy-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 /* Quick Stats */
 .stats-section {
   background: var(--bg-tertiary);
@@ -253,6 +325,14 @@
   font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.quick-stat.good .quick-stat-value {
+  color: #86b81b;
+}
+
+.quick-stat.bad .quick-stat-value {
+  color: #d13020;
 }
 
 .quick-stat-label {

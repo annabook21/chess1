@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import './Celebration.css';
 
 interface CelebrationProps {
-  type: 'good' | 'great' | 'blunder';
+  type: 'good' | 'great' | 'blunder' | 'predict';
 }
 
 interface Particle {
@@ -32,18 +32,21 @@ const COLORS = {
   good: ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0'],
   great: ['#f4d03f', '#fbbf24', '#d4af37', '#10b981', '#8b5cf6', '#ec4899'],
   blunder: ['#ef4444', '#f87171', '#fca5a5'],
+  predict: ['#8b5cf6', '#a78bfa', '#c4b5fd', '#4a9eff'],
 };
 
 const MESSAGES = {
   good: ['Nice!', 'Good move!', 'Well played!', 'Solid!'],
   great: ['Brilliant!', 'Excellent!', '🔥 On fire!', 'Masterful!', 'Perfect!'],
   blunder: ['Oops!', 'Blunder!', 'Think again...', 'Mistake!'],
+  predict: ['🎯 Predicted!', 'Mind reader!', 'You saw it!', 'Great read!'],
 };
 
 const ICONS = {
   good: '✓',
   great: '⭐',
   blunder: '✗',
+  predict: '🧠',
 };
 
 export const Celebration: React.FC<CelebrationProps> = ({ type }) => {
@@ -55,11 +58,11 @@ export const Celebration: React.FC<CelebrationProps> = ({ type }) => {
   });
 
   useEffect(() => {
-    // Create confetti particles for good/great moves
+    // Create confetti particles for good/great/predict moves
     if (type !== 'blunder') {
       const colors = COLORS[type];
       const newParticles: Particle[] = [];
-      const count = type === 'great' ? 60 : 30;
+      const count = type === 'great' ? 60 : type === 'predict' ? 40 : 30;
 
       for (let i = 0; i < count; i++) {
         newParticles.push({

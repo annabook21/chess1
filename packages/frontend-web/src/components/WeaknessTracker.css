@@ -1,0 +1,598 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   WEAKNESS TRACKER - Premium Analysis Dashboard
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.weakness-tracker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.weakness-tracker-modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  width: 90%;
+  max-width: 900px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header */
+.wt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+}
+
+.wt-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wt-icon {
+  font-size: 28px;
+}
+
+.wt-header h2 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.wt-close {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wt-close:hover {
+  background: var(--error);
+  border-color: var(--error);
+  color: #fff;
+}
+
+/* Summary Stats */
+.wt-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.wt-stat-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+}
+
+.wt-stat-card.accent {
+  background: linear-gradient(135deg, rgba(230, 177, 0, 0.15), rgba(230, 177, 0, 0.05));
+  border-color: var(--gold);
+}
+
+.wt-stat-value {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.wt-stat-card.accent .wt-stat-value {
+  color: var(--gold);
+}
+
+.wt-stat-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Tabs */
+.wt-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.wt-tab {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wt-tab:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.wt-tab.active {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #000;
+}
+
+/* Content */
+.wt-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+/* Sections */
+.wt-section {
+  margin-bottom: 28px;
+}
+
+.wt-section h3,
+.wt-tactics h3,
+.wt-phases h3,
+.wt-history h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+}
+
+/* Quality Distribution */
+.wt-quality-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wt-quality-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 50px;
+  align-items: center;
+  gap: 12px;
+}
+
+.wt-quality-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.wt-quality-bar-container {
+  height: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.wt-quality-bar {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.5s ease-out;
+}
+
+.wt-quality-count {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* Insights */
+.wt-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wt-insight {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.wt-insight-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.wt-insight-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wt-insight-text strong {
+  color: var(--text-primary);
+}
+
+.wt-insight-detail {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Empty State */
+.wt-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-secondary);
+}
+
+.wt-empty-icon {
+  display: block;
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.wt-empty p {
+  margin: 0;
+  font-size: 16px;
+}
+
+.wt-empty-sub {
+  font-size: 14px !important;
+  color: var(--text-muted) !important;
+  margin-top: 8px !important;
+}
+
+/* Weakness Cards */
+.wt-weakness-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wt-weakness-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  transition: all 0.2s ease;
+}
+
+.wt-weakness-card:hover {
+  border-color: var(--gold);
+  transform: translateX(4px);
+}
+
+.wt-weakness-rank {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+  background: rgba(230, 177, 0, 0.15);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.wt-weakness-main {
+  flex: 1;
+}
+
+.wt-weakness-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.wt-weakness-emoji {
+  font-size: 20px;
+}
+
+.wt-weakness-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.wt-weakness-trend {
+  font-size: 14px;
+}
+
+.wt-weakness-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 10px 0;
+}
+
+.wt-weakness-stats {
+  display: flex;
+  gap: 20px;
+}
+
+.wt-weakness-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wt-ws-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.wt-ws-value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.wt-ws-value.error {
+  color: var(--error);
+}
+
+.wt-practice-btn {
+  background: var(--gold);
+  color: #000;
+  border: none;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.wt-practice-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(230, 177, 0, 0.3);
+}
+
+/* Phase Cards */
+.wt-phase-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.wt-phase-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  text-align: center;
+}
+
+.wt-phase-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.wt-phase-icon {
+  font-size: 20px;
+}
+
+.wt-phase-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.wt-phase-accuracy {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 12px;
+}
+
+.wt-phase-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.wt-phase-pct {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.wt-phase-detail {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Concept Grid */
+.wt-concept-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wt-concept-item {
+  display: grid;
+  grid-template-columns: 140px 1fr 50px;
+  align-items: center;
+  gap: 12px;
+}
+
+.wt-concept-name {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.wt-concept-bar-bg {
+  height: 8px;
+  background: var(--bg-card);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.wt-concept-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease-out;
+}
+
+.wt-concept-pct {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* Move History */
+.wt-move-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wt-move-row {
+  display: grid;
+  grid-template-columns: 50px 80px 40px 80px 100px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.wt-move-row.blunder {
+  background: rgba(239, 68, 68, 0.1);
+  border-left: 3px solid var(--error);
+}
+
+.wt-move-row.mistake {
+  background: rgba(255, 167, 38, 0.1);
+  border-left: 3px solid #ffa726;
+}
+
+.wt-move-num {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.wt-move-san {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.wt-move-quality {
+  font-weight: 700;
+}
+
+.wt-move-delta {
+  font-family: var(--font-mono);
+}
+
+.wt-move-delta.positive {
+  color: var(--success);
+}
+
+.wt-move-delta.negative {
+  color: var(--error);
+}
+
+.wt-move-phase {
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+/* Footer */
+.wt-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+}
+
+.wt-footer-tip {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .weakness-tracker-modal {
+    width: 95%;
+    max-height: 90vh;
+  }
+  
+  .wt-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .wt-tabs {
+    flex-wrap: wrap;
+  }
+  
+  .wt-phase-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .wt-quality-row,
+  .wt-concept-item {
+    grid-template-columns: 100px 1fr 40px;
+  }
+  
+  .wt-move-row {
+    grid-template-columns: 40px 60px 30px 60px auto;
+    font-size: 12px;
+  }
+}
+

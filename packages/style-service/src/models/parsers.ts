@@ -19,6 +19,7 @@ export function parseAnthropicToolUse(response: any): MoveResult {
       return {
         move: toolUse.input.next_move || '',
         justification: toolUse.input.justification || '',
+        threats: toolUse.input.threats || undefined,
       };
     }
   } catch {

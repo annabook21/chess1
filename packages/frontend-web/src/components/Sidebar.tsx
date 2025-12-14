@@ -19,6 +19,10 @@ interface PlayerStats {
   gamesPlayed: number;
   goodMoves: number;
   blunders: number;
+  totalMoves: number;
+  accurateMoves: number;
+  skillRating: number;
+  highestRating: number;
 }
 
 interface SidebarProps {
@@ -138,20 +142,56 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
+      {/* Skill Rating Panel */}
+      <div className="sidebar-section rating-section">
+        <h3 className="sidebar-title">
+          <span className="title-icon">📈</span>
+          Skill Rating
+        </h3>
+        <div className="rating-display">
+          <div className="rating-current">
+            <span className="rating-value">{playerStats.skillRating}</span>
+            <span className="rating-label">Current</span>
+          </div>
+          <div className="rating-divider">|</div>
+          <div className="rating-peak">
+            <span className="rating-value peak">{playerStats.highestRating}</span>
+            <span className="rating-label">Peak</span>
+          </div>
+        </div>
+        <div className="rating-accuracy">
+          <div className="accuracy-bar">
+            <div 
+              className="accuracy-fill"
+              style={{ 
+                width: `${playerStats.totalMoves > 0 
+                  ? (playerStats.accurateMoves / playerStats.totalMoves) * 100 
+                  : 0}%` 
+              }}
+            />
+          </div>
+          <span className="accuracy-text">
+            {playerStats.totalMoves > 0 
+              ? Math.round((playerStats.accurateMoves / playerStats.totalMoves) * 100)
+              : 0}% Accuracy ({playerStats.accurateMoves}/{playerStats.totalMoves} moves)
+          </span>
+        </div>
+      </div>
+
       {/* Quick Stats */}
       <div className="sidebar-section stats-section">
         <div className="quick-stats">
-          <div className="quick-stat">
+          <div className="quick-stat good">
             <span className="quick-stat-value">{playerStats.goodMoves}</span>
-            <span className="quick-stat-label">Good Moves</span>
+            <span className="quick-stat-label">Great</span>
           </div>
-          <div className="quick-stat">
+          <div className="quick-stat bad">
             <span className="quick-stat-value">{playerStats.blunders}</span>
             <span className="quick-stat-label">Blunders</span>
           </div>
           <div className="quick-stat">
-            <span className="quick-stat-value">{playerStats.xp}</span>
-            <span className="quick-stat-label">XP</span>
+            <span className="quick-stat-value">{playerStats.gamesPlayed}</span>
+            <span className="quick-stat-label">Games</span>
           </div>
         </div>
       </div>

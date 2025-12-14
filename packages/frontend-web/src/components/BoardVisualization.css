@@ -1,0 +1,60 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOARD VISUALIZATION STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.board-visualization {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.visualization-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Attack overlay squares */
+.attack-overlay {
+  transition: fill 0.3s ease;
+}
+
+/* Key square dots */
+.key-square-dot {
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 0.6; r: 8; }
+  50% { opacity: 0.9; r: 10; }
+}
+
+/* Threat arrows */
+.threat-arrow line {
+  stroke-dasharray: 8, 4;
+  animation: dashMove 1s linear infinite;
+}
+
+@keyframes dashMove {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+/* Selected move arrow */
+.selected-move-arrow line {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  animation: arrowPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes arrowPulse {
+  0%, 100% { opacity: 0.9; stroke-width: 5; }
+  50% { opacity: 1; stroke-width: 6; }
+}
+
+.move-arrow-line {
+  transition: all 0.3s ease;
+}
+

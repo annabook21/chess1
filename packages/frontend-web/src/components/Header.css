@@ -71,10 +71,40 @@
   color: var(--text-primary);
 }
 
+/* Rating Badge - Primary stat */
+.rating-badge {
+  background: linear-gradient(135deg, rgba(134, 184, 27, 0.15) 0%, rgba(134, 184, 27, 0.05) 100%);
+  border: 1px solid rgba(134, 184, 27, 0.4);
+}
+
+.rating-badge .rating-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #86b81b;
+  font-family: var(--font-mono);
+}
+
+.rating-badge .stat-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
 /* Level Badge */
 .level-badge {
   background: var(--bg-tertiary);
   border: 1px solid var(--accent-primary);
+}
+
+/* Accuracy Badge */
+.accuracy-badge {
+  background: rgba(74, 158, 255, 0.15);
+  border-color: rgba(74, 158, 255, 0.3);
+}
+
+.accuracy-badge .stat-value {
+  color: #4a9eff;
+  font-family: var(--font-mono);
 }
 
 .stat-content {
@@ -108,6 +138,57 @@
 .header-actions {
   display: flex;
   gap: 12px;
+}
+
+.btn-accent {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(168, 85, 247, 0.9));
+  color: #fff;
+  border: 1px solid rgba(139, 92, 246, 0.5);
+}
+
+.btn-accent:hover {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 1), rgba(168, 85, 247, 1));
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Toggle Button */
+.btn-toggle {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-toggle:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-strong);
+}
+
+.btn-toggle.active {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
+  border-color: rgba(34, 197, 94, 0.5);
+  color: #22c55e;
+}
+
+.btn-toggle.active:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(34, 197, 94, 0.1));
+}
+
+.toggle-indicator {
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.toggle-indicator.on {
+  color: #22c55e;
+}
+
+.toggle-indicator.off {
+  color: var(--text-muted);
 }
 
 /* Responsive */

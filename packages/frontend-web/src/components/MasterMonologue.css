@@ -1,0 +1,172 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MASTER MONOLOGUE STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.master-monologue {
+  background: linear-gradient(135deg, 
+    rgba(var(--master-color-rgb, 139, 92, 246), 0.1) 0%, 
+    var(--bg-card) 100%);
+  border: 1px solid var(--master-color, #a78bfa);
+  border-left: 4px solid var(--master-color, #a78bfa);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-top: 16px;
+  animation: fadeSlideUp 0.4s ease-out;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.monologue-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.master-avatar-lg {
+  width: 56px;
+  height: 56px;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--master-color, #a78bfa);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px rgba(var(--master-color-rgb, 139, 92, 246), 0.3);
+}
+
+.master-emoji-lg {
+  font-size: 28px;
+}
+
+.master-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.master-name-lg {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--master-color, #a78bfa);
+}
+
+.master-nickname {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.thinking-indicator {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.thinking-indicator .dot {
+  width: 8px;
+  height: 8px;
+  background: var(--master-color, #a78bfa);
+  border-radius: 50%;
+  animation: thinkDot 1.4s ease-in-out infinite;
+}
+
+.thinking-indicator .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinking-indicator .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes thinkDot {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.monologue-content {
+  margin-bottom: 16px;
+}
+
+.thought-bubble {
+  position: relative;
+  padding: 0 24px;
+}
+
+.quote-mark {
+  position: absolute;
+  font-family: Georgia, serif;
+  font-size: 48px;
+  color: var(--master-color, #a78bfa);
+  opacity: 0.3;
+  line-height: 1;
+}
+
+.quote-mark:first-child {
+  top: -10px;
+  left: 0;
+}
+
+.quote-mark.end {
+  bottom: -30px;
+  right: 0;
+}
+
+.thought-text {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  font-style: italic;
+  margin: 0;
+}
+
+.master-monologue.thinking .thought-text {
+  opacity: 0.6;
+}
+
+.threats-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(230, 177, 0, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.threats-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e6b100;
+}
+
+.threats-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.monologue-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.style-badge {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 12px;
+  border: 1px solid;
+  border-radius: 20px;
+  color: var(--text-muted);
+}
+

@@ -3,27 +3,37 @@ import { Chess } from 'chess.js';
 import { MasterStyle } from '@master-academy/contracts';
 import { MoveResult } from './index';
 import { parseAnthropicToolUse, parseMoveFromText } from './parsers';
+import { MASTER_PROFILES, getPositionAwarePrompt } from './master-profiles';
 
 const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-east-1' });
 const modelId = process.env.BEDROCK_MODEL_ID_ANTHROPIC || 'anthropic.claude-3-5-sonnet-20241022-v2:0';
 
-const STYLE_PROMPTS: Record<MasterStyle, string> = {
-  capablanca: 'You play like José Raúl Capablanca - emphasize simplicity, endgame technique, and positional clarity.',
-  tal: 'You play like Mikhail Tal - favor sharp tactical complications, sacrifices, and aggressive attacks.',
-  karpov: 'You play like Anatoly Karpov - employ positional squeezes, prophylaxis, and strategic maneuvering.',
-  fischer: 'You play like Bobby Fischer - combine deep preparation, precise calculation, and fighting spirit.',
-};
-
 export async function anthropicPredict(fen: string, styleId: MasterStyle): Promise<MoveResult> {
   const board = new Chess(fen);
   const legalMoves = board.moves();
-  const stylePrompt = STYLE_PROMPTS[styleId] || STYLE_PROMPTS.fischer;
+  const profile = MASTER_PROFILES[styleId];
+  
+  // Get position-aware system prompt with full master personality
+  const systemPrompt = getPositionAwarePrompt(fen, styleId, legalMoves);
 
-  const systemPrompt = `You are a chess master. ${stylePrompt} Your goal is to win the game.`;
+  // Build a prompt that elicits master-style thinking
+  const userPrompt = `Position (FEN): ${fen}
+
+Legal moves available: ${legalMoves.join(', ')}
+
+As ${profile.fullName} (${profile.nickname}), analyze this position and choose your move.
+
+Think about:
+- ${profile.prioritizes.slice(0, 3).join('\n- ')}
+
+Avoid:
+- ${profile.avoids.slice(0, 2).join('\n- ')}
+
+Provide your move and explain your thinking in your characteristic style.`;
 
   const body = JSON.stringify({
     anthropic_version: 'bedrock-2023-05-31',
-    max_tokens: 512,
+    max_tokens: 600,
     temperature: 0.7,
     system: systemPrompt,
     messages: [
@@ -32,13 +42,7 @@ export async function anthropicPredict(fen: string, styleId: MasterStyle): Promi
         content: [
           {
             type: 'text',
-            text: `Given the FEN position '${fen}', provide the best move in Standard Algebraic Notation (SAN).
-
-Legal moves: ${legalMoves.join(', ')}
-
-Format your response exactly like this:
-MOVE: [SAN notation]
-JUSTIFICATION: [Your explanation in 1-2 sentences]`,
+            text: userPrompt,
           },
         ],
       },
@@ -46,12 +50,22 @@ JUSTIFICATION: [Your explanation in 1-2 sentences]`,
     tools: [
       {
         name: 'chess_move',
-        description: 'Provide the next chess move in SAN notation with justification.',
+        description: 'Provide the next chess move with master-style reasoning.',
         input_schema: {
           type: 'object',
           properties: {
-            next_move: { type: 'string', description: 'The move in SAN notation' },
-            justification: { type: 'string', description: 'Brief explanation' },
+            next_move: { 
+              type: 'string', 
+              description: 'The move in Standard Algebraic Notation (SAN), e.g., "e4", "Nf3", "O-O"' 
+            },
+            justification: { 
+              type: 'string', 
+              description: 'Your inner monologue explaining the move in your characteristic style (2-3 sentences)' 
+            },
+            threats: {
+              type: 'string',
+              description: 'What threats or plans does this move create? (1 sentence)'
+            },
           },
           required: ['next_move', 'justification'],
         },

@@ -1,0 +1,310 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   PREDICT OPPONENT v2 - Quiz-style Prediction
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.predict-opponent-v2 {
+  background: var(--bg-card);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 0 30px rgba(232, 185, 35, 0.2);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header */
+.predict-header-v2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.predict-title-v2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.predict-icon-v2 {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.title-text h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.title-text .subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 4px 0 0 0;
+}
+
+/* Timer Ring */
+.predict-timer-v2 {
+  position: relative;
+}
+
+.timer-ring {
+  width: 56px;
+  height: 56px;
+  position: relative;
+}
+
+.timer-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.timer-bg {
+  fill: none;
+  stroke: var(--bg-tertiary);
+  stroke-width: 3;
+}
+
+.timer-fill {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dasharray 1s linear;
+}
+
+.predict-timer-v2.urgent .timer-fill {
+  stroke: var(--accent-red);
+}
+
+.timer-value-v2 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.predict-timer-v2.urgent .timer-value-v2 {
+  color: var(--accent-red);
+  animation: pulse 0.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Master Hint */
+.master-hint-v2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(232, 185, 35, 0.1), rgba(232, 185, 35, 0.05));
+  border: 1px solid rgba(232, 185, 35, 0.3);
+  border-radius: var(--radius-lg);
+}
+
+.master-emoji-v2 {
+  font-size: 24px;
+}
+
+.hint-text {
+  font-size: 14px;
+  color: var(--gold);
+  font-style: italic;
+}
+
+/* Move Options - Quiz Style */
+.move-options-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.move-option-v2 {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.move-option-v2:hover,
+.move-option-v2.hovered {
+  background: var(--bg-secondary);
+  border-color: var(--gold);
+  transform: translateX(4px);
+}
+
+.move-option-v2.selected {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
+  border-color: #22c55e;
+}
+
+.move-option-v2.selected .option-label {
+  background: #22c55e;
+  color: white;
+}
+
+/* Option Label (A, B, C, D) */
+.option-label {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.move-option-v2:hover .option-label {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--bg-primary);
+}
+
+/* Option Content */
+.option-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.move-notation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.move-san-v2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.move-arrow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.from-square,
+.to-square {
+  padding: 2px 6px;
+  background: var(--bg-card);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+}
+
+.arrow-icon {
+  color: var(--gold);
+}
+
+.move-purpose {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Selected Check */
+.selected-check {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #22c55e;
+  border-radius: 50%;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* Actions */
+.predict-actions-v2 {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.btn-ghost {
+  flex: 1;
+  padding: 14px 20px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-ghost:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.predict-actions-v2 .btn-primary {
+  flex: 2;
+}
+
+/* Reward */
+.predict-reward {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
+  border-radius: var(--radius-md);
+}
+
+.reward-icon {
+  font-size: 16px;
+}
+
+.reward-text {
+  font-size: 13px;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+/* Legacy styles (kept for backwards compatibility) */
+.predict-opponent {
+  display: none; /* Hide old version */
+}
