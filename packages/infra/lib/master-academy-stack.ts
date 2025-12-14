@@ -134,7 +134,7 @@ export class MasterAcademyStack extends cdk.Stack {
         NODE_ENV: 'production',
       },
       healthCheck: {
-        command: ['CMD-SHELL', 'curl -f http://localhost:3001/health || exit 1'],
+        command: ['CMD-SHELL', 'wget -qO- http://localhost:3001/health || exit 1'],
         interval: cdk.Duration.seconds(30),
         timeout: cdk.Duration.seconds(5),
         retries: 3,
@@ -196,7 +196,7 @@ export class MasterAcademyStack extends cdk.Stack {
         AWS_REGION: this.region,
       },
       healthCheck: {
-        command: ['CMD-SHELL', 'curl -f http://localhost:3002/health || exit 1'],
+        command: ['CMD-SHELL', 'wget -qO- http://localhost:3002/health || exit 1'],
         interval: cdk.Duration.seconds(30),
         timeout: cdk.Duration.seconds(5),
         retries: 3,
@@ -255,7 +255,7 @@ export class MasterAcademyStack extends cdk.Stack {
         AWS_REGION: this.region,
       },
       healthCheck: {
-        command: ['CMD-SHELL', 'curl -f http://localhost:3003/health || exit 1'],
+        command: ['CMD-SHELL', 'wget -qO- http://localhost:3003/health || exit 1'],
         interval: cdk.Duration.seconds(30),
         timeout: cdk.Duration.seconds(5),
         retries: 3,
@@ -320,7 +320,7 @@ export class MasterAcademyStack extends cdk.Stack {
         AWS_REGION: this.region,
       },
       healthCheck: {
-        command: ['CMD-SHELL', 'curl -f http://localhost:3000/health || exit 1'],
+        command: ['CMD-SHELL', 'wget -qO- http://localhost:3000/health || exit 1'],
         interval: cdk.Duration.seconds(30),
         timeout: cdk.Duration.seconds(5),
         retries: 3,
