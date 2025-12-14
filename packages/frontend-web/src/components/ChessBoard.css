@@ -1,0 +1,95 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   CHESS BOARD STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.chess-board-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.chess-board-container {
+  position: relative;
+  animation: boardFadeIn 0.5s ease-out forwards;
+}
+
+@keyframes boardFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Board frame decorations */
+.board-frame-top,
+.board-frame-bottom {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(212, 175, 55, 0.5) 20%, 
+    rgba(212, 175, 55, 0.8) 50%, 
+    rgba(212, 175, 55, 0.5) 80%, 
+    transparent 100%
+  );
+}
+
+.board-frame-top {
+  top: -12px;
+}
+
+.board-frame-bottom {
+  bottom: -12px;
+}
+
+/* Turn indicator */
+.turn-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 30px;
+}
+
+.turn-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--border-subtle);
+  transition: all 0.3s ease;
+}
+
+.turn-dot.white {
+  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.turn-dot.black {
+  background: linear-gradient(135deg, #333 0%, #1a1a1a 100%);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.turn-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+  .chess-board-container {
+    transform: scale(0.85);
+  }
+}
+

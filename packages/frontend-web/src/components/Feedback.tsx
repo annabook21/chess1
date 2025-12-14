@@ -1,123 +1,135 @@
 /**
  * Feedback Component
- * 
- * Displays move feedback including evaluation, coaching, and AI opponent's response.
+ * Shows coaching feedback with beautiful styling
  */
 
 import { MoveFeedback } from '@master-academy/contracts';
+import './Feedback.css';
 
 interface FeedbackProps {
   feedback: MoveFeedback | null;
 }
 
-const MASTER_NAMES: Record<string, string> = {
-  capablanca: 'Capablanca',
-  tal: 'Tal',
-  karpov: 'Karpov',
-  fischer: 'Fischer',
+const MASTER_NAMES: Record<string, { name: string; color: string }> = {
+  capablanca: { name: 'Capablanca', color: '#f4d03f' },
+  tal: { name: 'Tal', color: '#ef4444' },
+  karpov: { name: 'Karpov', color: '#3b82f6' },
+  fischer: { name: 'Fischer', color: '#10b981' },
 };
 
 export const Feedback: React.FC<FeedbackProps> = ({ feedback }) => {
   if (!feedback) return null;
 
-  const getEvalColor = (delta: number): string => {
-    if (delta > 100) return '#4caf50'; // green
-    if (delta < -200) return '#f44336'; // red
-    return '#ff9800'; // orange
+  const getMasterInfo = (styleId: string) => {
+    return MASTER_NAMES[styleId] || { name: styleId, color: '#888' };
   };
 
+  const getDeltaClass = (delta: number): string => {
+    if (delta > 50) return 'excellent';
+    if (delta > 0) return 'good';
+    if (delta > -100) return 'neutral';
+    return 'bad';
+  };
+
+  const deltaClass = getDeltaClass(feedback.delta);
+
   return (
-    <div
-      style={{
-        padding: '20px',
-        margin: '20px',
-        backgroundColor: '#2a2a2a',
-        borderRadius: '8px',
-        border: `2px solid ${getEvalColor(feedback.delta)}`,
-      }}
-    >
-      <h3 style={{ marginBottom: '15px' }}>♟️ Move Feedback</h3>
-      
-      {/* Evaluation Change */}
-      <div style={{ marginBottom: '12px' }}>
-        <strong>Evaluation:</strong>{' '}
-        <span style={{ color: getEvalColor(feedback.delta), fontWeight: 'bold' }}>
-          {feedback.delta > 0 ? '+' : ''}
-          {(feedback.delta / 100).toFixed(2)} pawns
-        </span>
-        <span style={{ color: '#888', marginLeft: '10px', fontSize: '0.9em' }}>
-          ({feedback.evalBefore.toFixed(0)} → {feedback.evalAfter.toFixed(0)} cp)
-        </span>
+    <div className={`feedback-card glass-card-elevated animate-slide-in-right ${deltaClass}`}>
+      {/* Header */}
+      <div className="feedback-header">
+        <h3>
+          <span className="feedback-icon">📝</span>
+          Move Analysis
+        </h3>
+        <div className={`feedback-badge ${deltaClass}`}>
+          {deltaClass === 'excellent' && '⭐ Excellent'}
+          {deltaClass === 'good' && '✓ Good'}
+          {deltaClass === 'neutral' && '• Okay'}
+          {deltaClass === 'bad' && '⚠️ Inaccuracy'}
+        </div>
+      </div>
+
+      {/* Evaluation */}
+      <div className="feedback-eval">
+        <div className="eval-change">
+          <span className="eval-label">Evaluation Change</span>
+          <div className={`eval-delta ${deltaClass}`}>
+            {feedback.delta > 0 ? '+' : ''}{(feedback.delta / 100).toFixed(2)}
+          </div>
+        </div>
+        <div className="eval-meter">
+          <div className="eval-before">
+            <span className="eval-meter-label">Before</span>
+            <span className="eval-meter-value">{(feedback.evalBefore / 100).toFixed(2)}</span>
+          </div>
+          <div className="eval-arrow">→</div>
+          <div className="eval-after">
+            <span className="eval-meter-label">After</span>
+            <span className="eval-meter-value">{(feedback.evalAfter / 100).toFixed(2)}</span>
+          </div>
+        </div>
       </div>
 
       {/* Blunder Warning */}
       {feedback.blunder && (
-        <div style={{ 
-          color: '#fff', 
-          backgroundColor: '#f44336',
-          padding: '10px',
-          borderRadius: '4px',
-          marginBottom: '12px', 
-          fontWeight: 'bold' 
-        }}>
-          ⚠️ Blunder! Consider reviewing this position.
+        <div className="feedback-blunder">
+          <span className="blunder-icon">⚠️</span>
+          <div className="blunder-content">
+            <span className="blunder-title">Blunder Detected</span>
+            <span className="blunder-text">This move significantly worsened your position.</span>
+          </div>
         </div>
       )}
 
       {/* Coach Explanation */}
-      <div style={{ 
-        marginBottom: '12px', 
-        padding: '10px', 
-        backgroundColor: '#333', 
-        borderRadius: '4px',
-        borderLeft: '3px solid #4a9eff'
-      }}>
-        <strong>🎓 Coach:</strong> {feedback.coachText}
+      <div className="feedback-coach">
+        <div className="coach-avatar">🎓</div>
+        <div className="coach-content">
+          <span className="coach-label">Coach Analysis</span>
+          <p className="coach-text">{feedback.coachText}</p>
+        </div>
       </div>
 
-      {/* AI Opponent's Move */}
+      {/* AI Opponent Move */}
       {feedback.aiMove && (
-        <div style={{ 
-          marginBottom: '12px',
-          padding: '10px',
-          backgroundColor: '#1a1a2e',
-          borderRadius: '4px',
-          borderLeft: '3px solid #e94560'
-        }}>
-          <strong>🤖 Opponent ({MASTER_NAMES[feedback.aiMove.styleId] || feedback.aiMove.styleId}):</strong>{' '}
-          <span style={{ fontFamily: 'monospace', fontSize: '1.1em', color: '#e94560' }}>
-            {feedback.aiMove.moveSan}
-          </span>
-          <div style={{ marginTop: '5px', color: '#aaa', fontSize: '0.9em' }}>
-            "{feedback.aiMove.justification}"
+        <div className="feedback-opponent">
+          <div 
+            className="opponent-avatar"
+            style={{ borderColor: getMasterInfo(feedback.aiMove.styleId).color }}
+          >
+            🤖
+          </div>
+          <div className="opponent-content">
+            <div className="opponent-header">
+              <span className="opponent-label">Opponent Response</span>
+              <span 
+                className="opponent-master"
+                style={{ color: getMasterInfo(feedback.aiMove.styleId).color }}
+              >
+                {getMasterInfo(feedback.aiMove.styleId).name}
+              </span>
+            </div>
+            <div className="opponent-move">
+              <span className="opponent-move-san">{feedback.aiMove.moveSan}</span>
+              <span className="opponent-justification">"{feedback.aiMove.justification}"</span>
+            </div>
           </div>
         </div>
       )}
 
       {/* Concept Tags */}
       {feedback.conceptTags && feedback.conceptTags.length > 0 && (
-        <div>
-          <strong>Concepts:</strong>{' '}
-          {feedback.conceptTags.map((tag, i) => (
-            <span
-              key={i}
-              style={{
-                display: 'inline-block',
-                padding: '3px 10px',
-                margin: '2px 4px',
-                backgroundColor: '#4a9eff22',
-                border: '1px solid #4a9eff',
-                borderRadius: '12px',
-                fontSize: '0.85em',
-                color: '#4a9eff',
-              }}
-            >
-              {tag.replace(/_/g, ' ')}
-            </span>
-          ))}
+        <div className="feedback-concepts">
+          <span className="concepts-label">Concepts Practiced</span>
+          <div className="concepts-list">
+            {feedback.conceptTags.map((tag, i) => (
+              <span key={i} className="concept-tag">
+                {tag.replace(/_/g, ' ')}
+              </span>
+            ))}
+          </div>
         </div>
       )}
     </div>
   );
 };
-

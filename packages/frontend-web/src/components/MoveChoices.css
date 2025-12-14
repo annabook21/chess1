@@ -1,0 +1,205 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOVE CHOICES STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.move-choices-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .move-choices-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Choice Card */
+.choice-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: var(--master-gradient);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  opacity: 0;
+}
+
+.choice-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--bg-tertiary);
+  z-index: -1;
+  border-radius: inherit;
+}
+
+.choice-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--master-color);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3),
+              0 0 30px color-mix(in srgb, var(--master-color) 20%, transparent);
+}
+
+.choice-card.selected {
+  border-color: var(--master-color);
+  background: var(--master-gradient);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--master-color) 20%, transparent),
+              0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Selected indicator */
+.choice-selected-indicator {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  background: var(--master-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: checkPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.choice-selected-indicator::after {
+  content: '✓';
+  color: #000;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+@keyframes checkPop {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+
+/* Master Header */
+.choice-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.master-avatar {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid var(--master-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.choice-card:hover .master-avatar {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--master-color) 40%, transparent);
+}
+
+.master-emoji {
+  font-size: 24px;
+}
+
+.master-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.master-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.master-title {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Plan */
+.choice-plan {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-style: italic;
+  line-height: 1.5;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--master-color);
+}
+
+/* Move */
+.choice-move {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+}
+
+.move-notation-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.from-square, .to-square {
+  color: var(--text-primary);
+  text-transform: lowercase;
+}
+
+.move-arrow {
+  color: var(--master-color);
+  font-size: 14px;
+}
+
+.move-eval {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.move-eval.positive {
+  color: var(--accent-green);
+}
+
+.move-eval.negative {
+  color: var(--accent-red);
+}
+
+/* Tags */
+.choice-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.choice-tag {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  color: var(--text-muted);
+}
+
