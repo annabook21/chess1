@@ -158,7 +158,7 @@ export class MasterAcademyStack extends cdk.Stack {
       protocol: elbv2.ApplicationProtocol.HTTP,
       targets: [engineService],
       healthCheck: { path: '/health' },
-      conditions: [elbv2.ListenerCondition.pathPatterns(['/engine/*'])],
+      conditions: [elbv2.ListenerCondition.pathPatterns(['/engine', '/engine/*'])],
       priority: 10,
     });
 
@@ -220,7 +220,7 @@ export class MasterAcademyStack extends cdk.Stack {
       protocol: elbv2.ApplicationProtocol.HTTP,
       targets: [styleService],
       healthCheck: { path: '/health' },
-      conditions: [elbv2.ListenerCondition.pathPatterns(['/style/*'])],
+      conditions: [elbv2.ListenerCondition.pathPatterns(['/style', '/style/*'])],
       priority: 20,
     });
 
@@ -279,7 +279,7 @@ export class MasterAcademyStack extends cdk.Stack {
       protocol: elbv2.ApplicationProtocol.HTTP,
       targets: [coachService],
       healthCheck: { path: '/health' },
-      conditions: [elbv2.ListenerCondition.pathPatterns(['/coach/*'])],
+      conditions: [elbv2.ListenerCondition.pathPatterns(['/coach', '/coach/*'])],
       priority: 30,
     });
 
@@ -339,7 +339,7 @@ export class MasterAcademyStack extends cdk.Stack {
       protocol: elbv2.ApplicationProtocol.HTTP,
       targets: [gameApiService],
       healthCheck: { path: '/health' },
-      conditions: [elbv2.ListenerCondition.pathPatterns(['/game/*', '/api/*'])],
+      conditions: [elbv2.ListenerCondition.pathPatterns(['/game', '/game/*', '/api', '/api/*'])],
       priority: 40,
     });
 
