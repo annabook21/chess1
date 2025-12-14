@@ -32,6 +32,7 @@ const turnController = new TurnController({
 const moveController = new MoveController({
   engineClient,
   coachClient,
+  styleClient,
   gameStore: gameStore as any,
   turnController,
 });

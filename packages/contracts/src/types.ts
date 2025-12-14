@@ -48,6 +48,12 @@ export interface MoveRequest {
   choiceId: string;
 }
 
+export interface AIMoveInfo {
+  moveSan: string; // e.g., "Nf6"
+  styleId: string; // Which master style the AI used
+  justification: string; // Why the AI made this move
+}
+
 export interface MoveFeedback {
   evalBefore: number;
   evalAfter: number;
@@ -55,6 +61,7 @@ export interface MoveFeedback {
   coachText: string; // Explanation from coach service
   conceptTags: string[];
   blunder: boolean; // true if delta <= threshold
+  aiMove?: AIMoveInfo; // AI opponent's response move
 }
 
 export interface MoveResponse {

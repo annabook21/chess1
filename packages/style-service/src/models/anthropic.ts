@@ -70,13 +70,38 @@ JUSTIFICATION: [Your explanation in 1-2 sentences]`,
   const responseBody = JSON.parse(Buffer.from(response.body as Uint8Array).toString('utf-8'));
 
   // Try tool use first
-  const toolResult = parseAnthropicToolUse(responseBody);
-  if (toolResult.move) {
-    return toolResult;
+  let result = parseAnthropicToolUse(responseBody);
+  if (!result.move) {
+    // Fallback to text parsing
+    const textContent = responseBody.content?.[0]?.text || '';
+    result = parseMoveFromText(textContent);
   }
 
-  // Fallback to text parsing
-  const textContent = responseBody.content?.[0]?.text || '';
-  return parseMoveFromText(textContent);
+  // Convert SAN to UCI
+  if (result.move) {
+    const uciMove = sanToUci(board, result.move);
+    if (uciMove) {
+      return { move: uciMove, justification: result.justification };
+    }
+  }
+
+  return { move: '', justification: '' };
+}
+
+/**
+ * Convert SAN notation to UCI notation
+ */
+function sanToUci(board: Chess, san: string): string | null {
+  try {
+    // Clone the board to test the move
+    const testBoard = new Chess(board.fen());
+    const move = testBoard.move(san);
+    if (move) {
+      return `${move.from}${move.to}${move.promotion || ''}`;
+    }
+  } catch {
+    // Invalid SAN
+  }
+  return null;
 }
 

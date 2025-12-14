@@ -48,6 +48,32 @@ JUSTIFICATION: [Your explanation in 1-2 sentences]`;
   const responseBody = JSON.parse(Buffer.from(response.body as Uint8Array).toString('utf-8'));
   const text = responseBody.results?.[0]?.outputText || '';
 
-  return parseMoveFromText(text);
+  const result = parseMoveFromText(text);
+
+  // Convert SAN to UCI
+  if (result.move) {
+    const uciMove = sanToUci(board, result.move);
+    if (uciMove) {
+      return { move: uciMove, justification: result.justification };
+    }
+  }
+
+  return { move: '', justification: '' };
+}
+
+/**
+ * Convert SAN notation to UCI notation
+ */
+function sanToUci(board: Chess, san: string): string | null {
+  try {
+    const testBoard = new Chess(board.fen());
+    const move = testBoard.move(san);
+    if (move) {
+      return `${move.from}${move.to}${move.promotion || ''}`;
+    }
+  } catch {
+    // Invalid SAN
+  }
+  return null;
 }
 

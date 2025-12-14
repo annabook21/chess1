@@ -1,0 +1,138 @@
+/**
+ * AI Opponent Service
+ * 
+ * Generates AI opponent moves using Bedrock, following AWS demo patterns.
+ * The AI plays as a "rival master" with its own style.
+ */
+
+import { StyleClient } from '../adapters/style-client';
+import { EngineClient } from '../adapters/engine-client';
+import { MasterStyle } from '@master-academy/contracts';
+import { Chess } from 'chess.js';
+
+// Rotate through masters for variety
+const OPPONENT_STYLES: MasterStyle[] = ['tal', 'karpov', 'capablanca', 'fischer'];
+
+interface AIOpponentDeps {
+  styleClient: StyleClient;
+  engineClient: EngineClient;
+}
+
+export interface AIMove {
+  moveUci: string;
+  moveSan: string;
+  styleId: MasterStyle;
+  justification: string;
+}
+
+export class AIOpponent {
+  private moveCounter = 0;
+
+  constructor(private deps: AIOpponentDeps) {}
+
+  /**
+   * Generate AI opponent's move for the current position.
+   * Uses Bedrock to generate a master-style move with retry logic.
+   * Falls back to engine best move if Bedrock fails.
+   */
+  async generateMove(fen: string): Promise<AIMove> {
+    const chess = new Chess(fen);
+    const legalMoves = chess.moves({ verbose: true });
+    
+    if (legalMoves.length === 0) {
+      throw new Error('No legal moves available');
+    }
+
+    // Rotate through opponent styles for variety
+    const styleId = OPPONENT_STYLES[this.moveCounter % OPPONENT_STYLES.length];
+    this.moveCounter++;
+
+    // Try to get a Bedrock-generated move (3 attempts)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const suggestedMoves = await this.deps.styleClient.suggestMoves(fen, styleId, 1);
+        
+        if (suggestedMoves.length > 0) {
+          const moveUci = suggestedMoves[0];
+          
+          // Validate the move is legal
+          const isLegal = await this.deps.engineClient.isLegalMove(fen, moveUci);
+          if (isLegal) {
+            // Get SAN notation
+            const from = moveUci.substring(0, 2);
+            const to = moveUci.substring(2, 4);
+            const promotion = moveUci.length > 4 ? moveUci[4] : undefined;
+            
+            const testChess = new Chess(fen);
+            const moveResult = testChess.move({ from, to, promotion: promotion as any });
+            
+            if (moveResult) {
+              return {
+                moveUci,
+                moveSan: moveResult.san,
+                styleId,
+                justification: this.generateJustification(styleId, moveResult.san),
+              };
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`AI move attempt ${attempt + 1} failed:`, error);
+      }
+    }
+
+    // Fallback: Use engine's best move
+    console.log('AI falling back to engine move');
+    const analysis = await this.deps.engineClient.analyzePosition({ fen, depth: 10 });
+    const bestMoveUci = analysis.pv[0] || this.getRandomLegalMove(chess);
+    
+    // Convert to SAN
+    const from = bestMoveUci.substring(0, 2);
+    const to = bestMoveUci.substring(2, 4);
+    const promotion = bestMoveUci.length > 4 ? bestMoveUci[4] : undefined;
+    
+    const moveResult = chess.move({ from, to, promotion: promotion as any });
+    
+    return {
+      moveUci: bestMoveUci,
+      moveSan: moveResult?.san || bestMoveUci,
+      styleId: 'fischer', // Default to Fischer for engine moves
+      justification: 'Playing the objectively strongest continuation.',
+    };
+  }
+
+  private getRandomLegalMove(chess: Chess): string {
+    const moves = chess.moves({ verbose: true });
+    const randomMove = moves[Math.floor(Math.random() * moves.length)];
+    return `${randomMove.from}${randomMove.to}${randomMove.promotion || ''}`;
+  }
+
+  private generateJustification(styleId: MasterStyle, moveSan: string): string {
+    const justifications: Record<MasterStyle, string[]> = {
+      tal: [
+        'Creating complications and attacking chances.',
+        'Sacrificing material for initiative.',
+        'Keeping the position sharp and tactical.',
+      ],
+      karpov: [
+        'Restricting your options while improving my position.',
+        'Building pressure methodically.',
+        'Accumulating small advantages.',
+      ],
+      capablanca: [
+        'Simplifying toward a favorable endgame.',
+        'Improving piece coordination.',
+        'Controlling key squares.',
+      ],
+      fischer: [
+        'Playing the most precise move.',
+        'Following opening principles strictly.',
+        'Maintaining the initiative.',
+      ],
+    };
+
+    const options = justifications[styleId] || justifications.fischer;
+    return options[Math.floor(Math.random() * options.length)];
+  }
+}
+
