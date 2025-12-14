@@ -190,8 +190,8 @@ export class MasterAcademyStack extends cdk.Stack {
       environment: {
         PORT: '3002',
         NODE_ENV: 'production',
-        BEDROCK_MODEL_ID_ANTHROPIC: 'anthropic.claude-sonnet-4-20250514',
-        BEDROCK_MODEL_ID_AMAZON: 'amazon.titan-text-premier-v1:0',
+        BEDROCK_MODEL_ID_ANTHROPIC: 'anthropic.claude-sonnet-4-5-20250929-v1:0',
+        BEDROCK_MODEL_ID_AMAZON: 'amazon.titan-text-express-v1',
         STYLE_MODEL_PROVIDER: 'anthropic',
         AWS_REGION: this.region,
       },

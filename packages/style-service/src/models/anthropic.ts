@@ -5,7 +5,7 @@ import { MoveResult } from './index';
 import { parseAnthropicToolUse, parseMoveFromText } from './parsers';
 
 const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-east-1' });
-const modelId = process.env.BEDROCK_MODEL_ID_ANTHROPIC || 'anthropic.claude-sonnet-4-20250514';
+const modelId = process.env.BEDROCK_MODEL_ID_ANTHROPIC || 'anthropic.claude-sonnet-4-5-20250929-v1:0';
 
 const STYLE_PROMPTS: Record<MasterStyle, string> = {
   capablanca: 'You play like José Raúl Capablanca - emphasize simplicity, endgame technique, and positional clarity.',

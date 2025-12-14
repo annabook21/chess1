@@ -5,7 +5,7 @@ import { MoveResult } from './index';
 import { parseMoveFromText } from './parsers';
 
 const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-east-1' });
-const modelId = process.env.BEDROCK_MODEL_ID_AMAZON || 'amazon.titan-text-premier-v1:0';
+const modelId = process.env.BEDROCK_MODEL_ID_AMAZON || 'amazon.titan-text-express-v1';
 
 const STYLE_PROMPTS: Record<MasterStyle, string> = {
   capablanca: 'Play like Capablanca - simple, clear, endgame-focused.',
