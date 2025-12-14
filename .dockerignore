@@ -1,0 +1,33 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# CDK outputs
+cdk.out
+**/cdk.out
+.cdk.staging
+
+# Build outputs
+dist
+**/dist
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+
+# Misc
+*.log
+*.md
+.DS_Store
+
+# Reference repo
+embodied-chess-demo-with-amazon-bedrock
+
+# Lock files (we'll install fresh)
+pnpm-lock.yaml
+package-lock.json
+

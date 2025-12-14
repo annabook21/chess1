@@ -1,0 +1,24 @@
+{
+  "name": "@master-academy/drill-worker",
+  "version": "1.0.0",
+  "description": "Puzzle generation and spaced repetition worker",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@master-academy/contracts": "workspace:*",
+    "@aws-sdk/client-sqs": "^3.590.0",
+    "@aws-sdk/client-dynamodb": "^3.590.0",
+    "@aws-sdk/lib-dynamodb": "^3.590.0",
+    "chess.js": "^1.0.0-beta.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3",
+    "ts-node-dev": "^2.0.0"
+  }
+}
+

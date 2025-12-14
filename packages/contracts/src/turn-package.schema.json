@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TurnPackage",
+  "type": "object",
+  "required": ["gameId", "fen", "sideToMove", "choices", "bestMove", "difficulty", "telemetryHints"],
+  "properties": {
+    "gameId": {
+      "type": "string",
+      "description": "Unique game identifier"
+    },
+    "fen": {
+      "type": "string",
+      "description": "Forsyth-Edwards Notation of current position"
+    },
+    "sideToMove": {
+      "type": "string",
+      "enum": ["w", "b"],
+      "description": "Which side is to move"
+    },
+    "choices": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/MoveChoice"
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "bestMove": {
+      "$ref": "#/definitions/BestMove"
+    },
+    "difficulty": {
+      "$ref": "#/definitions/Difficulty"
+    },
+    "telemetryHints": {
+      "$ref": "#/definitions/TelemetryHints"
+    }
+  },
+  "definitions": {
+    "MoveChoice": {
+      "type": "object",
+      "required": ["id", "moveUci", "styleId", "planOneLiner", "pv", "eval", "conceptTags"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-C]$"
+        },
+        "moveUci": {
+          "type": "string",
+          "pattern": "^[a-h][1-8][a-h][1-8][qrnb]?$"
+        },
+        "styleId": {
+          "type": "string",
+          "enum": ["capablanca", "tal", "karpov", "fischer"]
+        },
+        "planOneLiner": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "pv": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "maxItems": 4
+        },
+        "eval": {
+          "type": "number"
+        },
+        "conceptTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "BestMove": {
+      "type": "object",
+      "required": ["moveUci", "eval"],
+      "properties": {
+        "moveUci": {
+          "type": "string"
+        },
+        "eval": {
+          "type": "number"
+        }
+      }
+    },
+    "Difficulty": {
+      "type": "object",
+      "required": ["engineElo", "hintLevel"],
+      "properties": {
+        "engineElo": {
+          "type": "integer",
+          "minimum": 800,
+          "maximum": 3000
+        },
+        "hintLevel": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        }
+      }
+    },
+    "TelemetryHints": {
+      "type": "object",
+      "required": ["timeBudgetMs"],
+      "properties": {
+        "timeBudgetMs": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
+
