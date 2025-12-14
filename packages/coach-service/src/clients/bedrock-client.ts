@@ -32,7 +32,7 @@ export class BedrockClient {
 
     try {
       // Use Claude 4.5 Sonnet (Anthropic) via Bedrock
-      const modelId = process.env.BEDROCK_MODEL_ID || 'anthropic.claude-sonnet-4-5-20250929-v1:0';
+      const modelId = process.env.BEDROCK_MODEL_ID || 'anthropic.claude-3-5-sonnet-20241022-v2:0';
       
       const command = new InvokeModelCommand({
         modelId,
