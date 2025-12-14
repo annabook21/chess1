@@ -128,7 +128,7 @@ export class MoveController {
     // Check if game is over after user's move
     let isGameOver = await this.deps.gameStore.isGameOver(gameId);
     let nextTurn: MoveResponse['nextTurn'] = null;
-    let aiMoveInfo: { moveSan: string; styleId: string; justification: string } | null = null;
+    let aiMoveInfo: { moveSan: string; styleId: string; justification: string } | undefined = undefined;
 
     if (!isGameOver) {
       // AI OPPONENT RESPONDS
