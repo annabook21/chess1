@@ -1,254 +1,89 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   CHESS BOARD STYLES - Premium 2025 Edition
+   CHESS BOARD - Clean Modern Style
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .chess-board-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
-  position: relative;
+  gap: 16px;
 }
 
-/* Ambient glow behind the board */
 .board-ambient-glow {
-  position: absolute;
-  width: 520px;
-  height: 520px;
-  background: radial-gradient(
-    circle at 50% 50%,
-    rgba(212, 175, 55, 0.08) 0%,
-    rgba(139, 92, 246, 0.04) 40%,
-    transparent 70%
-  );
-  filter: blur(40px);
-  pointer-events: none;
-  z-index: 0;
+  display: none; /* Removed */
 }
 
 .chess-board-container {
   position: relative;
-  z-index: 1;
-  animation: boardReveal 0.8s var(--ease-out-expo) forwards;
+  animation: fadeIn 0.4s ease-out;
 }
 
-@keyframes boardReveal {
-  from {
-    opacity: 0;
-    transform: scale(0.92) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-/* Corner accent decorations */
-.board-corner {
-  position: absolute;
-  width: 24px;
-  height: 24px;
-  border: 2px solid rgba(212, 175, 55, 0.4);
-  z-index: 10;
-  pointer-events: none;
-}
-
-.board-corner-tl {
-  top: -6px;
-  left: -6px;
-  border-right: none;
-  border-bottom: none;
-  border-radius: 4px 0 0 0;
-}
-
-.board-corner-tr {
-  top: -6px;
-  right: -6px;
-  border-left: none;
-  border-bottom: none;
-  border-radius: 0 4px 0 0;
-}
-
-.board-corner-bl {
-  bottom: -6px;
-  left: -6px;
-  border-right: none;
-  border-top: none;
-  border-radius: 0 0 0 4px;
-}
-
-.board-corner-br {
-  bottom: -6px;
-  right: -6px;
-  border-left: none;
-  border-top: none;
-  border-radius: 0 0 4px 0;
-}
-
-/* Gold accent frame lines */
+/* Hide decorative elements */
+.board-corner,
 .board-frame-top,
 .board-frame-bottom,
 .board-frame-left,
 .board-frame-right {
-  position: absolute;
-  background: linear-gradient(
-    90deg, 
-    transparent 0%, 
-    rgba(212, 175, 55, 0.3) 20%, 
-    rgba(212, 175, 55, 0.6) 50%, 
-    rgba(212, 175, 55, 0.3) 80%, 
-    transparent 100%
-  );
-  pointer-events: none;
-  z-index: 10;
+  display: none;
 }
 
-.board-frame-top {
-  top: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 50%;
-  height: 2px;
-}
-
-.board-frame-bottom {
-  bottom: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 50%;
-  height: 2px;
-}
-
-.board-frame-left {
-  left: -14px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 2px;
-  height: 50%;
-  background: linear-gradient(
-    180deg, 
-    transparent 0%, 
-    rgba(212, 175, 55, 0.3) 20%, 
-    rgba(212, 175, 55, 0.6) 50%, 
-    rgba(212, 175, 55, 0.3) 80%, 
-    transparent 100%
-  );
-}
-
-.board-frame-right {
-  right: -14px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 2px;
-  height: 50%;
-  background: linear-gradient(
-    180deg, 
-    transparent 0%, 
-    rgba(212, 175, 55, 0.3) 20%, 
-    rgba(212, 175, 55, 0.6) 50%, 
-    rgba(212, 175, 55, 0.3) 80%, 
-    transparent 100%
-  );
-}
-
-/* Turn indicator - Premium version */
+/* Turn indicator */
 .turn-indicator {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 24px;
-  background: var(--bg-glass-strong);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-subtle);
-  border-radius: 40px;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.4s var(--ease-out-expo);
+  gap: 10px;
+  padding: 10px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
 }
 
 .turn-indicator.white-turn {
   border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1),
-              inset 0 0 30px rgba(255, 255, 255, 0.05);
 }
 
 .turn-indicator.black-turn {
-  border-color: rgba(100, 100, 100, 0.3);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border-color: var(--border-color);
 }
 
 .turn-piece {
-  font-size: 28px;
+  font-size: 24px;
   line-height: 1;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-  animation: float 3s ease-in-out infinite;
 }
 
 .turn-text {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text-secondary);
-  letter-spacing: 0.5px;
 }
 
 .turn-pulse {
-  position: absolute;
-  right: 16px;
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--gold);
-  animation: turnPulse 2s ease-in-out infinite;
+  background: var(--accent-primary);
+  animation: pulse 2s ease-in-out infinite;
 }
 
-@keyframes turnPulse {
-  0%, 100% { 
-    opacity: 0.5; 
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
-  }
-  50% { 
-    opacity: 1; 
-    transform: scale(1.2);
-    box-shadow: 0 0 0 8px rgba(212, 175, 55, 0);
-  }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
-/* Board pieces enhancement (applied via JS injection if needed) */
+/* Piece shadows */
 .chess-board-container img {
-  filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.4));
-  transition: transform 0.15s ease;
+  filter: drop-shadow(1px 2px 3px rgba(0, 0, 0, 0.3));
 }
 
-/* Hover effects for interactive squares */
-.chess-board-container [data-squareid]:hover {
-  filter: brightness(1.1);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════════════════════════════ */
-
+/* Responsive */
 @media (max-width: 520px) {
   .chess-board-wrapper {
-    transform: scale(0.85);
+    transform: scale(0.9);
     transform-origin: top center;
-  }
-  
-  .board-ambient-glow {
-    width: 400px;
-    height: 400px;
-  }
-  
-  .board-corner {
-    width: 16px;
-    height: 16px;
-  }
-}
-
-@media (max-width: 400px) {
-  .chess-board-wrapper {
-    transform: scale(0.75);
   }
 }
