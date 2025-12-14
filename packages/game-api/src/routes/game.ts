@@ -40,10 +40,10 @@ const moveController = new MoveController({
  * POST /game
  * Create a new game
  */
-router.post('/', (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   try {
     const userElo = req.body.userElo || 1200;
-    const gameId = gameStore.createGame(userElo);
+    const gameId = await gameStore.createGame(userElo);
     res.json({ gameId });
   } catch (error) {
     console.error('Error creating game:', error);
