@@ -339,6 +339,11 @@ export class MasterAcademyStack extends cdk.Stack {
       serviceName: 'game-api',
     });
 
+    // Allow game-api to connect to internal services
+    engineService.connections.allowFrom(gameApiService, ec2.Port.tcp(3001), 'game-api to engine');
+    styleService.connections.allowFrom(gameApiService, ec2.Port.tcp(3002), 'game-api to style');
+    coachService.connections.allowFrom(gameApiService, ec2.Port.tcp(3003), 'game-api to coach');
+
     listener.addTargets('GameApiTG', {
       port: 3000,
       protocol: elbv2.ApplicationProtocol.HTTP,
