@@ -96,34 +96,37 @@ export class ChoiceBuilder {
     validatedStyleMoves: Array<{ styleId: MasterStyle; move: string }>,
     engineAnalysis: { eval: number; pv: string[] }
   ): Promise<MoveChoice[]> {
-    // Score all candidate moves
-    const candidates = [
-      ...(bestMove ? [{ move: bestMove, styleId: 'fischer' as MasterStyle }] : []),
-      ...validatedStyleMoves,
-    ];
+    // Get all legal moves for scoring (ensures we always have diversity)
+    const allLegalMoves = this.getAllLegalMoves(fen);
+    
+    // Score a sample of legal moves (limit to avoid timeout)
+    const movesToScore = allLegalMoves.slice(0, 15);
+    const scored = await this.deps.engineClient.scoreMoves({ fen, moves: movesToScore });
+    
+    // Sort by evaluation delta (best moves first)
+    const sortedScores = scored.scores.sort((a, b) => b.evalDelta - a.evalDelta);
 
-    const uniqueMoves = new Map<string, MasterStyle>();
-    for (const { move, styleId } of candidates) {
-      if (!uniqueMoves.has(move)) {
-        uniqueMoves.set(move, styleId);
+    // Build style preferences map
+    const styleForMove = new Map<string, MasterStyle>();
+    for (const { move, styleId } of validatedStyleMoves) {
+      if (!styleForMove.has(move)) {
+        styleForMove.set(move, styleId);
       }
     }
 
-    const movesToScore = Array.from(uniqueMoves.keys()).slice(0, 10);
-    const scored = await this.deps.engineClient.scoreMoves({ fen, moves: movesToScore });
+    // Assign masters to moves based on move characteristics (fallback logic)
+    const masterAssignments: MasterStyle[] = ['fischer', 'tal', 'capablanca', 'karpov'];
 
-    // Select 3 diverse choices (best + 2 style-based)
     const choices: MoveChoice[] = [];
     const usedMoves = new Set<string>();
 
-    // Always include best move as choice A (fall back to top scored if bestMove missing)
-    const bestMoveToUse = bestMove || scored.scores[0]?.move;
-    const bestScored = bestMoveToUse ? scored.scores.find(s => s.move === bestMoveToUse) : undefined;
-    if (bestScored && bestMoveToUse) {
+    // Choice A: Best move (Fischer - precise/best)
+    const bestMoveToUse = bestMove || sortedScores[0]?.move;
+    if (bestMoveToUse) {
       choices.push({
         id: 'A',
         moveUci: bestMoveToUse,
-        styleId: 'fischer',
+        styleId: styleForMove.get(bestMoveToUse) || 'fischer',
         planOneLiner: this.generatePlanOneLiner(bestMoveToUse, 'fischer', engineAnalysis.pv),
         pv: [bestMoveToUse, ...engineAnalysis.pv.slice(1, 4)],
         eval: engineAnalysis.eval,
@@ -132,59 +135,60 @@ export class ChoiceBuilder {
       usedMoves.add(bestMoveToUse);
     }
 
-    // Add 2 more diverse style-based choices
-    const styleChoices = validatedStyleMoves
-      .filter(({ move }) => !usedMoves.has(move))
-      .slice(0, 2);
-
-    for (let i = 0; i < styleChoices.length && choices.length < 3; i++) {
-      const { move, styleId } = styleChoices[i];
-      const scoredMove = scored.scores.find(s => s.move === move);
-      
-      if (scoredMove) {
-        choices.push({
-          id: String.fromCharCode(66 + i), // 'B', 'C'
-          moveUci: move,
-          styleId,
-          planOneLiner: this.generatePlanOneLiner(move, styleId, scoredMove.pv),
-          pv: scoredMove.pv,
-          eval: engineAnalysis.eval + scoredMove.evalDelta,
-          conceptTags: this.inferConceptTags(scoredMove.pv),
-        });
-        usedMoves.add(move);
-      }
-    }
-
-    // If we don't have 3 yet, fill with engine-scored moves
-    for (const s of scored.scores) {
+    // Choice B & C: Other good moves with different masters
+    for (const s of sortedScores) {
       if (choices.length >= 3) break;
       if (usedMoves.has(s.move)) continue;
+
+      // Assign master style based on position or use rotation
+      const masterIndex = choices.length % masterAssignments.length;
+      const assignedStyle = styleForMove.get(s.move) || masterAssignments[masterIndex];
+      
       choices.push({
         id: String.fromCharCode(65 + choices.length), // 'A', 'B', 'C'
         moveUci: s.move,
-        styleId: 'fischer',
-        planOneLiner: this.generatePlanOneLiner(s.move, 'fischer', s.pv),
-        pv: s.pv,
+        styleId: assignedStyle,
+        planOneLiner: this.generatePlanOneLiner(s.move, assignedStyle, s.pv),
+        pv: s.pv.length > 0 ? s.pv : [s.move],
         eval: engineAnalysis.eval + s.evalDelta,
         conceptTags: this.inferConceptTags(s.pv),
       });
       usedMoves.add(s.move);
     }
 
-    // If still fewer than 3, duplicate best move as last resort
-    while (choices.length < 3 && bestMoveToUse) {
-      choices.push({
-        id: String.fromCharCode(65 + choices.length),
-        moveUci: bestMoveToUse,
-        styleId: 'fischer',
-        planOneLiner: this.generatePlanOneLiner(bestMoveToUse, 'fischer', engineAnalysis.pv),
-        pv: [bestMoveToUse, ...engineAnalysis.pv.slice(1, 4)],
-        eval: engineAnalysis.eval,
-        conceptTags: this.inferConceptTags(engineAnalysis.pv),
-      });
+    // Fallback: if we still don't have 3 choices, use remaining legal moves
+    let fallbackIndex = 0;
+    while (choices.length < 3 && fallbackIndex < allLegalMoves.length) {
+      const move = allLegalMoves[fallbackIndex];
+      if (!usedMoves.has(move)) {
+        const masterIndex = choices.length % masterAssignments.length;
+        choices.push({
+          id: String.fromCharCode(65 + choices.length),
+          moveUci: move,
+          styleId: masterAssignments[masterIndex],
+          planOneLiner: this.generatePlanOneLiner(move, masterAssignments[masterIndex], []),
+          pv: [move],
+          eval: engineAnalysis.eval,
+          conceptTags: ['development'],
+        });
+        usedMoves.add(move);
+      }
+      fallbackIndex++;
     }
 
     return choices;
+  }
+
+  /**
+   * Get all legal moves in UCI format using chess.js
+   */
+  private getAllLegalMoves(fen: string): string[] {
+    const { Chess } = require('chess.js');
+    const chess = new Chess(fen);
+    const moves = chess.moves({ verbose: true });
+    return moves.map((m: { from: string; to: string; promotion?: string }) => 
+      `${m.from}${m.to}${m.promotion || ''}`
+    );
   }
 
   private generatePlanOneLiner(
