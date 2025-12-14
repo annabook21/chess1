@@ -1,95 +1,254 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   CHESS BOARD STYLES
+   CHESS BOARD STYLES - Premium 2025 Edition
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .chess-board-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
+  position: relative;
+}
+
+/* Ambient glow behind the board */
+.board-ambient-glow {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(212, 175, 55, 0.08) 0%,
+    rgba(139, 92, 246, 0.04) 40%,
+    transparent 70%
+  );
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .chess-board-container {
   position: relative;
-  animation: boardFadeIn 0.5s ease-out forwards;
+  z-index: 1;
+  animation: boardReveal 0.8s var(--ease-out-expo) forwards;
 }
 
-@keyframes boardFadeIn {
+@keyframes boardReveal {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.92) translateY(20px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateY(0);
   }
 }
 
-/* Board frame decorations */
-.board-frame-top,
-.board-frame-bottom {
+/* Corner accent decorations */
+.board-corner {
   position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(212, 175, 55, 0.4);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.board-corner-tl {
+  top: -6px;
+  left: -6px;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 4px 0 0 0;
+}
+
+.board-corner-tr {
+  top: -6px;
+  right: -6px;
+  border-left: none;
+  border-bottom: none;
+  border-radius: 0 4px 0 0;
+}
+
+.board-corner-bl {
+  bottom: -6px;
+  left: -6px;
+  border-right: none;
+  border-top: none;
+  border-radius: 0 0 0 4px;
+}
+
+.board-corner-br {
+  bottom: -6px;
+  right: -6px;
+  border-left: none;
+  border-top: none;
+  border-radius: 0 0 4px 0;
+}
+
+/* Gold accent frame lines */
+.board-frame-top,
+.board-frame-bottom,
+.board-frame-left,
+.board-frame-right {
+  position: absolute;
+  background: linear-gradient(
+    90deg, 
+    transparent 0%, 
+    rgba(212, 175, 55, 0.3) 20%, 
+    rgba(212, 175, 55, 0.6) 50%, 
+    rgba(212, 175, 55, 0.3) 80%, 
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+
+.board-frame-top {
+  top: -14px;
   left: 50%;
   transform: translateX(-50%);
-  width: 60%;
+  width: 50%;
   height: 2px;
-  background: linear-gradient(90deg, 
+}
+
+.board-frame-bottom {
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50%;
+  height: 2px;
+}
+
+.board-frame-left {
+  left: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 50%;
+  background: linear-gradient(
+    180deg, 
     transparent 0%, 
-    rgba(212, 175, 55, 0.5) 20%, 
-    rgba(212, 175, 55, 0.8) 50%, 
-    rgba(212, 175, 55, 0.5) 80%, 
+    rgba(212, 175, 55, 0.3) 20%, 
+    rgba(212, 175, 55, 0.6) 50%, 
+    rgba(212, 175, 55, 0.3) 80%, 
     transparent 100%
   );
 }
 
-.board-frame-top {
-  top: -12px;
+.board-frame-right {
+  right: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 50%;
+  background: linear-gradient(
+    180deg, 
+    transparent 0%, 
+    rgba(212, 175, 55, 0.3) 20%, 
+    rgba(212, 175, 55, 0.6) 50%, 
+    rgba(212, 175, 55, 0.3) 80%, 
+    transparent 100%
+  );
 }
 
-.board-frame-bottom {
-  bottom: -12px;
-}
-
-/* Turn indicator */
+/* Turn indicator - Premium version */
 .turn-indicator {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 20px;
-  background: var(--bg-glass);
-  backdrop-filter: blur(10px);
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
-  border-radius: 30px;
+  border-radius: 40px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s var(--ease-out-expo);
 }
 
-.turn-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid var(--border-subtle);
-  transition: all 0.3s ease;
+.turn-indicator.white-turn {
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1),
+              inset 0 0 30px rgba(255, 255, 255, 0.05);
 }
 
-.turn-dot.white {
-  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+.turn-indicator.black-turn {
+  border-color: rgba(100, 100, 100, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-.turn-dot.black {
-  background: linear-gradient(135deg, #333 0%, #1a1a1a 100%);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+.turn-piece {
+  font-size: 28px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  animation: float 3s ease-in-out infinite;
 }
 
 .turn-text {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--text-secondary);
+  letter-spacing: 0.5px;
 }
 
-/* Responsive */
-@media (max-width: 500px) {
-  .chess-board-container {
-    transform: scale(0.85);
+.turn-pulse {
+  position: absolute;
+  right: 16px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: turnPulse 2s ease-in-out infinite;
+}
+
+@keyframes turnPulse {
+  0%, 100% { 
+    opacity: 0.5; 
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
+  }
+  50% { 
+    opacity: 1; 
+    transform: scale(1.2);
+    box-shadow: 0 0 0 8px rgba(212, 175, 55, 0);
   }
 }
 
+/* Board pieces enhancement (applied via JS injection if needed) */
+.chess-board-container img {
+  filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.4));
+  transition: transform 0.15s ease;
+}
+
+/* Hover effects for interactive squares */
+.chess-board-container [data-squareid]:hover {
+  filter: brightness(1.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 520px) {
+  .chess-board-wrapper {
+    transform: scale(0.85);
+    transform-origin: top center;
+  }
+  
+  .board-ambient-glow {
+    width: 400px;
+    height: 400px;
+  }
+  
+  .board-corner {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@media (max-width: 400px) {
+  .chess-board-wrapper {
+    transform: scale(0.75);
+  }
+}
