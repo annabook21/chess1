@@ -197,15 +197,19 @@ export class MoveController {
     let nextTurn: MoveResponse['nextTurn'] = null;
 
     if (!isGameOver) {
-      // ASYNC PRE-COMPUTATION: Start computing next turn in background
-      // Don't await - return response immediately
-      this.precomputeNextTurn(gameId, game.chess.fen()).catch(err => {
-        console.error('Pre-compute error:', err);
-      });
-      
-      // For now, return a minimal turn package so UI has something
-      // The frontend can poll for the full turn package
-      nextTurn = this.buildQuickTurnPackage(gameId, game.chess);
+      // Wait for full turn package - provides better UX with real analysis
+      try {
+        nextTurn = await this.deps.turnController.buildTurnPackage(
+          gameId, 
+          game.chess,  // Pass updated local chess instance
+          game.userElo
+        );
+        console.log(`[PERF] Full turn package built: ${Date.now() - startTime}ms`);
+      } catch (err) {
+        console.error('Turn build error:', err);
+        // Fallback to quick package only if full package fails
+        nextTurn = this.buildQuickTurnPackage(gameId, game.chess);
+      }
     }
 
     console.log(`[PERF] Total time (before async precompute): ${Date.now() - startTime}ms`);

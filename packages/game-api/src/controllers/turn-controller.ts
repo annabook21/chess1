@@ -8,7 +8,8 @@ import { TurnPackage, Difficulty, TelemetryHints } from '@master-academy/contrac
 import { ChoiceBuilder } from '../services/choice-builder';
 import { calculateDifficulty, calculateTimeBudget } from '../services/difficulty';
 import { EngineClient } from '../adapters/engine-client';
-import { IGameStore } from '../store/store-interface';
+import { IGameStore, GameState } from '../store/store-interface';
+import { Chess } from 'chess.js';
 
 interface TurnControllerDeps {
   choiceBuilder: ChoiceBuilder;
@@ -19,17 +20,37 @@ interface TurnControllerDeps {
 export class TurnController {
   constructor(private deps: TurnControllerDeps) {}
 
-  async buildTurnPackage(gameId: string): Promise<TurnPackage> {
-    const game = await this.deps.gameStore.getGame(gameId);
-    if (!game) {
-      throw new Error(`Game ${gameId} not found`);
+  /**
+   * Build turn package
+   * @param gameId - Game ID
+   * @param chessInstance - Optional chess.js instance to avoid re-reading from store
+   * @param userElo - Optional user ELO (required if chessInstance provided)
+   */
+  async buildTurnPackage(
+    gameId: string, 
+    chessInstance?: Chess,
+    userElo: number = 1200
+  ): Promise<TurnPackage> {
+    let chess: Chess;
+    let elo: number;
+    
+    if (chessInstance) {
+      chess = chessInstance;
+      elo = userElo;
+    } else {
+      const game = await this.deps.gameStore.getGame(gameId);
+      if (!game) {
+        throw new Error(`Game ${gameId} not found`);
+      }
+      chess = game.chess;
+      elo = game.userElo;
     }
 
-    const fen = game.chess.fen();
-    const sideToMove = game.chess.turn() === 'w' ? 'w' : 'b';
+    const fen = chess.fen();
+    const sideToMove = chess.turn() === 'w' ? 'w' : 'b';
     
     // Set engine strength
-    const difficulty = calculateDifficulty(game.userElo);
+    const difficulty = calculateDifficulty(elo);
     await this.deps.engineClient.setStrength(difficulty.engineElo);
 
     // Get engine's best move
@@ -42,7 +63,7 @@ export class TurnController {
     const choices = await this.deps.choiceBuilder.buildChoices(fen, difficulty);
 
     // Calculate time budget
-    const moveNumber = game.chess.moveNumber();
+    const moveNumber = chess.moveNumber();
     const timeBudgetMs = calculateTimeBudget(difficulty, moveNumber);
 
     const turnPackage: TurnPackage = {
@@ -66,4 +87,3 @@ export class TurnController {
     return turnPackage;
   }
 }
-
