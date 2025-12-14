@@ -3,8 +3,8 @@
  */
 
 import React from 'react';
-import { Chessboard } from 'chessboardjsx';
-import { TurnPackage, MoveChoice } from '@master-academy/contracts';
+import Chessboard from 'chessboardjsx';
+import { MoveChoice } from '@master-academy/contracts';
 
 interface ChessBoardProps {
   fen: string;

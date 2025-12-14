@@ -7,6 +7,11 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
+import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
+import * as path from 'path';
 import { Construct } from 'constructs';
 
 export class MasterAcademyStack extends cdk.Stack {
@@ -384,11 +389,71 @@ export class MasterAcademyStack extends cdk.Stack {
     });
 
     // ═══════════════════════════════════════════════════════════════════
+    // FRONTEND: S3 + CloudFront (best practice for React SPAs)
+    // ═══════════════════════════════════════════════════════════════════
+    
+    // S3 bucket for static assets (private, accessed via CloudFront only)
+    const websiteBucket = new s3.Bucket(this, 'WebsiteBucket', {
+      bucketName: `master-academy-frontend-${this.account}-${this.region}`,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+    });
+
+    // CloudFront Origin Access Control (modern replacement for OAI)
+    const oac = new cloudfront.S3OriginAccessControl(this, 'WebsiteOAC', {
+      signing: cloudfront.Signing.SIGV4_ALWAYS,
+    });
+
+    // CloudFront distribution with SPA routing
+    const distribution = new cloudfront.Distribution(this, 'WebsiteDistribution', {
+      defaultBehavior: {
+        origin: origins.S3BucketOrigin.withOriginAccessControl(websiteBucket, {
+          originAccessControl: oac,
+        }),
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+      },
+      defaultRootObject: 'index.html',
+      // SPA routing: redirect 403/404 to index.html for client-side routing
+      errorResponses: [
+        {
+          httpStatus: 403,
+          responseHttpStatus: 200,
+          responsePagePath: '/index.html',
+          ttl: cdk.Duration.minutes(5),
+        },
+        {
+          httpStatus: 404,
+          responseHttpStatus: 200,
+          responsePagePath: '/index.html',
+          ttl: cdk.Duration.minutes(5),
+        },
+      ],
+      priceClass: cloudfront.PriceClass.PRICE_CLASS_100, // Use only North America and Europe
+    });
+
+    // Deploy frontend assets to S3
+    new s3deploy.BucketDeployment(this, 'DeployWebsite', {
+      sources: [s3deploy.Source.asset(path.join(__dirname, '../../frontend-web/dist'))],
+      destinationBucket: websiteBucket,
+      distribution,
+      distributionPaths: ['/*'], // Invalidate CloudFront cache on deploy
+    });
+
+    // ═══════════════════════════════════════════════════════════════════
     // OUTPUTS
     // ═══════════════════════════════════════════════════════════════════
     new cdk.CfnOutput(this, 'ApiEndpoint', {
       value: `http://${alb.loadBalancerDnsName}`,
       description: 'Game API endpoint',
+    });
+
+    new cdk.CfnOutput(this, 'FrontendUrl', {
+      value: `https://${distribution.distributionDomainName}`,
+      description: 'Frontend CloudFront URL',
     });
 
     new cdk.CfnOutput(this, 'GameTableName', {
