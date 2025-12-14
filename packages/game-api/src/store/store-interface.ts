@@ -13,13 +13,18 @@ export interface GameState {
   createdAt: Date;
 }
 
+export interface GameUpdateFields {
+  fen?: string;
+  currentTurn?: TurnPackage | null;
+  userElo?: number;
+}
+
 export interface IGameStore {
   createGame(userElo?: number): Promise<string> | string;
   getGame(gameId: string): Promise<GameState | null> | GameState | null;
-  updateGame(gameId: string, updates: Partial<any>): Promise<void> | void;
+  updateGame(gameId: string, updates: GameUpdateFields): Promise<void> | void;
   getFen(gameId: string): Promise<string | null> | string | null;
   makeMove(gameId: string, moveUci: string): Promise<boolean> | boolean;
   isGameOver(gameId: string): Promise<boolean> | boolean;
   getSideToMove(gameId: string): Promise<Side | null> | Side | null;
 }
-

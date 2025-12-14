@@ -5,17 +5,10 @@
  */
 
 import { Chess } from 'chess.js';
-import { TurnPackage, MoveResponse, Side } from '@master-academy/contracts';
+import { TurnPackage, Side } from '@master-academy/contracts';
+import { GameState, GameUpdateFields, IGameStore } from './store-interface';
 
-interface GameState {
-  gameId: string;
-  chess: Chess;
-  currentTurn: TurnPackage | null;
-  userElo: number;
-  createdAt: Date;
-}
-
-export class GameStore {
+export class GameStore implements IGameStore {
   private games: Map<string, GameState> = new Map();
 
   createGame(userElo: number = 1200): string {
@@ -37,11 +30,28 @@ export class GameStore {
     return this.games.get(gameId) || null;
   }
 
-  updateGame(gameId: string, updates: Partial<GameState>): void {
+  updateGame(gameId: string, updates: GameUpdateFields): void {
     const game = this.games.get(gameId);
-    if (game) {
-      this.games.set(gameId, { ...game, ...updates });
+    if (!game) return;
+
+    // Handle fen update - recreate chess instance with new FEN
+    if (updates.fen !== undefined) {
+      try {
+        game.chess = new Chess(updates.fen);
+      } catch (e) {
+        console.error('Invalid FEN in updateGame:', updates.fen);
+      }
     }
+
+    // Handle other updates
+    if (updates.currentTurn !== undefined) {
+      game.currentTurn = updates.currentTurn;
+    }
+    if (updates.userElo !== undefined) {
+      game.userElo = updates.userElo;
+    }
+
+    this.games.set(gameId, game);
   }
 
   getFen(gameId: string): string | null {
@@ -84,4 +94,3 @@ export class GameStore {
     return game.chess.turn() === 'w' ? 'w' : 'b';
   }
 }
-

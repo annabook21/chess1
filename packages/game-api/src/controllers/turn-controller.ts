@@ -8,12 +8,12 @@ import { TurnPackage, Difficulty, TelemetryHints } from '@master-academy/contrac
 import { ChoiceBuilder } from '../services/choice-builder';
 import { calculateDifficulty, calculateTimeBudget } from '../services/difficulty';
 import { EngineClient } from '../adapters/engine-client';
-import { GameStore } from '../store/game-store';
+import { IGameStore } from '../store/store-interface';
 
 interface TurnControllerDeps {
   choiceBuilder: ChoiceBuilder;
   engineClient: EngineClient;
-  gameStore: GameStore;
+  gameStore: IGameStore;
 }
 
 export class TurnController {
