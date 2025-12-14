@@ -7,16 +7,17 @@
 import { ExplainChoiceRequest } from '@master-academy/contracts';
 
 export function buildCoachPrompt(request: ExplainChoiceRequest): string {
-  const { chosenMove, bestMove, pv, conceptTag, userSkill } = request;
+  const { chosenMove, bestMove, pv = [], conceptTag, userSkill = 1200 } = request;
 
   const skillLevel = userSkill < 1200 ? 'beginner' : userSkill < 1600 ? 'intermediate' : 'advanced';
+  const continuation = pv.length > 0 ? pv.slice(0, 3).join(' → ') : chosenMove;
 
   const prompt = `You are a chess coach explaining a move to a ${skillLevel} player (ELO ~${userSkill}).
 
 Position context:
 - Player chose move: ${chosenMove}
 - Engine's best move: ${bestMove}
-- Continuation: ${pv.slice(0, 3).join(' → ')}
+- Continuation: ${continuation}
 
 Concept: ${conceptTag}
 
