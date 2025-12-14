@@ -21,7 +21,7 @@ export class MoveController {
   constructor(private deps: MoveControllerDeps) {}
 
   async processMove(gameId: string, request: MoveRequest): Promise<MoveResponse> {
-    const game = this.deps.gameStore.getGame(gameId);
+    const game = await this.deps.gameStore.getGame(gameId);
     if (!game) {
       throw new Error(`Game ${gameId} not found`);
     }
@@ -57,7 +57,7 @@ export class MoveController {
     });
 
     // Make the move
-    const moveSuccess = this.deps.gameStore.makeMove(gameId, request.moveUci);
+    const moveSuccess = await this.deps.gameStore.makeMove(gameId, request.moveUci);
     if (!moveSuccess) {
       return {
         accepted: false,
@@ -74,7 +74,7 @@ export class MoveController {
       };
     }
 
-    const newFen = this.deps.gameStore.getFen(gameId)!;
+    const newFen = (await this.deps.gameStore.getFen(gameId))!;
 
     // Get evaluation after move
     const evalAfter = await this.deps.engineClient.analyzePosition({
@@ -115,7 +115,7 @@ export class MoveController {
     };
 
     // Check if game is over
-    const isGameOver = this.deps.gameStore.isGameOver(gameId);
+    const isGameOver = await this.deps.gameStore.isGameOver(gameId);
     let nextTurn: MoveResponse['nextTurn'] = null;
 
     if (!isGameOver) {

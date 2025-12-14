@@ -20,7 +20,7 @@ export class TurnController {
   constructor(private deps: TurnControllerDeps) {}
 
   async buildTurnPackage(gameId: string): Promise<TurnPackage> {
-    const game = this.deps.gameStore.getGame(gameId);
+    const game = await this.deps.gameStore.getGame(gameId);
     if (!game) {
       throw new Error(`Game ${gameId} not found`);
     }
@@ -61,7 +61,7 @@ export class TurnController {
     };
 
     // Store current turn
-    this.deps.gameStore.updateGame(gameId, { currentTurn: turnPackage });
+    await this.deps.gameStore.updateGame(gameId, { currentTurn: turnPackage });
 
     return turnPackage;
   }
