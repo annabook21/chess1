@@ -17,54 +17,41 @@
 
 /* Mobile: Horizontal scroll with visual indicators */
 @media (max-width: 768px) {
-  /* Wrapper for scroll container with fade indicators */
+  /* Wrapper for scroll container - full width */
   .move-choices-wrapper {
     position: relative;
-    margin: 0 -8px;
+    width: 100%;
+    max-width: 100vw;
+    overflow: visible;
   }
   
-  /* Fade indicators on edges to show more content */
-  .move-choices-wrapper::before,
-  .move-choices-wrapper::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 24px;
-    pointer-events: none;
-    z-index: 10;
-  }
-  
-  .move-choices-wrapper::before {
-    left: 0;
-    background: linear-gradient(to right, var(--bg-secondary), transparent);
-  }
-  
-  .move-choices-wrapper::after {
-    right: 0;
-    background: linear-gradient(to left, var(--bg-secondary), transparent);
-  }
-  
+  /* Scrollable container */
   .move-choices-grid {
-    display: flex;
-    overflow-x: auto;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: visible;
     scroll-snap-type: x mandatory;
     gap: 12px;
     padding: 8px 16px;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
+    width: 100%;
+    box-sizing: border-box;
   }
   
   .move-choices-grid::-webkit-scrollbar {
-    display: none; /* Chrome, Safari */
+    display: none;
   }
   
-  /* Smaller cards that show partial next card */
+  /* Cards - fixed width, don't shrink */
   .move-choices-grid .choice-card {
-    flex: 0 0 calc(85vw - 32px);
-    scroll-snap-align: center;
-    min-width: calc(85vw - 32px);
-    max-width: 300px;
+    flex: 0 0 280px !important;
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+    scroll-snap-align: start;
   }
   
   /* Scroll hint indicator */
