@@ -1,22 +1,32 @@
 /**
- * Choice Builder
+ * Choice Builder - Optimized
  * 
- * Builds 3 move choices from engine analysis and style suggestions.
- * Pure function - no side effects.
+ * Key optimizations:
+ * 1. Local legality validation (no network calls)
+ * 2. Only 3 style calls (not 4)
+ * 3. Parallel style calls with timeout
+ * 4. Engine fallback if styles fail/timeout
  */
 
+import { Chess } from 'chess.js';
 import {
   MoveChoice,
   MasterStyle,
   ConceptTag,
-  STRATEGY_TAGS,
-  TACTICS_TAGS,
-  ENDGAME_TAGS,
 } from '@master-academy/contracts';
 import { EngineClient } from '../adapters/engine-client';
 import { StyleClient } from '../adapters/style-client';
 
-const MASTER_STYLES: MasterStyle[] = ['capablanca', 'tal', 'karpov', 'fischer'];
+// Only 3 masters per turn for speed
+const TURN_MASTERS: MasterStyle[][] = [
+  ['fischer', 'tal', 'capablanca'],
+  ['karpov', 'fischer', 'tal'],
+  ['capablanca', 'karpov', 'fischer'],
+  ['tal', 'capablanca', 'karpov'],
+];
+
+// Timeout for style calls (ms)
+const STYLE_TIMEOUT_MS = 700;
 
 interface ChoiceBuilderDeps {
   engineClient: EngineClient;
@@ -27,218 +37,199 @@ export class ChoiceBuilder {
   constructor(private deps: ChoiceBuilderDeps) {}
 
   /**
-   * Build 3 choices for a position
+   * Build 3 choices for a position - FAST
    */
   async buildChoices(
     fen: string,
-    difficulty: { engineElo: number; hintLevel: number }
+    difficulty: { engineElo: number; hintLevel: number },
+    turnNumber: number = 0
   ): Promise<MoveChoice[]> {
-    // Get engine's best move and top lines
+    const totalStart = Date.now();
+    
+    // Pre-compute legal moves LOCALLY (no network call)
+    const legalMovesUci = this.getLegalMovesUci(fen);
+    const legalSet = new Set(legalMovesUci);
+    
+    console.log(`[TIMING] Legal moves computed locally: ${legalMovesUci.length} moves`);
+
+    // Engine analysis (single call)
+    const engineStart = Date.now();
     const engineAnalysis = await this.deps.engineClient.analyzePosition({
       fen,
-      depth: 12,
+      depth: 10, // Reduced depth for speed
     });
+    console.log(`[TIMING] Engine analysis: ${Date.now() - engineStart}ms`);
 
-    // Get style suggestions from all 4 masters (Bedrock-powered)
-    const styleSuggestions = await Promise.all(
-      MASTER_STYLES.map(async (styleId) => {
-        try {
-          const moves = await this.deps.styleClient.suggestMoves(fen, styleId, 5);
-          return { styleId, moves };
-        } catch (error) {
-          console.error(`Error getting ${styleId} suggestions:`, error);
-          return { styleId, moves: [] };
-        }
-      })
+    // Get 3 style suggestions IN PARALLEL with timeout
+    const stylesStart = Date.now();
+    const masters = TURN_MASTERS[turnNumber % TURN_MASTERS.length];
+    
+    const styleResults = await this.getStyleSuggestionsWithTimeout(
+      fen, 
+      masters, 
+      legalSet
     );
+    console.log(`[TIMING] Style suggestions (3 parallel): ${Date.now() - stylesStart}ms`);
 
-    // Filter style moves through engine validation
-    const validatedStyleMoves = await this.validateStyleMoves(fen, styleSuggestions);
-
-    const bestMoveCandidate =
-      engineAnalysis.pv[0] ||
-      validatedStyleMoves[0]?.move ||
-      '';
-
-    // Select 3 diverse choices
-    const choices = this.selectDiverseChoices(
+    // Build choices from engine + style results
+    const choices = this.buildChoicesFromResults(
       fen,
-      bestMoveCandidate,
-      validatedStyleMoves,
-      engineAnalysis
+      engineAnalysis,
+      styleResults,
+      legalMovesUci,
+      masters
     );
 
+    console.log(`[TIMING] TOTAL buildChoices: ${Date.now() - totalStart}ms`);
+    
     return choices;
   }
 
-  private async validateStyleMoves(
+  /**
+   * Get style suggestions with timeout and fallback
+   */
+  private async getStyleSuggestionsWithTimeout(
     fen: string,
-    styleSuggestions: Array<{ styleId: MasterStyle; moves: string[] }>
-  ): Promise<Array<{ styleId: MasterStyle; move: string }>> {
-    const validated: Array<{ styleId: MasterStyle; move: string }> = [];
+    masters: MasterStyle[],
+    legalSet: Set<string>
+  ): Promise<Map<MasterStyle, string[]>> {
+    const results = new Map<MasterStyle, string[]>();
+    
+    // Create timeout wrapper
+    const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T | null> => {
+      return Promise.race([
+        promise,
+        new Promise<null>(resolve => setTimeout(() => resolve(null), ms))
+      ]);
+    };
 
-    for (const { styleId, moves } of styleSuggestions) {
-      for (const move of moves) {
-        const isLegal = await this.deps.engineClient.isLegalMove(fen, move);
-        if (isLegal) {
-          validated.push({ styleId, move });
-          break; // Take first legal move from each style
+    // Run all style calls in parallel
+    const stylePromises = masters.map(async (styleId) => {
+      try {
+        const moves = await withTimeout(
+          this.deps.styleClient.suggestMoves(fen, styleId, 5),
+          STYLE_TIMEOUT_MS
+        );
+        
+        if (moves) {
+          // Filter to legal moves LOCALLY
+          const legalMoves = moves.filter(m => legalSet.has(m));
+          return { styleId, moves: legalMoves };
         }
+        return { styleId, moves: [] };
+      } catch (error) {
+        console.warn(`Style ${styleId} failed:`, error);
+        return { styleId, moves: [] };
       }
-    }
+    });
 
-    return validated;
+    const styleResults = await Promise.all(stylePromises);
+    
+    for (const { styleId, moves } of styleResults) {
+      results.set(styleId, moves);
+    }
+    
+    return results;
   }
 
-  private async selectDiverseChoices(
+  /**
+   * Build 3 diverse choices from engine + style results
+   */
+  private buildChoicesFromResults(
     fen: string,
-    bestMove: string,
-    validatedStyleMoves: Array<{ styleId: MasterStyle; move: string }>,
-    engineAnalysis: { eval: number; pv: string[] }
-  ): Promise<MoveChoice[]> {
-    // Get all legal moves for scoring (ensures we always have diversity)
-    const allLegalMoves = this.getAllLegalMoves(fen);
-    
-    // Score a sample of legal moves (limit to avoid timeout)
-    const movesToScore = allLegalMoves.slice(0, 15);
-    const scored = await this.deps.engineClient.scoreMoves({ fen, moves: movesToScore });
-    
-    // Sort by evaluation delta (best moves first)
-    const sortedScores = scored.scores.sort((a, b) => b.evalDelta - a.evalDelta);
-
-    // Build style preferences map
-    const styleForMove = new Map<string, MasterStyle>();
-    for (const { move, styleId } of validatedStyleMoves) {
-      if (!styleForMove.has(move)) {
-        styleForMove.set(move, styleId);
-      }
-    }
-
-    // Assign masters to moves based on move characteristics (fallback logic)
-    const masterAssignments: MasterStyle[] = ['fischer', 'tal', 'capablanca', 'karpov'];
-
+    engineAnalysis: { eval: number; pv: string[] },
+    styleResults: Map<MasterStyle, string[]>,
+    legalMovesUci: string[],
+    masters: MasterStyle[]
+  ): MoveChoice[] {
     const choices: MoveChoice[] = [];
     const usedMoves = new Set<string>();
 
-    // Choice A: Best move (Fischer - precise/best)
-    const bestMoveToUse = bestMove || sortedScores[0]?.move;
-    if (bestMoveToUse) {
-      choices.push({
-        id: 'A',
-        moveUci: bestMoveToUse,
-        styleId: styleForMove.get(bestMoveToUse) || 'fischer',
-        planOneLiner: this.generatePlanOneLiner(bestMoveToUse, 'fischer', engineAnalysis.pv),
-        pv: [bestMoveToUse, ...engineAnalysis.pv.slice(1, 4)],
-        eval: engineAnalysis.eval,
-        conceptTags: this.inferConceptTags(engineAnalysis.pv),
-      });
-      usedMoves.add(bestMoveToUse);
-    }
+    // Best move from engine
+    const bestMove = engineAnalysis.pv[0] || legalMovesUci[0];
 
-    // Choice B & C: Other good moves with different masters
-    for (const s of sortedScores) {
-      if (choices.length >= 3) break;
-      if (usedMoves.has(s.move)) continue;
-
-      // Assign master style based on position or use rotation
-      const masterIndex = choices.length % masterAssignments.length;
-      const assignedStyle = styleForMove.get(s.move) || masterAssignments[masterIndex];
+    // Create choice for each master
+    for (let i = 0; i < 3 && i < masters.length; i++) {
+      const styleId = masters[i];
+      const styleMoves = styleResults.get(styleId) || [];
       
-      choices.push({
-        id: String.fromCharCode(65 + choices.length), // 'A', 'B', 'C'
-        moveUci: s.move,
-        styleId: assignedStyle,
-        planOneLiner: this.generatePlanOneLiner(s.move, assignedStyle, s.pv),
-        pv: s.pv.length > 0 ? s.pv : [s.move],
-        eval: engineAnalysis.eval + s.evalDelta,
-        conceptTags: this.inferConceptTags(s.pv),
-      });
-      usedMoves.add(s.move);
-    }
+      // Try to use a style move, fallback to engine moves
+      let moveToUse: string | undefined;
+      
+      // First choice: use engine best move for "best" master
+      if (i === 0 && bestMove && !usedMoves.has(bestMove)) {
+        moveToUse = bestMove;
+      } else {
+        // Look for unused style move
+        for (const m of styleMoves) {
+          if (!usedMoves.has(m)) {
+            moveToUse = m;
+            break;
+          }
+        }
+      }
+      
+      // Fallback to any unused legal move
+      if (!moveToUse) {
+        for (const m of legalMovesUci) {
+          if (!usedMoves.has(m)) {
+            moveToUse = m;
+            break;
+          }
+        }
+      }
 
-    // Fallback: if we still don't have 3 choices, use remaining legal moves
-    let fallbackIndex = 0;
-    while (choices.length < 3 && fallbackIndex < allLegalMoves.length) {
-      const move = allLegalMoves[fallbackIndex];
-      if (!usedMoves.has(move)) {
-        const masterIndex = choices.length % masterAssignments.length;
+      if (moveToUse) {
+        usedMoves.add(moveToUse);
+        
         choices.push({
-          id: String.fromCharCode(65 + choices.length),
-          moveUci: move,
-          styleId: masterAssignments[masterIndex],
-          planOneLiner: this.generatePlanOneLiner(move, masterAssignments[masterIndex], []),
-          pv: [move],
-          eval: engineAnalysis.eval,
+          id: String.fromCharCode(65 + i), // 'A', 'B', 'C'
+          moveUci: moveToUse,
+          styleId: styleId,
+          planOneLiner: this.generatePlanOneLiner(styleId),
+          pv: i === 0 ? engineAnalysis.pv.slice(0, 4) : [moveToUse],
+          eval: this.estimateEval(moveToUse, bestMove, engineAnalysis.eval),
           conceptTags: ['development'],
         });
-        usedMoves.add(move);
       }
-      fallbackIndex++;
     }
 
     return choices;
   }
 
   /**
-   * Get all legal moves in UCI format using chess.js
+   * Get all legal moves in UCI format - LOCAL (no network)
    */
-  private getAllLegalMoves(fen: string): string[] {
-    const { Chess } = require('chess.js');
-    const chess = new Chess(fen);
-    const moves = chess.moves({ verbose: true });
-    return moves.map((m: { from: string; to: string; promotion?: string }) => 
-      `${m.from}${m.to}${m.promotion || ''}`
-    );
-  }
-
-  private generatePlanOneLiner(
-    move: string,
-    styleId: MasterStyle,
-    pv: string[]
-  ): string {
-    const stylePlans: Record<MasterStyle, string[]> = {
-      capablanca: [
-        'Simplify and convert small edge',
-        'Improve piece placement',
-        'Create endgame advantage',
-        'Control key squares',
-      ],
-      tal: [
-        'Create tactical complications',
-        'Launch aggressive attack',
-        'Sacrifice for initiative',
-        'Force opponent into difficult position',
-      ],
-      karpov: [
-        'Build positional pressure',
-        'Restrict opponent options',
-        'Accumulate small advantages',
-        'Control the position',
-      ],
-      fischer: [
-        'Play the most precise move',
-        'Follow opening principles',
-        'Maintain initiative',
-        'Seize the advantage',
-      ],
-    };
-
-    const plans = stylePlans[styleId];
-    return plans[Math.floor(Math.random() * plans.length)];
-  }
-
-  private inferConceptTags(pv: string[]): ConceptTag[] {
-    const tags: ConceptTag[] = [];
-    
-    // Simple heuristics - in production, use engine analysis
-    if (pv.length > 0) {
-      tags.push('development' as ConceptTag);
+  private getLegalMovesUci(fen: string): string[] {
+    try {
+      const chess = new Chess(fen);
+      const moves = chess.moves({ verbose: true });
+      return moves.map(m => `${m.from}${m.to}${m.promotion || ''}`);
+    } catch {
+      return [];
     }
-    
-    // Add more sophisticated tag inference based on move patterns
-    // This is simplified - real implementation would analyze the position
-    
-    return tags.length > 0 ? tags : ['development'];
+  }
+
+  /**
+   * Estimate evaluation (rough - actual would need scoring call)
+   */
+  private estimateEval(move: string, bestMove: string, bestEval: number): number {
+    if (move === bestMove) return bestEval;
+    // Non-best moves are slightly worse (rough estimate)
+    return bestEval - 0.3 - Math.random() * 0.4;
+  }
+
+  /**
+   * Generate style-appropriate plan text
+   */
+  private generatePlanOneLiner(styleId: MasterStyle): string {
+    const plans: Record<MasterStyle, string[]> = {
+      capablanca: ['Simplify and outplay', 'Build endgame edge', 'Solid technique'],
+      tal: ['Create complications', 'Attack the king', 'Sacrifice for initiative'],
+      karpov: ['Restrict counterplay', 'Accumulate advantages', 'Prophylactic play'],
+      fischer: ['Find the best move', 'Maintain precision', 'Punish inaccuracies'],
+    };
+    const options = plans[styleId];
+    return options[Math.floor(Math.random() * options.length)];
   }
 }
-

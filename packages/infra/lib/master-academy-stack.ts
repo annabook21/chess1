@@ -31,11 +31,13 @@ export class MasterAcademyStack extends cdk.Stack {
       },
     });
 
-    // GSI for listing games by user
+    // GSI for listing games by user (optimized with updatedAt sort key)
     gameTable.addGlobalSecondaryIndex({
-      indexName: 'ByUser',
+      indexName: 'ByUserV2',
       partitionKey: { name: 'userId', type: ddb.AttributeType.STRING },
-      sortKey: { name: 'createdAt', type: ddb.AttributeType.STRING },
+      sortKey: { name: 'updatedAt', type: ddb.AttributeType.STRING },
+      projectionType: ddb.ProjectionType.INCLUDE,
+      nonKeyAttributes: ['status', 'turnNumber', 'opponentStyle', 'lastEval'],
     });
 
     // ═══════════════════════════════════════════════════════════════════

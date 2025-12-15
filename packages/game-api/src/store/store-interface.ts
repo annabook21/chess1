@@ -2,14 +2,19 @@
  * Common interface for game stores
  */
 
-import { TurnPackage, Side } from '@master-academy/contracts';
+import { TurnPackage, Side, MasterStyle } from '@master-academy/contracts';
 import { Chess } from 'chess.js';
 
 export interface GameState {
   gameId: string;
+  userId?: string;
   chess: Chess;
   currentTurn: TurnPackage | null;
   userElo: number;
+  turnNumber?: number;
+  opponentStyle?: MasterStyle;
+  status?: 'active' | 'completed' | 'abandoned';
+  version?: number;
   createdAt: Date;
 }
 
@@ -20,7 +25,7 @@ export interface GameUpdateFields {
 }
 
 export interface IGameStore {
-  createGame(userElo?: number): Promise<string> | string;
+  createGame(userElo?: number, userId?: string): Promise<string> | string;
   getGame(gameId: string): Promise<GameState | null> | GameState | null;
   updateGame(gameId: string, updates: GameUpdateFields): Promise<void> | void;
   getFen(gameId: string): Promise<string | null> | string | null;
