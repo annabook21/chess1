@@ -88,15 +88,18 @@
 .game-area {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 24px;
+  width: 100%;
 }
 
 /* Board Container with Eval Bar */
 .board-container {
   display: flex;
   gap: 12px;
-  align-items: stretch;
+  align-items: center;
   justify-content: center;
+  width: 100%;
 }
 
 .board-container .eval-bar-container {
@@ -241,34 +244,34 @@
   }
 
   .app-main {
-    padding: 12px;
-    gap: 12px;
+    padding: 8px;
+    gap: 8px;
   }
   
-  /* Game area - single column, compact */
+  /* Game area - single column, compact, centered */
   .game-area {
-    gap: 12px;
+    gap: 8px;
+    width: 100%;
+    align-items: center;
   }
   
-  /* Board container - sticky at top */
+  /* Board container - centered, full width */
   .board-container {
     position: sticky;
     top: 52px; /* Below compact header */
     z-index: 50;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     background: var(--bg-primary);
-    padding-bottom: 8px;
-    margin: -12px -12px 0;
-    padding: 8px 12px;
+    padding: 8px 0;
+    width: 100%;
+    margin: 0;
   }
   
+  /* Hide eval bar on mobile - too narrow */
   .board-container .eval-bar-container {
-    width: 100%;
-    height: 12px;
-    min-height: auto;
-    order: 1; /* Move eval bar below board on mobile */
-    margin-top: 8px;
+    display: none;
   }
   
   /* Turn indicator - compact */
@@ -333,8 +336,15 @@
   }
   
   /* Hide sidebar on mobile */
-  .app-main > aside {
-    display: none;
+  .app-main > aside,
+  aside {
+    display: none !important;
+  }
+  
+  /* Force single column layout */
+  .app-main {
+    display: flex;
+    flex-direction: column;
   }
 }
 

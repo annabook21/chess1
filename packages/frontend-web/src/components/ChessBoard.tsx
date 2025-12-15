@@ -4,13 +4,48 @@
  * Using react-chessboard v4.x
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Chessboard } from 'react-chessboard';
 import type { Square } from 'react-chessboard/dist/chessboard/types';
 import { MoveChoice } from '@master-academy/contracts';
 import { OverlayRenderer, useOverlayManager } from '../overlays';
 import type { OverlayContext } from '../overlays';
 import './ChessBoard.css';
+
+// Hook to calculate responsive board size
+function useBoardSize(): number {
+  const [boardSize, setBoardSize] = useState(440);
+
+  useEffect(() => {
+    function calculateSize() {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      
+      if (width <= 480) {
+        // Mobile: use almost full width, leave padding
+        return Math.min(width - 24, height * 0.5);
+      } else if (width <= 768) {
+        // Tablet: slightly smaller
+        return Math.min(width - 48, 440);
+      } else {
+        // Desktop: fixed size
+        return 440;
+      }
+    }
+
+    function handleResize() {
+      setBoardSize(calculateSize());
+    }
+
+    // Initial calculation
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return boardSize;
+}
 
 interface ChessBoardProps {
   fen: string;
@@ -30,6 +65,9 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
   predictionHover,
   lastMove,
 }) => {
+  // Responsive board size
+  const boardSize = useBoardSize();
+
   // Overlay manager for plugin-based visualization
   const overlayManager = useOverlayManager({
     defaultActiveProviders: ['selectedMove', 'hoverPreview'],
@@ -141,7 +179,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
       <div className="chess-board-container">
         <Chessboard
           position={fen}
-          boardWidth={440}
+          boardWidth={boardSize}
           arePiecesDraggable={false}
           customSquareStyles={customSquareStyles}
           customArrows={customArrows}
@@ -159,7 +197,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
         />
         
         {/* Plugin-based overlay system */}
-        <OverlayRenderer frames={overlayFrames} boardSize={440} />
+        <OverlayRenderer frames={overlayFrames} boardSize={boardSize} />
       </div>
       
       <div className={`turn-indicator ${isWhiteToMove ? 'white-turn' : 'black-turn'}`}>
