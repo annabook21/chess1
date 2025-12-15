@@ -12,7 +12,7 @@ import {
 } from '@master-academy/contracts';
 
 const router = Router();
-const engine = new StockfishWrapper();
+const engine = StockfishWrapper.getInstance();
 
 /**
  * POST /analyze

@@ -1,132 +1,299 @@
 /**
- * Chess Engine Wrapper
+ * REAL Stockfish Engine Wrapper
  * 
- * Uses chess.js for move validation and positional analysis.
- * Includes material + positional evaluation for meaningful feedback.
+ * Uses Stockfish binary via child_process for reliable UCI communication.
+ * In Docker: uses /usr/games/stockfish (installed via apt)
+ * Locally: falls back to chess.js heuristics if stockfish not found
  */
 
-import { Chess, Square, PieceSymbol, Color } from 'chess.js';
+import { spawn, ChildProcess } from 'child_process';
+import { Chess } from 'chess.js';
+import * as readline from 'readline';
 
 export interface EngineAnalysis {
-  eval: number; // centipawns (positive = white advantage)
-  pv: string[]; // principal variation (UCI moves)
+  eval: number;       // centipawns (positive = white advantage)
+  pv: string[];       // principal variation (UCI moves)
   depth: number;
-  mate?: number; // mate in N moves (if found)
+  mate?: number;      // mate in N moves (if found)
 }
 
-// Piece-square tables for positional evaluation (from white's perspective)
-const PAWN_TABLE = [
-  0,  0,  0,  0,  0,  0,  0,  0,
-  50, 50, 50, 50, 50, 50, 50, 50,
-  10, 10, 20, 30, 30, 20, 10, 10,
-  5,  5, 10, 25, 25, 10,  5,  5,
-  0,  0,  0, 20, 20,  0,  0,  0,
-  5, -5,-10,  0,  0,-10, -5,  5,
-  5, 10, 10,-20,-20, 10, 10,  5,
-  0,  0,  0,  0,  0,  0,  0,  0
-];
-
-const KNIGHT_TABLE = [
-  -50,-40,-30,-30,-30,-30,-40,-50,
-  -40,-20,  0,  0,  0,  0,-20,-40,
-  -30,  0, 10, 15, 15, 10,  0,-30,
-  -30,  5, 15, 20, 20, 15,  5,-30,
-  -30,  0, 15, 20, 20, 15,  0,-30,
-  -30,  5, 10, 15, 15, 10,  5,-30,
-  -40,-20,  0,  5,  5,  0,-20,-40,
-  -50,-40,-30,-30,-30,-30,-40,-50
-];
-
-const BISHOP_TABLE = [
-  -20,-10,-10,-10,-10,-10,-10,-20,
-  -10,  0,  0,  0,  0,  0,  0,-10,
-  -10,  0,  5, 10, 10,  5,  0,-10,
-  -10,  5,  5, 10, 10,  5,  5,-10,
-  -10,  0, 10, 10, 10, 10,  0,-10,
-  -10, 10, 10, 10, 10, 10, 10,-10,
-  -10,  5,  0,  0,  0,  0,  5,-10,
-  -20,-10,-10,-10,-10,-10,-10,-20
-];
-
-const ROOK_TABLE = [
-  0,  0,  0,  0,  0,  0,  0,  0,
-  5, 10, 10, 10, 10, 10, 10,  5,
-  -5,  0,  0,  0,  0,  0,  0, -5,
-  -5,  0,  0,  0,  0,  0,  0, -5,
-  -5,  0,  0,  0,  0,  0,  0, -5,
-  -5,  0,  0,  0,  0,  0,  0, -5,
-  -5,  0,  0,  0,  0,  0,  0, -5,
-  0,  0,  0,  5,  5,  0,  0,  0
-];
-
-const QUEEN_TABLE = [
-  -20,-10,-10, -5, -5,-10,-10,-20,
-  -10,  0,  0,  0,  0,  0,  0,-10,
-  -10,  0,  5,  5,  5,  5,  0,-10,
-  -5,  0,  5,  5,  5,  5,  0, -5,
-  0,  0,  5,  5,  5,  5,  0, -5,
-  -10,  5,  5,  5,  5,  5,  0,-10,
-  -10,  0,  5,  0,  0,  0,  0,-10,
-  -20,-10,-10, -5, -5,-10,-10,-20
-];
-
-const KING_MIDDLEGAME_TABLE = [
-  -30,-40,-40,-50,-50,-40,-40,-30,
-  -30,-40,-40,-50,-50,-40,-40,-30,
-  -30,-40,-40,-50,-50,-40,-40,-30,
-  -30,-40,-40,-50,-50,-40,-40,-30,
-  -20,-30,-30,-40,-40,-30,-30,-20,
-  -10,-20,-20,-20,-20,-20,-20,-10,
-  20, 20,  0,  0,  0,  0, 20, 20,
-  20, 30, 10,  0,  0, 10, 30, 20
-];
+// Engine singleton
+let engineInstance: StockfishWrapper | null = null;
 
 export class StockfishWrapper {
-  /**
-   * Analyze a position - returns eval based on material + position
-   */
-  async analyzePosition(fen: string, depth: number): Promise<EngineAnalysis> {
-    const board = new Chess(fen);
-    const evaluation = this.evaluate(board);
-    const legalMoves = this.getLegalMovesUci(board);
+  private process: ChildProcess | null = null;
+  private ready: boolean = false;
+  private uciOk: boolean = false;
+  private currentElo: number = 3000;
+  private pendingCallbacks: Map<string, (lines: string[]) => void> = new Map();
+  private outputBuffer: string[] = [];
+  private useFallback: boolean = false;
+  private debugging: boolean = process.env.DEBUG_ENGINE === 'true';
+
+  constructor() {
+    this.initEngine();
+  }
+
+  static getInstance(): StockfishWrapper {
+    if (!engineInstance) {
+      engineInstance = new StockfishWrapper();
+    }
+    return engineInstance;
+  }
+
+  private initEngine(): void {
+    // Try common stockfish paths
+    const paths = [
+      '/usr/games/stockfish',      // Linux apt install
+      '/usr/local/bin/stockfish',  // Homebrew
+      '/usr/bin/stockfish',        // Linux
+      'stockfish',                 // In PATH
+    ];
+
+    let stockfishPath: string | null = null;
     
-    // Check for checkmate/stalemate
-    if (board.isCheckmate()) {
-      const turn = board.turn();
-      return {
-        eval: turn === 'w' ? -10000 : 10000,
-        pv: [],
-        depth: 1,
-        mate: 0,
+    // Check which path exists using existsSync-like approach
+    const { existsSync } = require('fs');
+    for (const p of paths) {
+      // For absolute paths, check if file exists
+      if (p.startsWith('/')) {
+        if (existsSync(p)) {
+          stockfishPath = p;
+          break;
+        }
+      }
+    }
+
+    if (!stockfishPath) {
+      console.warn('[STOCKFISH] No stockfish binary found - using fallback heuristics');
+      this.useFallback = true;
+      this.ready = true;
+      return;
+    }
+
+    console.log('[STOCKFISH] Starting engine from:', stockfishPath);
+
+    try {
+      this.process = spawn(stockfishPath, [], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+    } catch (err) {
+      console.error('[STOCKFISH] Failed to spawn process:', err);
+      this.useFallback = true;
+      this.ready = true;
+      return;
+    }
+
+    const rl = readline.createInterface({
+      input: this.process.stdout!,
+      terminal: false,
+    });
+
+    rl.on('line', (line: string) => {
+      if (this.debugging) {
+        console.log('[STOCKFISH] <<', line);
+      }
+      this.handleLine(line);
+    });
+
+    this.process.stderr?.on('data', (data: Buffer) => {
+      console.error('[STOCKFISH] stderr:', data.toString());
+    });
+
+    this.process.on('error', (err: Error) => {
+      console.error('[STOCKFISH] Process error:', err);
+      this.useFallback = true;
+      this.ready = true;
+    });
+
+    this.process.on('close', (code: number) => {
+      console.log('[STOCKFISH] Process exited with code:', code);
+      this.ready = false;
+    });
+
+    // Initialize UCI
+    this.send('uci');
+  }
+
+  private handleLine(line: string): void {
+    this.outputBuffer.push(line);
+
+    if (line === 'uciok') {
+      this.uciOk = true;
+      // Set hash and threads
+      this.send('setoption name Hash value 64');
+      this.send('setoption name Threads value 1');
+      this.send('isready');
+    } else if (line === 'readyok') {
+      this.ready = true;
+      console.log('[STOCKFISH] Engine ready');
+    } else if (line.startsWith('bestmove')) {
+      // Analysis complete - resolve pending callback
+      const cb = this.pendingCallbacks.get('go');
+      if (cb) {
+        this.pendingCallbacks.delete('go');
+        cb([...this.outputBuffer]);
+        this.outputBuffer = [];
+      }
+    }
+  }
+
+  private send(cmd: string): void {
+    if (this.debugging) {
+      console.log('[STOCKFISH] >>', cmd);
+    }
+    if (this.process?.stdin) {
+      this.process.stdin.write(cmd + '\n');
+    }
+  }
+
+  private async waitReady(timeoutMs: number = 5000): Promise<boolean> {
+    if (this.useFallback) return true;
+    if (this.ready) return true;
+
+    return new Promise((resolve) => {
+      const start = Date.now();
+      const check = () => {
+        if (this.ready) {
+          resolve(true);
+        } else if (Date.now() - start > timeoutMs) {
+          console.warn('[STOCKFISH] Timeout waiting for engine - using fallback');
+          this.useFallback = true;
+          resolve(true);
+        } else {
+          setTimeout(check, 50);
+        }
       };
+      check();
+    });
+  }
+
+  /**
+   * Analyze a position and return the best move with evaluation
+   */
+  async analyzePosition(fen: string, depth: number = 15): Promise<EngineAnalysis> {
+    await this.waitReady();
+
+    if (this.useFallback) {
+      return this.fallbackAnalysis(fen);
     }
-    
-    if (board.isStalemate() || board.isDraw()) {
-      return { eval: 0, pv: [], depth: 1 };
+
+    return new Promise((resolve) => {
+      this.outputBuffer = [];
+
+      this.pendingCallbacks.set('go', (lines: string[]) => {
+        const result = this.parseAnalysisOutput(lines, fen);
+        resolve(result);
+      });
+
+      this.send(`position fen ${fen}`);
+      this.send(`go depth ${depth}`);
+
+      // Timeout fallback
+      setTimeout(() => {
+        if (this.pendingCallbacks.has('go')) {
+          this.pendingCallbacks.delete('go');
+          this.send('stop');
+          resolve(this.fallbackAnalysis(fen));
+        }
+      }, 10000);
+    });
+  }
+
+  /**
+   * Analyze position with time limit
+   */
+  async analyzePositionWithTime(fen: string, timeMs: number): Promise<EngineAnalysis> {
+    await this.waitReady();
+
+    if (this.useFallback) {
+      return this.fallbackAnalysis(fen);
     }
-    
+
+    return new Promise((resolve) => {
+      this.outputBuffer = [];
+
+      this.pendingCallbacks.set('go', (lines: string[]) => {
+        const result = this.parseAnalysisOutput(lines, fen);
+        resolve(result);
+      });
+
+      this.send(`position fen ${fen}`);
+      this.send(`go movetime ${timeMs}`);
+
+      setTimeout(() => {
+        if (this.pendingCallbacks.has('go')) {
+          this.pendingCallbacks.delete('go');
+          this.send('stop');
+          resolve(this.fallbackAnalysis(fen));
+        }
+      }, timeMs + 5000);
+    });
+  }
+
+  private parseAnalysisOutput(lines: string[], fen: string): EngineAnalysis {
+    let bestEval = 0;
+    let bestPv: string[] = [];
+    let bestDepth = 0;
+    let mate: number | undefined;
+    let bestMove = '';
+
+    for (const line of lines) {
+      if (line.startsWith('info') && line.includes('score')) {
+        const depthMatch = line.match(/depth (\d+)/);
+        const scoreMatch = line.match(/score (cp|mate) (-?\d+)/);
+        const pvMatch = line.match(/ pv (.+)/);
+
+        if (depthMatch) {
+          bestDepth = parseInt(depthMatch[1]);
+        }
+
+        if (scoreMatch) {
+          if (scoreMatch[1] === 'cp') {
+            bestEval = parseInt(scoreMatch[2]);
+            mate = undefined;
+          } else if (scoreMatch[1] === 'mate') {
+            mate = parseInt(scoreMatch[2]);
+            bestEval = mate > 0 ? 10000 - mate * 100 : -10000 - mate * 100;
+          }
+        }
+
+        if (pvMatch) {
+          bestPv = pvMatch[1].trim().split(' ').filter(m => m.length >= 4);
+        }
+      }
+
+      if (line.startsWith('bestmove')) {
+        const match = line.match(/bestmove (\w+)/);
+        if (match) {
+          bestMove = match[1];
+        }
+      }
+    }
+
+    // Ensure PV has bestmove
+    if (bestPv.length === 0 && bestMove) {
+      bestPv = [bestMove];
+    }
+
     return {
-      eval: evaluation,
-      pv: legalMoves.slice(0, 3),
-      depth: Math.min(depth, 1),
+      eval: bestEval,
+      pv: bestPv.length > 0 ? bestPv : this.getFallbackMoves(fen),
+      depth: bestDepth,
+      mate,
     };
   }
 
   /**
-   * Analyze a position with time limit
-   */
-  async analyzePositionWithTime(fen: string, timeMs: number): Promise<EngineAnalysis> {
-    return this.analyzePosition(fen, 10);
-  }
-
-  /**
-   * Check if a move is legal in the given position
+   * Check if a move is legal
    */
   async isLegalMove(fen: string, moveUci: string): Promise<boolean> {
     try {
       const chess = new Chess(fen);
-      const [from, to, promo] = this.parseUci(moveUci);
-      const move = chess.move({ from, to, promotion: promo as any });
+      const from = moveUci.substring(0, 2);
+      const to = moveUci.substring(2, 4);
+      const promotion = moveUci.length > 4 ? moveUci[4] : undefined;
+      const move = chess.move({ from, to, promotion: promotion as any });
       return !!move;
     } catch {
       return false;
@@ -134,120 +301,88 @@ export class StockfishWrapper {
   }
 
   /**
-   * Get all legal moves in UCI format
-   */
-  getLegalMovesUci(board: Chess): string[] {
-    const moves = board.moves({ verbose: true });
-    return moves.map(m => `${m.from}${m.to}${m.promotion || ''}`);
-  }
-
-  /**
-   * Score multiple moves from a position
+   * Score multiple moves
    */
   async scoreMoves(fen: string, moves: string[]): Promise<Array<{ move: string; evalDelta: number; pv: string[] }>> {
-    const board = new Chess(fen);
-    const baseEval = this.evaluate(board);
-    const sideToMove = board.turn();
+    const baseAnalysis = await this.analyzePosition(fen, 10);
+    const baseEval = baseAnalysis.eval;
+    const chess = new Chess(fen);
+    const sideToMove = chess.turn();
 
-    const results = moves.map(moveUci => {
-      const newFen = this.makeMove(fen, moveUci);
-      if (!newFen) {
-        return { move: moveUci, evalDelta: -1000, pv: [] };
+    const results: Array<{ move: string; evalDelta: number; pv: string[] }> = [];
+
+    for (const moveUci of moves) {
+      try {
+        const from = moveUci.substring(0, 2);
+        const to = moveUci.substring(2, 4);
+        const promotion = moveUci.length > 4 ? moveUci[4] : undefined;
+
+        const testChess = new Chess(fen);
+        const move = testChess.move({ from, to, promotion: promotion as any });
+
+        if (!move) {
+          results.push({ move: moveUci, evalDelta: -1000, pv: [] });
+          continue;
+        }
+
+        const newFen = testChess.fen();
+        const newAnalysis = await this.analyzePosition(newFen, 8);
+
+        // Flip eval (it's from opponent's perspective now)
+        const newEval = -newAnalysis.eval;
+        const evalDelta = sideToMove === 'w' ? newEval - baseEval : baseEval - newEval;
+
+        results.push({
+          move: moveUci,
+          evalDelta,
+          pv: [moveUci, ...newAnalysis.pv.slice(0, 3)],
+        });
+      } catch {
+        results.push({ move: moveUci, evalDelta: -1000, pv: [] });
       }
+    }
 
-      const newBoard = new Chess(newFen);
-      const newEval = this.evaluate(newBoard);
-      
-      // Flip sign based on side to move
-      const evalDelta = sideToMove === 'w' ? newEval - baseEval : baseEval - newEval;
-
-      return {
-        move: moveUci,
-        evalDelta,
-        pv: [moveUci],
-      };
-    });
-
-    // Sort by evalDelta descending (best moves first)
     return results.sort((a, b) => b.evalDelta - a.evalDelta);
   }
 
   /**
-   * Full evaluation: material + positional factors
+   * Set engine playing strength using UCI_Elo
    */
-  private evaluate(board: Chess): number {
-    let score = 0;
-    
-    // Material evaluation
-    score += this.evaluateMaterial(board);
-    
-    // Piece-square tables (positional)
-    score += this.evaluatePieceSquares(board);
-    
-    // Mobility (number of legal moves)
-    score += this.evaluateMobility(board);
-    
-    // Center control
-    score += this.evaluateCenterControl(board);
-    
-    // Development in opening
-    score += this.evaluateDevelopment(board);
-    
-    return score;
+  setStrength(elo: number): void {
+    this.currentElo = Math.max(1320, Math.min(3190, elo));
+
+    if (!this.useFallback && this.uciOk) {
+      this.send('setoption name UCI_LimitStrength value true');
+      this.send(`setoption name UCI_Elo value ${this.currentElo}`);
+      console.log(`[STOCKFISH] Strength set to ${this.currentElo} ELO`);
+    }
   }
 
   /**
-   * Material evaluation in centipawns
+   * Fallback analysis using chess.js heuristics
    */
-  private evaluateMaterial(board: Chess): number {
-    const pieceValues: Record<string, number> = {
-      p: 100, n: 320, b: 330, r: 500, q: 900, k: 0,
+  private fallbackAnalysis(fen: string): EngineAnalysis {
+    const chess = new Chess(fen);
+    const moves = chess.moves({ verbose: true });
+    const eval_ = this.evaluatePosition(chess);
+
+    return {
+      eval: eval_,
+      pv: moves.slice(0, 3).map(m => `${m.from}${m.to}${m.promotion || ''}`),
+      depth: 1,
     };
+  }
 
-    let eval_ = 0;
+  private evaluatePosition(board: Chess): number {
+    const pieceValues: Record<string, number> = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
+    let score = 0;
+
     const boardState = board.board();
-
     for (const row of boardState) {
       for (const square of row) {
         if (square) {
           const value = pieceValues[square.type] || 0;
-          eval_ += square.color === 'w' ? value : -value;
-        }
-      }
-    }
-
-    return eval_;
-  }
-
-  /**
-   * Piece-square table evaluation
-   */
-  private evaluatePieceSquares(board: Chess): number {
-    let score = 0;
-    const boardState = board.board();
-    
-    const tables: Record<PieceSymbol, number[]> = {
-      p: PAWN_TABLE,
-      n: KNIGHT_TABLE,
-      b: BISHOP_TABLE,
-      r: ROOK_TABLE,
-      q: QUEEN_TABLE,
-      k: KING_MIDDLEGAME_TABLE,
-    };
-
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
-        const piece = boardState[row][col];
-        if (piece) {
-          const table = tables[piece.type];
-          if (table) {
-            // White pieces use table as-is, black pieces mirror it
-            const tableIndex = piece.color === 'w' 
-              ? row * 8 + col 
-              : (7 - row) * 8 + col;
-            const posValue = table[tableIndex] || 0;
-            score += piece.color === 'w' ? posValue : -posValue;
-          }
+          score += square.color === 'w' ? value : -value;
         }
       }
     }
@@ -255,122 +390,25 @@ export class StockfishWrapper {
     return score;
   }
 
-  /**
-   * Mobility evaluation (scaled down to not dominate)
-   */
-  private evaluateMobility(board: Chess): number {
-    const currentTurn = board.turn();
-    const ourMoves = board.moves().length;
-    
-    // Switch turns to count opponent moves
-    const fen = board.fen();
-    const parts = fen.split(' ');
-    parts[1] = currentTurn === 'w' ? 'b' : 'w';
-    
-    try {
-      const oppBoard = new Chess(parts.join(' '));
-      const theirMoves = oppBoard.moves().length;
-      const mobilityDiff = ourMoves - theirMoves;
-      
-      // Scale: each extra move = ~2 centipawns
-      const mobilityScore = mobilityDiff * 2;
-      return currentTurn === 'w' ? mobilityScore : -mobilityScore;
-    } catch {
-      return 0;
-    }
-  }
-
-  /**
-   * Center control evaluation
-   */
-  private evaluateCenterControl(board: Chess): number {
-    const centerSquares: Square[] = ['d4', 'd5', 'e4', 'e5'];
-    const extendedCenter: Square[] = ['c3', 'c4', 'c5', 'c6', 'd3', 'd6', 'e3', 'e6', 'f3', 'f4', 'f5', 'f6'];
-    
-    let score = 0;
-    
-    for (const sq of centerSquares) {
-      const piece = board.get(sq);
-      if (piece) {
-        const value = piece.type === 'p' ? 15 : 10;
-        score += piece.color === 'w' ? value : -value;
-      }
-    }
-    
-    for (const sq of extendedCenter) {
-      const piece = board.get(sq);
-      if (piece) {
-        const value = piece.type === 'p' ? 5 : 3;
-        score += piece.color === 'w' ? value : -value;
-      }
-    }
-
-    return score;
-  }
-
-  /**
-   * Development evaluation (early game)
-   */
-  private evaluateDevelopment(board: Chess): number {
-    const fen = board.fen();
-    const moveCount = parseInt(fen.split(' ')[5]) || 1;
-    
-    // Only matters in opening (first 15 moves)
-    if (moveCount > 15) return 0;
-    
-    let score = 0;
-    const boardState = board.board();
-    
-    // Penalty for unmoved minor pieces
-    const whiteBackRank = boardState[7];
-    const blackBackRank = boardState[0];
-    
-    // White knights on b1/g1
-    if (whiteBackRank[1]?.type === 'n') score -= 15;
-    if (whiteBackRank[6]?.type === 'n') score -= 15;
-    
-    // White bishops on c1/f1
-    if (whiteBackRank[2]?.type === 'b') score -= 15;
-    if (whiteBackRank[5]?.type === 'b') score -= 15;
-    
-    // Black knights on b8/g8
-    if (blackBackRank[1]?.type === 'n') score += 15;
-    if (blackBackRank[6]?.type === 'n') score += 15;
-    
-    // Black bishops on c8/f8
-    if (blackBackRank[2]?.type === 'b') score += 15;
-    if (blackBackRank[5]?.type === 'b') score += 15;
-
-    return score;
-  }
-
-  private parseUci(uci: string): [string, string, string?] {
-    const from = uci.substring(0, 2);
-    const to = uci.substring(2, 4);
-    const promo = uci.length > 4 ? uci[4] : undefined;
-    return [from, to, promo];
-  }
-
-  private makeMove(fen: string, moveUci: string): string | null {
+  private getFallbackMoves(fen: string): string[] {
     try {
       const chess = new Chess(fen);
-      const [from, to, promo] = this.parseUci(moveUci);
-      const move = chess.move({ from, to, promotion: promo as any });
-      if (!move) return null;
-      return chess.fen();
+      const moves = chess.moves({ verbose: true });
+      return moves.slice(0, 3).map(m => `${m.from}${m.to}${m.promotion || ''}`);
     } catch {
-      return null;
+      return [];
     }
-  }
-
-  /**
-   * Set engine strength (no-op for chess.js implementation)
-   */
-  setStrength(elo: number): void {
-    // No-op - chess.js doesn't have strength levels
   }
 
   destroy(): void {
-    // No cleanup needed
+    if (this.process) {
+      this.send('quit');
+      setTimeout(() => {
+        this.process?.kill();
+        this.process = null;
+      }, 100);
+    }
+    this.ready = false;
+    engineInstance = null;
   }
 }
