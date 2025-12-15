@@ -50,9 +50,24 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
     predictions: maiaPredictions,
     isLoading: maiaLoading,
     isReady: maiaReady,
+    error: maiaError,
     inferenceTime,
     modelRating,
   } = useMaiaPredictions(fen);
+
+  // Track if we've waited too long for Maia (show fallback after 5 seconds)
+  const [showFallback, setShowFallback] = useState(false);
+  
+  useEffect(() => {
+    if (maiaLoading && !maiaReady) {
+      const timer = setTimeout(() => {
+        setShowFallback(true);
+      }, 5000); // Show fallback after 5 seconds
+      return () => clearTimeout(timer);
+    } else {
+      setShowFallback(false);
+    }
+  }, [maiaLoading, maiaReady]);
 
   // Convert Maia predictions to candidate moves
   const candidateMoves = useMemo((): CandidateMove[] => {
@@ -68,9 +83,13 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
       }));
     }
 
-    // Fallback to simple heuristic if Maia not ready
+    // Fallback to simple heuristic if Maia not ready or errored
     return getFallbackMoves(fen);
   }, [maiaPredictions, fen]);
+  
+  // Determine if we should show loading state
+  // Show loading only if: Maia is loading AND we haven't timed out AND no fallback available
+  const shouldShowLoading = maiaLoading && !showFallback && candidateMoves.length === 0;
 
   // Countdown timer
   useEffect(() => {
@@ -199,7 +218,21 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
         </div>
       )}
 
-      {maiaLoading ? (
+      {/* Show error if Maia failed */}
+      {maiaError && !maiaReady && (
+        <div className="maia-error" style={{ 
+          padding: '8px 12px', 
+          background: 'rgba(239, 68, 68, 0.1)', 
+          borderRadius: '8px',
+          fontSize: '12px',
+          color: '#ef4444',
+          marginBottom: '12px'
+        }}>
+          ⚠️ Neural network unavailable - using chess heuristics
+        </div>
+      )}
+
+      {shouldShowLoading ? (
         <div className="maia-loading">
           <div className="loading-spinner"></div>
           <span>Loading human-like predictions...</span>

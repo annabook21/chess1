@@ -76,7 +76,7 @@ export function MaiaProvider({
 }: MaiaProviderProps) {
   const engineRef = useRef<MaiaEngine | MaiaWorkerEngine | null>(null);
   const [state, setState] = useState<MaiaEngineState>({
-    isLoading: false,
+    isLoading: autoLoad, // Start in loading state if autoLoad
     isReady: false,
     currentModel: null,
     error: null,
@@ -85,36 +85,110 @@ export function MaiaProvider({
 
   // Initialize engine
   useEffect(() => {
-    async function init() {
+    let disposed = false;
+    
+    async function initWithWorker(): Promise<boolean> {
       try {
-        if (useWorker) {
-          const workerEngine = new MaiaWorkerEngine();
-          await workerEngine.init();
-          engineRef.current = workerEngine;
-          setIsUsingWorker(true);
-        } else {
-          engineRef.current = new MaiaEngine();
-          setIsUsingWorker(false);
-        }
-
+        console.log('[MaiaProvider] Attempting to initialize Web Worker engine...');
+        const workerEngine = new MaiaWorkerEngine();
+        
+        // Add timeout for worker initialization (10 seconds)
+        const initPromise = workerEngine.init();
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Worker init timeout')), 10000);
+        });
+        
+        await Promise.race([initPromise, timeoutPromise]);
+        
+        if (disposed) return false;
+        
+        engineRef.current = workerEngine;
+        setIsUsingWorker(true);
+        
         if (autoLoad) {
-          await loadModel(initialRating);
+          // Add timeout for model loading (45 seconds)
+          setState(prev => ({ ...prev, isLoading: true }));
+          
+          const loadPromise = workerEngine.loadModel(initialRating);
+          const loadTimeout = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Model loading timeout in worker')), 45000);
+          });
+          
+          await Promise.race([loadPromise, loadTimeout]);
+          
+          if (disposed) return false;
+          
+          setState({
+            isLoading: false,
+            isReady: true,
+            currentModel: initialRating,
+            error: null,
+          });
+          console.log('[MaiaProvider] ✅ Worker engine initialized successfully');
         }
+        
+        return true;
       } catch (error) {
-        console.warn('[MaiaProvider] Worker failed, falling back to main thread:', error);
-        // Fallback to main thread engine
-        engineRef.current = new MaiaEngine();
+        console.warn('[MaiaProvider] Worker initialization failed:', error);
+        return false;
+      }
+    }
+    
+    async function initWithMainThread(): Promise<boolean> {
+      try {
+        console.log('[MaiaProvider] Initializing main thread engine...');
+        const mainEngine = new MaiaEngine();
+        
+        if (disposed) return false;
+        
+        engineRef.current = mainEngine;
         setIsUsingWorker(false);
         
         if (autoLoad) {
-          await loadModel(initialRating);
+          setState(prev => ({ ...prev, isLoading: true }));
+          await mainEngine.loadModel(initialRating);
+          
+          if (disposed) return false;
+          
+          setState({
+            isLoading: false,
+            isReady: true,
+            currentModel: initialRating,
+            error: null,
+          });
+          console.log('[MaiaProvider] ✅ Main thread engine initialized successfully');
         }
+        
+        return true;
+      } catch (error) {
+        console.error('[MaiaProvider] Main thread initialization failed:', error);
+        setState({
+          isLoading: false,
+          isReady: false,
+          currentModel: null,
+          error: error instanceof Error ? error.message : 'Failed to initialize Maia',
+        });
+        return false;
+      }
+    }
+    
+    async function init() {
+      // Try worker first, fall back to main thread
+      if (useWorker) {
+        const workerSuccess = await initWithWorker();
+        if (!workerSuccess && !disposed) {
+          console.log('[MaiaProvider] Falling back to main thread...');
+          await initWithMainThread();
+        }
+      } else {
+        await initWithMainThread();
       }
     }
 
     init();
 
     return () => {
+      disposed = true;
       if (engineRef.current) {
         if ('dispose' in engineRef.current) {
           engineRef.current.dispose();
@@ -242,9 +316,16 @@ export function useMaiaPredictions(fen: string | null, debounceMs: number = 100)
 
   useEffect(() => {
     // Clear on null FEN
-    if (!fen || !state.isReady) {
+    if (!fen) {
       setPredictions([]);
       setIsLoading(false);
+      return;
+    }
+
+    // If model is still loading, don't try to predict yet
+    // The isLoading state from context will handle the UI
+    if (!state.isReady) {
+      // Don't set local isLoading to false - let state.isLoading handle it
       return;
     }
 
@@ -282,6 +363,7 @@ export function useMaiaPredictions(fen: string | null, debounceMs: number = 100)
         // Update history for better future predictions
         updateHistory(fen);
       } catch (err) {
+        console.error('[useMaiaPredictions] Prediction error:', err);
         setError(err instanceof Error ? err.message : 'Prediction failed');
         setPredictions([]);
       } finally {
@@ -298,6 +380,7 @@ export function useMaiaPredictions(fen: string | null, debounceMs: number = 100)
 
   return useMemo(() => ({
     predictions,
+    // Show loading if: local prediction is loading OR model is still loading
     isLoading: isLoading || state.isLoading,
     isReady: state.isReady,
     error: error || state.error,
