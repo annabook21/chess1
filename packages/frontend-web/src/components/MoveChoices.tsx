@@ -3,6 +3,7 @@
  * Displays 3 master-style move choices with beautiful cards
  */
 
+import { useState, useRef, useEffect } from 'react';
 import { MoveChoice } from '@master-academy/contracts';
 import './MoveChoices.css';
 
@@ -56,6 +57,42 @@ export const MoveChoices: React.FC<MoveChoicesProps> = ({
   onSelectChoice,
   onHoverChoice,
 }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Track scroll position to update active dot
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || !isMobile) return;
+
+    const handleScroll = () => {
+      const scrollLeft = container.scrollLeft;
+      const cardWidth = container.scrollWidth / choices.length;
+      const newIndex = Math.round(scrollLeft / cardWidth);
+      setActiveIndex(Math.min(newIndex, choices.length - 1));
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [choices.length, isMobile]);
+
+  // Scroll to card when dot is clicked
+  const scrollToCard = (index: number) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const cardWidth = container.scrollWidth / choices.length;
+    container.scrollTo({ left: cardWidth * index, behavior: 'smooth' });
+  };
+
   const getMasterInfo = (styleId: string) => {
     return MASTER_INFO[styleId] || { 
       name: styleId, 
@@ -67,7 +104,8 @@ export const MoveChoices: React.FC<MoveChoicesProps> = ({
   };
 
   return (
-    <div className="move-choices-grid">
+    <div className="move-choices-wrapper">
+      <div className="move-choices-grid" ref={scrollRef}>
       {choices.map((choice, index) => {
         const master = getMasterInfo(choice.styleId);
         const isSelected = selectedChoice === choice.id;
@@ -130,6 +168,21 @@ export const MoveChoices: React.FC<MoveChoicesProps> = ({
           </button>
         );
       })}
+      </div>
+      
+      {/* Scroll indicator dots for mobile */}
+      {isMobile && choices.length > 1 && (
+        <div className="scroll-hint">
+          {choices.map((_, index) => (
+            <button
+              key={index}
+              className={`scroll-hint-dot ${activeIndex === index ? 'active' : ''}`}
+              onClick={() => scrollToCard(index)}
+              aria-label={`Go to choice ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
