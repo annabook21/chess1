@@ -1,0 +1,126 @@
+/**
+ * Spirit Whisper Window Styles
+ * Sierra-era adventure game dialog box aesthetic
+ */
+
+.spirit-whisper {
+  position: relative;
+  width: 100%;
+  cursor: pointer;
+  user-select: none;
+}
+
+.spirit-whisper__frame {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(
+    180deg,
+    var(--castle-surface) 0%,
+    var(--castle-surface-alt) 100%
+  );
+  border: 3px solid var(--castle-frame);
+  border-top-color: var(--castle-frame-highlight);
+  border-left-color: var(--castle-frame-highlight);
+  border-bottom-color: var(--castle-frame-shadow);
+  border-right-color: var(--castle-frame-shadow);
+  box-shadow: 
+    inset 0 1px 0 var(--castle-frame-highlight),
+    inset 0 -1px 0 var(--castle-frame-shadow),
+    0 4px 12px rgba(0, 0, 0, 0.5);
+  image-rendering: pixelated;
+}
+
+/* Spirit portrait */
+.spirit-whisper__portrait {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  background: var(--castle-bg);
+  border: 2px solid var(--castle-border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spirit-whisper__portrait-inner {
+  font-size: 28px;
+  animation: spiritFloat 3s ease-in-out infinite;
+}
+
+@keyframes spiritFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* Text content */
+.spirit-whisper__content {
+  flex: 1;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+.spirit-whisper__text {
+  font-family: var(--castle-font, 'Courier New', monospace);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--castle-text);
+  text-shadow: 1px 1px 0 var(--castle-bg);
+}
+
+/* Blinking cursor */
+.spirit-whisper__cursor {
+  display: inline-block;
+  animation: cursorBlink 0.8s step-end infinite;
+  color: var(--castle-accent1);
+  margin-left: 2px;
+}
+
+@keyframes cursorBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Continue indicator */
+.spirit-whisper__continue {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-size: 10px;
+  color: var(--castle-text-muted);
+  animation: bounceDown 1s ease-in-out infinite;
+}
+
+@keyframes bounceDown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+
+/* Severity variants */
+.spirit-whisper--good .spirit-whisper__frame {
+  border-color: var(--castle-success);
+}
+
+.spirit-whisper--great .spirit-whisper__frame {
+  border-color: var(--castle-accent2);
+  box-shadow: 
+    inset 0 1px 0 var(--castle-frame-highlight),
+    inset 0 -1px 0 var(--castle-frame-shadow),
+    0 0 20px rgba(201, 162, 39, 0.3);
+}
+
+.spirit-whisper--bad .spirit-whisper__frame {
+  border-color: var(--castle-warning);
+}
+
+.spirit-whisper--terrible .spirit-whisper__frame {
+  border-color: var(--castle-danger);
+  animation: dangerPulse 2s ease-in-out infinite;
+}
+
+@keyframes dangerPulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(156, 74, 74, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(156, 74, 74, 0.5); }
+}

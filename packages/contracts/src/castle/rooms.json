@@ -1,0 +1,81 @@
+{
+  "rooms": [
+    {
+      "id": "courtyard",
+      "name": "The Courtyard",
+      "description": "Where all journeys begin. Learn the basics of piece movement and simple tactics.",
+      "icon": "🏛️",
+      "focusTags": ["development", "piece_activity", "basic_tactics"],
+      "unlockRequirements": {
+        "type": "default",
+        "unlockedByDefault": true
+      },
+      "order": 1
+    },
+    {
+      "id": "armory",
+      "name": "The Armory",
+      "description": "Sharpen your tactical blade. Forks, pins, skewers, and discovered attacks await.",
+      "icon": "⚔️",
+      "focusTags": ["fork", "pin", "skewer", "discovery", "double_attack"],
+      "unlockRequirements": {
+        "type": "achievement",
+        "achievementId": "blade-in-shadow"
+      },
+      "order": 2
+    },
+    {
+      "id": "library",
+      "name": "The Library",
+      "description": "Ancient scrolls reveal opening theory and strategic planning.",
+      "icon": "📚",
+      "focusTags": ["opening_theory", "pawn_structure", "long_term_planning"],
+      "unlockRequirements": {
+        "type": "achievement",
+        "achievementId": "oracle-sight"
+      },
+      "order": 3
+    },
+    {
+      "id": "chapel",
+      "name": "The Chapel",
+      "description": "Find inner strength. Learn to defend, counterattack, and never give up.",
+      "icon": "⛪",
+      "focusTags": ["defense", "counterplay", "resilience", "endgame"],
+      "unlockRequirements": {
+        "type": "achievement",
+        "achievementId": "phoenix-rise"
+      },
+      "order": 4
+    },
+    {
+      "id": "crypt",
+      "name": "The Crypt",
+      "description": "Where games go to die... or be reborn. Master endgame technique.",
+      "icon": "💀",
+      "focusTags": ["endgame", "king_activity", "pawn_promotion", "opposition"],
+      "unlockRequirements": {
+        "type": "rating",
+        "minRating": 1500
+      },
+      "order": 5
+    },
+    {
+      "id": "throne_room",
+      "name": "The Throne Room",
+      "description": "Only the worthy may enter. Face the ultimate challenges.",
+      "icon": "👑",
+      "focusTags": ["advanced_tactics", "positional_mastery", "calculation"],
+      "unlockRequirements": {
+        "type": "achievement",
+        "achievementId": "grandmaster-whisper"
+      },
+      "order": 6
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "theme": "cursed-castle-spirit",
+    "totalRooms": 6
+  }
+}

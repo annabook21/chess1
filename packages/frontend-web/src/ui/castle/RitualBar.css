@@ -1,0 +1,126 @@
+/**
+ * Ritual Bar Styles
+ * Adventure game action bar aesthetic
+ */
+
+.ritual-bar {
+  width: 100%;
+  padding: 8px;
+  background: linear-gradient(
+    180deg,
+    var(--castle-surface-alt) 0%,
+    var(--castle-bg) 100%
+  );
+  border-top: 3px solid var(--castle-frame);
+}
+
+.ritual-bar__frame {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Individual ritual button */
+.ritual-button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  min-width: 80px;
+  background: var(--castle-surface);
+  border: 2px solid var(--castle-border);
+  border-top-color: var(--castle-frame-highlight);
+  border-left-color: var(--castle-frame-highlight);
+  border-bottom-color: var(--castle-frame-shadow);
+  border-right-color: var(--castle-frame-shadow);
+  color: var(--castle-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.ritual-button:hover:not(:disabled) {
+  background: var(--castle-surface-alt);
+  color: var(--castle-text);
+  border-color: var(--castle-border-strong);
+}
+
+.ritual-button:active:not(:disabled) {
+  border-top-color: var(--castle-frame-shadow);
+  border-left-color: var(--castle-frame-shadow);
+  border-bottom-color: var(--castle-frame-highlight);
+  border-right-color: var(--castle-frame-highlight);
+  transform: translateY(1px);
+}
+
+.ritual-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Active state */
+.ritual-button--active {
+  background: var(--castle-bg);
+  border-color: var(--castle-accent1);
+  color: var(--castle-accent1);
+}
+
+.ritual-button--active::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--castle-accent1);
+  opacity: 0.5;
+  animation: activePulse 2s ease-in-out infinite;
+}
+
+@keyframes activePulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+/* Icon */
+.ritual-button__icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* Label */
+.ritual-button__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* Glow effect for active buttons */
+.ritual-button__glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    var(--castle-accent1) 0%,
+    transparent 70%
+  );
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .ritual-button {
+    padding: 8px 12px;
+    min-width: 60px;
+  }
+  
+  .ritual-button__icon {
+    font-size: 18px;
+  }
+  
+  .ritual-button__label {
+    font-size: 9px;
+  }
+}
