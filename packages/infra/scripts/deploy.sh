@@ -1,12 +1,16 @@
 #!/bin/bash
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+INFRA_DIR="$(dirname "$SCRIPT_DIR")"
+FRONTEND_DIR="$INFRA_DIR/../frontend-web"
+
 echo "🏗️  Building frontend..."
-cd "$(dirname "$0")/../../frontend-web"
+cd "$FRONTEND_DIR"
 pnpm build
 
 echo "🚀 Deploying infrastructure with CDK..."
-cd "$(dirname "$0")/.."
+cd "$INFRA_DIR"
 pnpm build
 npx cdk deploy --all --require-approval never
 
