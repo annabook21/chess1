@@ -8,9 +8,10 @@
  * 4. Engine fallback if styles fail/timeout
  */
 
-import { Chess } from 'chess.js';
+import { Chess, Square } from 'chess.js';
 import {
   MoveChoice,
+  MoveChoiceWithPreview,
   MasterStyle,
   ConceptTag,
 } from '@master-academy/contracts';
@@ -38,12 +39,13 @@ export class ChoiceBuilder {
 
   /**
    * Build 3 choices for a position - FAST
+   * Now returns MoveChoiceWithPreview with hover preview data
    */
   async buildChoices(
     fen: string,
     difficulty: { engineElo: number; hintLevel: number },
     turnNumber: number = 0
-  ): Promise<MoveChoice[]> {
+  ): Promise<MoveChoiceWithPreview[]> {
     const totalStart = Date.now();
     
     // Pre-compute legal moves LOCALLY (no network call)
@@ -134,6 +136,7 @@ export class ChoiceBuilder {
 
   /**
    * Build 3 diverse choices from engine + style results
+   * Now includes pvPreview for hover visualization
    */
   private buildChoicesFromResults(
     fen: string,
@@ -141,8 +144,8 @@ export class ChoiceBuilder {
     styleResults: Map<MasterStyle, string[]>,
     legalMovesUci: string[],
     masters: MasterStyle[]
-  ): MoveChoice[] {
-    const choices: MoveChoice[] = [];
+  ): MoveChoiceWithPreview[] {
+    const choices: MoveChoiceWithPreview[] = [];
     const usedMoves = new Set<string>();
 
     // Best move from engine
@@ -182,19 +185,147 @@ export class ChoiceBuilder {
       if (moveToUse) {
         usedMoves.add(moveToUse);
         
+        // Get PV for this move (use engine PV for first choice, simulate for others)
+        const movePv = i === 0 ? engineAnalysis.pv.slice(0, 4) : [moveToUse];
+        
+        // Build pvPreview for hover visualization
+        const pvPreview = this.buildPvPreview(fen, moveToUse, movePv, engineAnalysis.eval);
+        
         choices.push({
           id: String.fromCharCode(65 + i), // 'A', 'B', 'C'
           moveUci: moveToUse,
           styleId: styleId,
           planOneLiner: this.generatePlanOneLiner(styleId),
-          pv: i === 0 ? engineAnalysis.pv.slice(0, 4) : [moveToUse],
+          pv: movePv,
           eval: this.estimateEval(moveToUse, bestMove, engineAnalysis.eval),
           conceptTags: ['development'],
+          pvPreview,
         });
       }
     }
 
     return choices;
+  }
+  
+  /**
+   * Build preview data for hover visualization
+   */
+  private buildPvPreview(
+    fen: string, 
+    moveUci: string, 
+    pv: string[],
+    baseEval: number
+  ): MoveChoiceWithPreview['pvPreview'] {
+    try {
+      const chess = new Chess(fen);
+      
+      // Parse your move
+      const yourMove = {
+        from: moveUci.slice(0, 2),
+        to: moveUci.slice(2, 4),
+      };
+      
+      // Get squares attacked before move
+      const attackedBefore = this.getAttackedSquares(chess);
+      
+      // Apply your move
+      const moveResult = chess.move({
+        from: yourMove.from as Square,
+        to: yourMove.to as Square,
+        promotion: moveUci.length > 4 ? (moveUci[4] as 'q' | 'r' | 'b' | 'n') : undefined,
+      });
+      
+      if (!moveResult) {
+        return this.emptyPreview(yourMove);
+      }
+      
+      // Get squares attacked after move (now from opponent's perspective)
+      const attackedAfter = this.getAttackedSquares(chess);
+      
+      // Calculate newly attacked/defended
+      const newlyAttacked = attackedAfter.filter(sq => !attackedBefore.includes(sq));
+      const newlyDefended: string[] = []; // Would need more complex analysis
+      
+      // Get opponent's likely reply from PV
+      let opponentReply: { from: string; to: string; san: string } | undefined;
+      if (pv.length > 1) {
+        const oppMove = pv[1];
+        const oppMoveResult = chess.move({
+          from: oppMove.slice(0, 2) as Square,
+          to: oppMove.slice(2, 4) as Square,
+          promotion: oppMove.length > 4 ? (oppMove[4] as 'q' | 'r' | 'b' | 'n') : undefined,
+        });
+        if (oppMoveResult) {
+          opponentReply = {
+            from: oppMove.slice(0, 2),
+            to: oppMove.slice(2, 4),
+            san: oppMoveResult.san,
+          };
+        }
+      }
+      
+      // Get your follow-up from PV
+      let yourFollowUp: { from: string; to: string; san: string } | undefined;
+      if (pv.length > 2 && opponentReply) {
+        const followUp = pv[2];
+        const followMoveResult = chess.move({
+          from: followUp.slice(0, 2) as Square,
+          to: followUp.slice(2, 4) as Square,
+          promotion: followUp.length > 4 ? (followUp[4] as 'q' | 'r' | 'b' | 'n') : undefined,
+        });
+        if (followMoveResult) {
+          yourFollowUp = {
+            from: followUp.slice(0, 2),
+            to: followUp.slice(2, 4),
+            san: followMoveResult.san,
+          };
+        }
+      }
+      
+      return {
+        yourMove,
+        opponentReply,
+        yourFollowUp,
+        evalShift: opponentReply ? -0.2 : 0, // Rough estimate
+        newlyAttacked,
+        newlyDefended,
+      };
+    } catch (error) {
+      console.warn('Error building pvPreview:', error);
+      return this.emptyPreview({ from: moveUci.slice(0, 2), to: moveUci.slice(2, 4) });
+    }
+  }
+  
+  /**
+   * Get all squares attacked by the current side
+   */
+  private getAttackedSquares(chess: Chess): string[] {
+    const attacked: string[] = [];
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'];
+    
+    for (const file of files) {
+      for (const rank of ranks) {
+        const square = `${file}${rank}` as Square;
+        if (chess.isAttacked(square, chess.turn())) {
+          attacked.push(square);
+        }
+      }
+    }
+    
+    return attacked;
+  }
+  
+  /**
+   * Create empty preview when calculation fails
+   */
+  private emptyPreview(yourMove: { from: string; to: string }): MoveChoiceWithPreview['pvPreview'] {
+    return {
+      yourMove,
+      evalShift: 0,
+      newlyAttacked: [],
+      newlyDefended: [],
+    };
   }
 
   /**

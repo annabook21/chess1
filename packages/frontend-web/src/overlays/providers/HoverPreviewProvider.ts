@@ -3,7 +3,7 @@
  * Shows preview of move consequences when hovering a choice
  */
 
-import type { OverlayProvider, OverlayFrame, OverlayContext, OverlayArrow, GhostPiece, SquareHighlight } from '../types';
+import type { OverlayProvider, OverlayFrame, OverlayContext, OverlayArrow, GhostPiece, SquareHighlight, SquareBadge } from '../types';
 import type { MoveChoiceWithPreview } from '@master-academy/contracts';
 
 export const HoverPreviewProvider: OverlayProvider = {
@@ -16,6 +16,7 @@ export const HoverPreviewProvider: OverlayProvider = {
     const arrows: OverlayArrow[] = [];
     const ghostPieces: GhostPiece[] = [];
     const highlights: SquareHighlight[] = [];
+    const badges: SquareBadge[] = [];
     
     const hoveredChoice = context.hoveredChoice as MoveChoiceWithPreview | undefined;
     
@@ -88,12 +89,24 @@ export const HoverPreviewProvider: OverlayProvider = {
       }
     }
     
+    // 6. Show eval shift badge at destination square
+    if (hoveredChoice.eval !== undefined) {
+      const evalPawns = hoveredChoice.eval / 100;
+      const evalText = evalPawns >= 0 ? `+${evalPawns.toFixed(1)}` : evalPawns.toFixed(1);
+      badges.push({
+        square: preview.yourMove.to,
+        text: evalText,
+        severity: evalPawns >= 0.3 ? 'success' : evalPawns <= -0.5 ? 'danger' : 'info',
+        tooltip: `Evaluation: ${evalText} pawns`,
+      });
+    }
+    
     return {
       id: 'hoverPreview',
       priority: 50, // High priority - on top of other overlays
       highlights,
       arrows,
-      badges: [],
+      badges,
       ghostPieces,
     };
   },

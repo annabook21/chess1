@@ -94,6 +94,9 @@ function App() {
   // Prediction hover state (for board visualization)
   const [predictionHover, setPredictionHover] = useState<{ from: string | null; to: string | null }>({ from: null, to: null });
   
+  // Hovered move choice (for What-If Lens preview)
+  const [hoveredChoice, setHoveredChoice] = useState<TurnPackage['choices'][0] | null>(null);
+  
   // Prediction stats
   const [predictionStats, setPredictionStats] = useState(() => {
     const saved = localStorage.getItem('masterAcademy_predictions');
@@ -530,6 +533,7 @@ function App() {
                 : (turnPackage?.fen || 'start')}
               choices={showPrediction ? undefined : turnPackage?.choices}
               selectedChoice={showPrediction ? null : selectedChoice}
+              hoveredChoice={showPrediction ? null : hoveredChoice}
               predictionHover={showPrediction ? predictionHover : undefined}
             />
           </div>
@@ -584,6 +588,7 @@ function App() {
                 choices={turnPackage.choices}
                 selectedChoice={selectedChoice}
                 onSelectChoice={handleChoiceSelect}
+                onHoverChoice={setHoveredChoice}
               />
               
               {/* Master Monologue for selected choice */}

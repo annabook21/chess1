@@ -10,6 +10,7 @@ interface MoveChoicesProps {
   choices: MoveChoice[];
   selectedChoice: string | null;
   onSelectChoice: (choiceId: string) => void;
+  onHoverChoice?: (choice: MoveChoice | null) => void;
 }
 
 const MASTER_INFO: Record<string, { 
@@ -53,6 +54,7 @@ export const MoveChoices: React.FC<MoveChoicesProps> = ({
   choices,
   selectedChoice,
   onSelectChoice,
+  onHoverChoice,
 }) => {
   const getMasterInfo = (styleId: string) => {
     return MASTER_INFO[styleId] || { 
@@ -74,6 +76,8 @@ export const MoveChoices: React.FC<MoveChoicesProps> = ({
           <button
             key={choice.id}
             onClick={() => onSelectChoice(choice.id)}
+            onMouseEnter={() => onHoverChoice?.(choice)}
+            onMouseLeave={() => onHoverChoice?.(null)}
             className={`choice-card ${isSelected ? 'selected' : ''} animate-fade-in-up stagger-${index + 1}`}
             style={{
               '--master-color': master.color,
