@@ -59,12 +59,12 @@ export class TurnController {
       depth: 12,
     });
 
-    // Build 3 choices
-    const choices = await this.deps.choiceBuilder.buildChoices(fen, difficulty);
+    // Build 3 choices (pass turn number for master rotation)
+    const turnNumber = chess.moveNumber();
+    const choices = await this.deps.choiceBuilder.buildChoices(fen, difficulty, turnNumber);
 
     // Calculate time budget
-    const moveNumber = chess.moveNumber();
-    const timeBudgetMs = calculateTimeBudget(difficulty, moveNumber);
+    const timeBudgetMs = calculateTimeBudget(difficulty, turnNumber);
 
     const turnPackage: TurnPackage = {
       gameId,
