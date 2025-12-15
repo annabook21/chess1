@@ -418,6 +418,27 @@ export class MasterAcademyStack extends cdk.Stack {
       protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
     });
 
+    // Response headers for WASM/ONNX model loading (required for SharedArrayBuffer)
+    const wasmHeadersPolicy = new cloudfront.ResponseHeadersPolicy(this, 'WasmHeaders', {
+      responseHeadersPolicyName: 'MasterAcademy-WasmHeaders',
+      customHeadersBehavior: {
+        customHeaders: [
+          { header: 'Cross-Origin-Embedder-Policy', value: 'require-corp', override: true },
+          { header: 'Cross-Origin-Opener-Policy', value: 'same-origin', override: true },
+        ],
+      },
+    });
+
+    // Cache policy for ONNX models (immutable, ~3.5MB each)
+    const modelCachePolicy = new cloudfront.CachePolicy(this, 'ModelCachePolicy', {
+      cachePolicyName: 'MasterAcademy-ModelCache',
+      defaultTtl: cdk.Duration.days(365),
+      maxTtl: cdk.Duration.days(365),
+      minTtl: cdk.Duration.days(30),
+      enableAcceptEncodingGzip: true,
+      enableAcceptEncodingBrotli: true,
+    });
+
     // CloudFront distribution with SPA routing + API proxy
     const distribution = new cloudfront.Distribution(this, 'WebsiteDistribution', {
       defaultBehavior: {
@@ -427,24 +448,19 @@ export class MasterAcademyStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
         allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+        responseHeadersPolicy: wasmHeadersPolicy,
       },
       // API routes proxied to ALB (best practice: same-origin API calls)
       additionalBehaviors: {
-        // ONNX models: aggressive caching (models are immutable, ~25MB each)
+        // ONNX models: aggressive caching (models are immutable, ~3.5MB each)
         '/models/*': {
           origin: origins.S3BucketOrigin.withOriginAccessControl(websiteBucket, {
             originAccessControl: oac,
           }),
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-          cachePolicy: new cloudfront.CachePolicy(this, 'ModelCachePolicy', {
-            cachePolicyName: 'MaiaModelCachePolicy',
-            defaultTtl: cdk.Duration.days(365),
-            maxTtl: cdk.Duration.days(365),
-            minTtl: cdk.Duration.days(30),
-            enableAcceptEncodingGzip: true,
-            enableAcceptEncodingBrotli: true,
-          }),
+          cachePolicy: modelCachePolicy,
           allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+          responseHeadersPolicy: wasmHeadersPolicy,
           compress: true,
         },
         '/game': {
@@ -484,16 +500,6 @@ export class MasterAcademyStack extends cdk.Stack {
         },
       },
       defaultRootObject: 'index.html',
-      // Response headers for WASM/ONNX model loading (required for SharedArrayBuffer)
-      responseHeadersPolicy: new cloudfront.ResponseHeadersPolicy(this, 'MaiaHeaders', {
-        responseHeadersPolicyName: 'MaiaModelHeaders',
-        customHeadersBehavior: {
-          customHeaders: [
-            { header: 'Cross-Origin-Embedder-Policy', value: 'require-corp', override: true },
-            { header: 'Cross-Origin-Opener-Policy', value: 'same-origin', override: true },
-          ],
-        },
-      }),
       // SPA routing: redirect 403/404 to index.html for client-side routing
       errorResponses: [
         {
@@ -512,12 +518,25 @@ export class MasterAcademyStack extends cdk.Stack {
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100, // Use only North America and Europe
     });
 
-    // Deploy frontend assets to S3
+    // Deploy frontend assets to S3 (excluding large ONNX models for faster deploys)
     new s3deploy.BucketDeployment(this, 'DeployWebsite', {
-      sources: [s3deploy.Source.asset(path.join(__dirname, '../../frontend-web/dist'))],
+      sources: [s3deploy.Source.asset(path.join(__dirname, '../../frontend-web/dist'), {
+        exclude: ['models/*.onnx'], // Exclude large ONNX models from main deployment
+      })],
       destinationBucket: websiteBucket,
       distribution,
       distributionPaths: ['/*'], // Invalidate CloudFront cache on deploy
+      memoryLimit: 256, // Sufficient for frontend without models
+    });
+
+    // Deploy ONNX models separately (larger memory, cached independently)
+    new s3deploy.BucketDeployment(this, 'DeployModels', {
+      sources: [s3deploy.Source.asset(path.join(__dirname, '../../frontend-web/dist/models'))],
+      destinationBucket: websiteBucket,
+      destinationKeyPrefix: 'models',
+      memoryLimit: 1024, // More memory for ~17MB of ONNX models
+      ephemeralStorageSize: cdk.Size.mebibytes(512),
+      prune: false, // Don't delete existing models (allows incremental updates)
     });
 
     // ═══════════════════════════════════════════════════════════════════
