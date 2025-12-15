@@ -430,6 +430,23 @@ export class MasterAcademyStack extends cdk.Stack {
       },
       // API routes proxied to ALB (best practice: same-origin API calls)
       additionalBehaviors: {
+        // ONNX models: aggressive caching (models are immutable, ~25MB each)
+        '/models/*': {
+          origin: origins.S3BucketOrigin.withOriginAccessControl(websiteBucket, {
+            originAccessControl: oac,
+          }),
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          cachePolicy: new cloudfront.CachePolicy(this, 'ModelCachePolicy', {
+            cachePolicyName: 'MaiaModelCachePolicy',
+            defaultTtl: cdk.Duration.days(365),
+            maxTtl: cdk.Duration.days(365),
+            minTtl: cdk.Duration.days(30),
+            enableAcceptEncodingGzip: true,
+            enableAcceptEncodingBrotli: true,
+          }),
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+          compress: true,
+        },
         '/game': {
           origin: apiOrigin,
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -467,6 +484,16 @@ export class MasterAcademyStack extends cdk.Stack {
         },
       },
       defaultRootObject: 'index.html',
+      // Response headers for WASM/ONNX model loading (required for SharedArrayBuffer)
+      responseHeadersPolicy: new cloudfront.ResponseHeadersPolicy(this, 'MaiaHeaders', {
+        responseHeadersPolicyName: 'MaiaModelHeaders',
+        customHeadersBehavior: {
+          customHeaders: [
+            { header: 'Cross-Origin-Embedder-Policy', value: 'require-corp', override: true },
+            { header: 'Cross-Origin-Opener-Policy', value: 'same-origin', override: true },
+          ],
+        },
+      }),
       // SPA routing: redirect 403/404 to index.html for client-side routing
       errorResponses: [
         {
