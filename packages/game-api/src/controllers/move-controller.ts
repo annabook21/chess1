@@ -62,9 +62,13 @@ export class MoveController {
     }
 
     const fen = game.chess.fen();
-    const currentTurn = cachedTurn || game.currentTurn;
+    
+    // Get current turn - from cache, game state, or build on demand
+    let currentTurn = cachedTurn || game.currentTurn;
     if (!currentTurn) {
-      throw new Error('No current turn package');
+      // Build turn package on demand (DynamoDB doesn't store it anymore)
+      console.log(`[PERF] Building turn package on demand for ${gameId}`);
+      currentTurn = await this.deps.turnController.buildTurnPackage(gameId, game.chess, game.userElo);
     }
 
     console.log(`[PERF] Game loaded: ${Date.now() - startTime}ms`);
