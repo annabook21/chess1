@@ -1,0 +1,242 @@
+/**
+ * Spirit Portrait Styles
+ * Expressive portrait with mood-based animations
+ */
+
+.spirit-portrait {
+  position: relative;
+  display: inline-block;
+}
+
+/* Size variants */
+.spirit-portrait--small {
+  --portrait-size: 36px;
+  --portrait-font: 20px;
+}
+
+.spirit-portrait--medium {
+  --portrait-size: 48px;
+  --portrait-font: 28px;
+}
+
+.spirit-portrait--large {
+  --portrait-size: 64px;
+  --portrait-font: 38px;
+}
+
+/* Frame */
+.spirit-portrait__frame {
+  position: relative;
+  width: var(--portrait-size);
+  height: var(--portrait-size);
+  background: var(--castle-bg);
+  border: 2px solid var(--castle-border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Face/expression */
+.spirit-portrait__face {
+  font-size: var(--portrait-font);
+  line-height: 1;
+  z-index: 2;
+  transition: transform 0.3s ease;
+}
+
+/* Glow effect behind portrait */
+.spirit-portrait__glow {
+  position: absolute;
+  inset: -4px;
+  background: radial-gradient(
+    circle at center,
+    var(--spirit-glow, var(--castle-accent1)) 0%,
+    transparent 70%
+  );
+  opacity: 0.3;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOOD-BASED ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Neutral - gentle floating */
+.spirit-portrait__face--spirit-float {
+  animation: spiritFloat 3s ease-in-out infinite;
+}
+
+@keyframes spiritFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* Pleased - nodding */
+.spirit-portrait__face--spirit-nod {
+  animation: spiritNod 0.6s ease-in-out;
+}
+
+@keyframes spiritNod {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+/* Impressed - glowing pulse */
+.spirit-portrait__face--spirit-glow {
+  animation: spiritGlow 1s ease-in-out infinite;
+}
+
+@keyframes spiritGlow {
+  0%, 100% { 
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% { 
+    transform: scale(1.1);
+    filter: brightness(1.3);
+  }
+}
+
+.spirit-portrait--impressed .spirit-portrait__glow {
+  animation: glowPulse 1s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+/* Concerned - slight shake */
+.spirit-portrait__face--spirit-shake {
+  animation: spiritShake 0.5s ease-in-out;
+}
+
+@keyframes spiritShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-2px); }
+  40% { transform: translateX(2px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
+/* Dismayed - recoil */
+.spirit-portrait__face--spirit-recoil {
+  animation: spiritRecoil 0.6s ease-out;
+}
+
+@keyframes spiritRecoil {
+  0% { transform: scale(1) translateY(0); }
+  30% { transform: scale(0.9) translateY(3px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+.spirit-portrait--dismayed .spirit-portrait__frame {
+  border-color: var(--castle-danger);
+}
+
+.spirit-portrait--dismayed .spirit-portrait__glow {
+  animation: dangerFlash 0.3s ease-in-out 3;
+}
+
+@keyframes dangerFlash {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+/* Thinking - pondering */
+.spirit-portrait__face--spirit-ponder {
+  animation: spiritPonder 2s ease-in-out infinite;
+}
+
+@keyframes spiritPonder {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  25% { transform: rotate(-3deg) translateY(-2px); }
+  75% { transform: rotate(3deg) translateY(-2px); }
+}
+
+/* Excited - celebration */
+.spirit-portrait__face--spirit-celebrate {
+  animation: spiritCelebrate 0.5s ease-in-out;
+}
+
+@keyframes spiritCelebrate {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.2) rotate(-10deg); }
+  50% { transform: scale(1.2) rotate(10deg); }
+  75% { transform: scale(1.1) rotate(-5deg); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PARTICLE EFFECTS
+   ═══════════════════════════════════════════════════════════════ */
+
+.spirit-portrait__particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.spirit-portrait__particles .particle {
+  position: absolute;
+  font-size: 10px;
+  animation: particleFloat 1.5s ease-out forwards;
+  opacity: 0;
+}
+
+.spirit-portrait__particles .particle:nth-child(1) {
+  top: 20%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.spirit-portrait__particles .particle:nth-child(2) {
+  top: 30%;
+  right: 10%;
+  animation-delay: 0.2s;
+}
+
+.spirit-portrait__particles .particle:nth-child(3) {
+  bottom: 20%;
+  left: 50%;
+  animation-delay: 0.4s;
+}
+
+@keyframes particleFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.5);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px) scale(1);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOOD-BASED FRAME COLORS
+   ═══════════════════════════════════════════════════════════════ */
+
+.spirit-portrait--pleased .spirit-portrait__frame {
+  border-color: var(--castle-success);
+}
+
+.spirit-portrait--impressed .spirit-portrait__frame {
+  border-color: var(--castle-accent2);
+  box-shadow: 0 0 10px var(--castle-accent2);
+}
+
+.spirit-portrait--concerned .spirit-portrait__frame {
+  border-color: var(--castle-warning);
+}
+
+.spirit-portrait--excited .spirit-portrait__frame {
+  border-color: var(--castle-accent2);
+  box-shadow: 0 0 15px var(--castle-accent2);
+}

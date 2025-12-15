@@ -88,6 +88,11 @@ export interface ThemeEffects {
   grainOpacity: number;
   scanlines: boolean;
   scanlinesOpacity: number;
+  // CRT effects
+  crtEnabled: boolean;
+  crtScanlines: boolean;
+  crtFlicker: boolean;
+  crtFlickerIntensity: number;
 }
 
 /** Narrator voice configuration */

@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { TypewriterController } from '../../narration/render/typewriter';
+import { SpiritPortrait, severityToMood } from './SpiritPortrait';
 import './SpiritWhisper.css';
 
 interface SpiritWhisperProps {
@@ -73,13 +74,13 @@ export const SpiritWhisper: React.FC<SpiritWhisperProps> = ({
     >
       {/* Stone frame border */}
       <div className="spirit-whisper__frame">
-        {/* Spirit portrait */}
+        {/* Spirit portrait with mood expressions */}
         {showPortrait && (
-          <div className="spirit-whisper__portrait">
-            <div className="spirit-whisper__portrait-inner">
-              👻
-            </div>
-          </div>
+          <SpiritPortrait 
+            mood={severityToMood(severity)} 
+            size="medium"
+            animated={true}
+          />
         )}
         
         {/* Text area */}

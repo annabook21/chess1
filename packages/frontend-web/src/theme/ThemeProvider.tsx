@@ -10,6 +10,7 @@ import { getVignetteOverlayCSS, getCandleFlickerCSS } from './effects/vignette';
 import { getGrainOverlayCSS, getGrainAnimationCSS } from './effects/grain';
 import { getDitherOverlayCSS } from './effects/dither';
 import { pixelScaleClass } from './effects/pixelScale';
+import { getCRTFilterCSS, applyCRTClasses, removeCRTClasses } from './effects/crtFilter';
 
 // Available themes registry
 const THEMES: Record<string, Theme> = {
@@ -86,6 +87,20 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
         opacity: effects.ditherOpacity,
         pattern: 'bayer4'
       }) : '',
+      // CRT effects
+      effects.crtEnabled ? getCRTFilterCSS({
+        enabled: true,
+        scanlines: effects.crtScanlines,
+        scanlineIntensity: effects.scanlinesOpacity || 0.15,
+        curvature: false,
+        curvatureAmount: 0.02,
+        flickerEnabled: effects.crtFlicker,
+        flickerIntensity: effects.crtFlickerIntensity || 0.02,
+        rgbShift: false,
+        rgbShiftAmount: 0.5,
+        vignette: false, // Using our own vignette
+        vignetteIntensity: 0.3,
+      }) : '',
     ].join('\n');
 
     styleEl.textContent = cssVariables + effectsCSS;
@@ -95,9 +110,27 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     if (effects.pixelScale) {
       document.body.classList.add('pixel-scale');
     }
+    
+    // Apply CRT classes
+    if (effects.crtEnabled) {
+      applyCRTClasses(document.body, {
+        enabled: true,
+        scanlines: effects.crtScanlines,
+        scanlineIntensity: 0.15,
+        curvature: false,
+        curvatureAmount: 0.02,
+        flickerEnabled: effects.crtFlicker,
+        flickerIntensity: effects.crtFlickerIntensity || 0.02,
+        rgbShift: false,
+        rgbShiftAmount: 0.5,
+        vignette: false,
+        vignetteIntensity: 0.3,
+      });
+    }
 
     return () => {
       document.body.classList.remove('castle-theme', 'pixel-scale');
+      removeCRTClasses(document.body);
     };
   }, [theme]);
 

@@ -91,6 +91,11 @@ export const cursedCastleSpirit: Theme = {
     grainOpacity: 0.05,
     scanlines: false,
     scanlinesOpacity: 0.1,
+    // CRT monitor effects
+    crtEnabled: true,
+    crtScanlines: true,
+    crtFlicker: false, // Disabled by default - can be jarring
+    crtFlickerIntensity: 0.02,
   },
   
   narrator: {
