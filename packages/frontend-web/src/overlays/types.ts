@@ -35,3 +35,4 @@ export function positionToSquare(x: number, y: number): string {
   return String.fromCharCode('a'.charCodeAt(0) + file) + (rank + 1);
 }
 
+

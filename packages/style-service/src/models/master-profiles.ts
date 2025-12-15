@@ -389,3 +389,4 @@ export function generateInnerMonologue(
   return `💭 ${profile.name}'s Thinking:\n"${reasoning}"\n\n— ${profile.nickname}`;
 }
 
+

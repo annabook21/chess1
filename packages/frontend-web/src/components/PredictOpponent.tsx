@@ -1,10 +1,13 @@
 /**
- * Predict Opponent Component - Redesigned
- * A focused, quiz-style prediction challenge with visual board feedback
+ * Predict Opponent Component
+ * 
+ * A quiz-style prediction challenge using Maia neural network
+ * for human-like move probability prediction.
  */
 
 import { useState, useEffect, useMemo } from 'react';
 import { Chess, Square } from 'chess.js';
+import { useMaiaPredictions, MovePrediction } from '../maia';
 import './PredictOpponent.css';
 
 interface PredictOpponentProps {
@@ -15,6 +18,8 @@ interface PredictOpponentProps {
   masterStyle: string;
   masterName: string;
   onHoverMove?: (from: string | null, to: string | null) => void;
+  /** Target rating for Maia predictions (1100-1900) */
+  targetRating?: number;
 }
 
 interface CandidateMove {
@@ -22,59 +27,8 @@ interface CandidateMove {
   uci: string;
   from: string;
   to: string;
-  score: number; // Higher = more likely
+  probability: number;
   explanation: string;
-}
-
-// Simple positional scoring for move ranking
-function scoreMoveSimple(chess: Chess, move: { from: string; to: string; san: string; captured?: string; promotion?: string }): number {
-  let score = 0;
-  
-  // Captures are likely
-  if (move.captured) {
-    const pieceValues: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 };
-    score += (pieceValues[move.captured] || 0) * 10;
-  }
-  
-  // Central squares
-  const centralSquares = ['d4', 'd5', 'e4', 'e5'];
-  const semiCentralSquares = ['c3', 'c4', 'c5', 'c6', 'd3', 'd6', 'e3', 'e6', 'f3', 'f4', 'f5', 'f6'];
-  
-  if (centralSquares.includes(move.to)) score += 5;
-  if (semiCentralSquares.includes(move.to)) score += 2;
-  
-  // Development moves (knights and bishops moving off back rank)
-  const piece = chess.get(move.from as Square);
-  if (piece && ['n', 'b'].includes(piece.type)) {
-    const fromRank = parseInt(move.from[1]);
-    const toRank = parseInt(move.to[1]);
-    const isWhite = piece.color === 'w';
-    
-    // Moving from back rank is good
-    if ((isWhite && fromRank === 1) || (!isWhite && fromRank === 8)) {
-      score += 4;
-    }
-    // Moving toward center is good
-    if ((isWhite && toRank > fromRank) || (!isWhite && toRank < fromRank)) {
-      score += 2;
-    }
-  }
-  
-  // Castling is usually good
-  if (move.san === 'O-O' || move.san === 'O-O-O') {
-    score += 8;
-  }
-  
-  // Checks are interesting
-  const tempChess = new Chess(chess.fen());
-  try {
-    tempChess.move(move.san);
-    if (tempChess.isCheck()) score += 6;
-  } catch (e) {
-    // Ignore
-  }
-  
-  return score;
 }
 
 export const PredictOpponent: React.FC<PredictOpponentProps> = ({
@@ -85,37 +39,38 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
   masterStyle,
   masterName,
   onHoverMove,
+  targetRating = 1500,
 }) => {
   const [selectedMove, setSelectedMove] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(timeLimit);
   const [hoveredMove, setHoveredMove] = useState<string | null>(null);
 
-  // Get top 4 candidate moves
-  const candidateMoves = useMemo(() => {
-    try {
-      const chess = new Chess(fen);
-      const moves = chess.moves({ verbose: true });
-      
-      // Score and sort moves
-      const scoredMoves = moves.map(m => ({
-        san: m.san,
-        uci: `${m.from}${m.to}${m.promotion || ''}`,
-        from: m.from,
-        to: m.to,
-        score: scoreMoveSimple(chess, m),
-        explanation: getMovePurpose(m),
+  // Use Maia for predictions
+  const {
+    predictions: maiaPredictions,
+    isLoading: maiaLoading,
+    isReady: maiaReady,
+    inferenceTime,
+    modelRating,
+  } = useMaiaPredictions(fen);
+
+  // Convert Maia predictions to candidate moves
+  const candidateMoves = useMemo((): CandidateMove[] => {
+    // If Maia predictions are available, use them
+    if (maiaPredictions.length > 0) {
+      return maiaPredictions.slice(0, 4).map(p => ({
+        san: p.san,
+        uci: p.uci,
+        from: p.from,
+        to: p.to,
+        probability: p.probability,
+        explanation: getMovePurpose(p, fen),
       }));
-      
-      // Sort by score descending
-      scoredMoves.sort((a, b) => b.score - a.score);
-      
-      // Take top 4 most likely moves
-      return scoredMoves.slice(0, 4);
-    } catch (e) {
-      console.error('Error getting candidate moves:', e);
-      return [];
     }
-  }, [fen]);
+
+    // Fallback to simple heuristic if Maia not ready
+    return getFallbackMoves(fen);
+  }, [maiaPredictions, fen]);
 
   // Countdown timer
   useEffect(() => {
@@ -150,6 +105,12 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
     }
   }, [hoveredMove, selectedMove, candidateMoves, onHoverMove]);
 
+  // Reset selection when FEN changes
+  useEffect(() => {
+    setSelectedMove(null);
+    setTimeRemaining(timeLimit);
+  }, [fen, timeLimit]);
+
   const handleSubmit = () => {
     if (selectedMove) {
       onPredictionSubmit(selectedMove);
@@ -157,7 +118,6 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
   };
 
   const handleNotSure = () => {
-    // Submit empty prediction (counts as wrong but no penalty)
     onSkip();
   };
 
@@ -188,6 +148,10 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
 
   const getMoveLabel = (index: number) => {
     return String.fromCharCode(65 + index); // A, B, C, D
+  };
+
+  const formatProbability = (prob: number) => {
+    return `${(prob * 100).toFixed(0)}%`;
   };
 
   return (
@@ -223,33 +187,59 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
         <span className="hint-text">{getStyleHint()}</span>
       </div>
 
-      <div className="move-options-v2">
-        {candidateMoves.map((move, index) => (
-          <button
-            key={move.uci}
-            className={`move-option-v2 ${selectedMove === move.uci ? 'selected' : ''} ${hoveredMove === move.uci ? 'hovered' : ''}`}
-            onClick={() => setSelectedMove(move.uci)}
-            onMouseEnter={() => setHoveredMove(move.uci)}
-            onMouseLeave={() => setHoveredMove(null)}
-          >
-            <div className="option-label">{getMoveLabel(index)}</div>
-            <div className="option-content">
-              <div className="move-notation">
-                <span className="move-san-v2">{move.san}</span>
-                <span className="move-arrow">
-                  <span className="from-square">{move.from}</span>
-                  <span className="arrow-icon">→</span>
-                  <span className="to-square">{move.to}</span>
-                </span>
+      {/* Maia status indicator */}
+      {maiaReady && (
+        <div className="maia-status">
+          <span className="maia-badge">
+            🤖 Maia-{modelRating}
+          </span>
+          {inferenceTime > 0 && (
+            <span className="inference-time">{inferenceTime.toFixed(0)}ms</span>
+          )}
+        </div>
+      )}
+
+      {maiaLoading ? (
+        <div className="maia-loading">
+          <div className="loading-spinner"></div>
+          <span>Loading human-like predictions...</span>
+        </div>
+      ) : (
+        <div className="move-options-v2">
+          {candidateMoves.map((move, index) => (
+            <button
+              key={move.uci}
+              className={`move-option-v2 ${selectedMove === move.uci ? 'selected' : ''} ${hoveredMove === move.uci ? 'hovered' : ''}`}
+              onClick={() => setSelectedMove(move.uci)}
+              onMouseEnter={() => setHoveredMove(move.uci)}
+              onMouseLeave={() => setHoveredMove(null)}
+            >
+              <div className="option-label">{getMoveLabel(index)}</div>
+              <div className="option-content">
+                <div className="move-notation">
+                  <span className="move-san-v2">{move.san}</span>
+                  <span className="move-arrow">
+                    <span className="from-square">{move.from}</span>
+                    <span className="arrow-icon">→</span>
+                    <span className="to-square">{move.to}</span>
+                  </span>
+                </div>
+                <div className="move-meta">
+                  <span className="move-purpose">{move.explanation}</span>
+                  {maiaReady && (
+                    <span className="move-probability">
+                      {formatProbability(move.probability)}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="move-purpose">{move.explanation}</div>
-            </div>
-            {selectedMove === move.uci && (
-              <div className="selected-check">✓</div>
-            )}
-          </button>
-        ))}
-      </div>
+              {selectedMove === move.uci && (
+                <div className="selected-check">✓</div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="predict-actions-v2">
         <button 
@@ -276,8 +266,109 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
   );
 };
 
-// Helper to explain what a move does
-function getMovePurpose(move: { san: string; captured?: string; from: string; to: string }): string {
+/**
+ * Generate move explanation based on position context
+ */
+function getMovePurpose(move: MovePrediction, fen: string): string {
+  try {
+    const chess = new Chess(fen);
+    const tempChess = new Chess(fen);
+    const result = tempChess.move({ from: move.from, to: move.to, promotion: move.promotion as any });
+    
+    if (!result) return 'Improves position';
+
+    // Check for special move types
+    if (result.san === 'O-O') return 'Castle kingside for safety';
+    if (result.san === 'O-O-O') return 'Castle queenside';
+    
+    if (result.captured) {
+      const pieceNames: Record<string, string> = { 
+        p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen' 
+      };
+      return `Capture the ${pieceNames[result.captured] || 'piece'}`;
+    }
+    
+    if (result.san.includes('+')) return 'Give check';
+    if (result.san.includes('#')) return 'Checkmate!';
+    
+    // Central control
+    const centralSquares = ['d4', 'd5', 'e4', 'e5'];
+    if (centralSquares.includes(move.to)) return 'Control the center';
+    
+    // Development
+    const piece = chess.get(move.from as Square);
+    if (piece && ['n', 'b'].includes(piece.type)) {
+      const fromRank = parseInt(move.from[1]);
+      const backRank = piece.color === 'w' ? 1 : 8;
+      if (fromRank === backRank) return 'Develop a piece';
+    }
+
+    // Pawn moves
+    if (piece && piece.type === 'p') {
+      if (move.promotion) return `Promote to ${move.promotion === 'q' ? 'queen' : move.promotion}`;
+      return 'Advance pawn';
+    }
+
+    return 'Improve position';
+  } catch {
+    return 'Strategic move';
+  }
+}
+
+/**
+ * Fallback to simple heuristic scoring if Maia not available
+ */
+function getFallbackMoves(fen: string): CandidateMove[] {
+  try {
+    const chess = new Chess(fen);
+    const moves = chess.moves({ verbose: true });
+    
+    const scoredMoves = moves.map(m => {
+      let score = 0;
+      
+      // Captures
+      if (m.captured) {
+        const pieceValues: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+        score += (pieceValues[m.captured] || 0) * 10;
+      }
+      
+      // Central squares
+      const centralSquares = ['d4', 'd5', 'e4', 'e5'];
+      if (centralSquares.includes(m.to)) score += 5;
+      
+      // Castling
+      if (m.san === 'O-O' || m.san === 'O-O-O') score += 8;
+      
+      // Checks
+      const tempChess = new Chess(fen);
+      try {
+        tempChess.move(m.san);
+        if (tempChess.isCheck()) score += 6;
+      } catch {}
+      
+      return {
+        san: m.san,
+        uci: `${m.from}${m.to}${m.promotion || ''}`,
+        from: m.from,
+        to: m.to,
+        probability: score / 100, // Rough probability
+        explanation: getFallbackPurpose(m),
+      };
+    });
+    
+    scoredMoves.sort((a, b) => b.probability - a.probability);
+    
+    // Normalize probabilities
+    const total = scoredMoves.reduce((sum, m) => sum + m.probability, 0) || 1;
+    scoredMoves.forEach(m => m.probability /= total);
+    
+    return scoredMoves.slice(0, 4);
+  } catch {
+    return [];
+  }
+}
+
+function getFallbackPurpose(move: { san: string; captured?: string; from: string; to: string }): string {
   if (move.san === 'O-O') return 'Castle kingside for safety';
   if (move.san === 'O-O-O') return 'Castle queenside';
   if (move.captured) {
@@ -285,17 +376,9 @@ function getMovePurpose(move: { san: string; captured?: string; from: string; to
     return `Capture the ${pieceNames[move.captured] || 'piece'}`;
   }
   
-  // Central moves
   const centralSquares = ['d4', 'd5', 'e4', 'e5'];
   if (centralSquares.includes(move.to)) return 'Control the center';
   
-  // Development
-  const backRanks = ['1', '8'];
-  if (backRanks.includes(move.from[1]) && !backRanks.includes(move.to[1])) {
-    return 'Develop a piece';
-  }
-  
-  // Check
   if (move.san.includes('+')) return 'Give check';
   
   return 'Improve position';

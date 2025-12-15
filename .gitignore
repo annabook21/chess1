@@ -37,3 +37,6 @@ coverage/
 
 # AWS demo repo (reference only)
 embodied-chess-demo-with-amazon-bedrock/
+
+# Maia ONNX models (download with scripts/download-maia-models.sh)
+packages/frontend-web/public/models/*.onnx

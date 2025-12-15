@@ -1,0 +1,14 @@
+# Maia ONNX Models Directory
+
+Place your Maia ONNX model files here:
+- maia-1100.onnx
+- maia-1200.onnx
+- maia-1300.onnx
+- maia-1400.onnx
+- maia-1500.onnx
+- maia-1600.onnx
+- maia-1700.onnx
+- maia-1800.onnx
+- maia-1900.onnx
+
+See scripts/download-maia-models.sh for download instructions.

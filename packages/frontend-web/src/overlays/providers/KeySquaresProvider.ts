@@ -175,3 +175,4 @@ function isWeaklyDefended(chess: Chess, square: string, defenderColor: 'w' | 'b'
   return true; // Placeholder - would need proper implementation
 }
 
+

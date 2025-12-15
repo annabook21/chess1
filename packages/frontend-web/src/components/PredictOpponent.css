@@ -304,6 +304,92 @@
   font-weight: 600;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIA INTEGRATION STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Maia Status Indicator */
+.maia-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  border-radius: var(--radius-md);
+}
+
+.maia-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b5cf6;
+  padding: 4px 10px;
+  background: rgba(139, 92, 246, 0.15);
+  border-radius: 20px;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.inference-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* Maia Loading State */
+.maia-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px 20px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-lg);
+  border: 2px dashed var(--border-subtle);
+}
+
+.maia-loading span {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.maia-loading .loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-subtle);
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Move Meta with Probability */
+.move-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.move-probability {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8b5cf6;
+  padding: 2px 8px;
+  background: rgba(139, 92, 246, 0.15);
+  border-radius: 10px;
+  font-family: var(--font-mono);
+}
+
+/* High probability moves get highlighted */
+.move-option-v2:first-child .move-probability {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1));
+  color: #22c55e;
+}
+
 /* Legacy styles (kept for backwards compatibility) */
 .predict-opponent {
   display: none; /* Hide old version */
