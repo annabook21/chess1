@@ -518,10 +518,10 @@ export class MasterAcademyStack extends cdk.Stack {
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100, // Use only North America and Europe
     });
 
-    // Deploy frontend assets to S3 (excluding large ONNX models for faster deploys)
+    // Deploy frontend assets to S3 (models uploaded separately via CLI for reliability)
     new s3deploy.BucketDeployment(this, 'DeployWebsite', {
       sources: [s3deploy.Source.asset(path.join(__dirname, '../../frontend-web/dist'), {
-        exclude: ['models/*.onnx'], // Exclude large ONNX models from main deployment
+        exclude: ['models/*.onnx'], // Exclude large ONNX models - uploaded via CLI
       })],
       destinationBucket: websiteBucket,
       distribution,
@@ -529,14 +529,10 @@ export class MasterAcademyStack extends cdk.Stack {
       memoryLimit: 256, // Sufficient for frontend without models
     });
 
-    // Deploy ONNX models separately (larger memory, cached independently)
-    new s3deploy.BucketDeployment(this, 'DeployModels', {
-      sources: [s3deploy.Source.asset(path.join(__dirname, '../../frontend-web/dist/models'))],
-      destinationBucket: websiteBucket,
-      destinationKeyPrefix: 'models',
-      memoryLimit: 1024, // More memory for ~17MB of ONNX models
-      ephemeralStorageSize: cdk.Size.mebibytes(512),
-      prune: false, // Don't delete existing models (allows incremental updates)
+    // Output bucket name for model upload script
+    new cdk.CfnOutput(this, 'ModelBucketName', {
+      value: websiteBucket.bucketName,
+      description: 'S3 bucket for uploading ONNX models via: aws s3 sync dist/models s3://BUCKET/models',
     });
 
     // ═══════════════════════════════════════════════════════════════════
