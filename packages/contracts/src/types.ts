@@ -282,3 +282,101 @@ export interface GetDrillsResponse {
   targetedWeaknesses: string[];  // Which weaknesses these address
 }
 
+// ============================================================================
+// OVERLAY PLUGIN ARCHITECTURE (Sprint 1)
+// ============================================================================
+
+/** A single square highlight */
+export interface SquareHighlight {
+  square: string;           // e.g., "e4"
+  color: string;            // CSS color (hex, rgba, named)
+  opacity?: number;         // 0-1, default 0.5
+  label?: string;           // Optional text label on square
+}
+
+/** An arrow between two squares */
+export interface OverlayArrow {
+  from: string;             // Source square, e.g., "e2"
+  to: string;               // Target square, e.g., "e4"
+  color: string;            // CSS color
+  opacity?: number;         // 0-1, default 0.8
+  label?: string;           // Optional label at arrow midpoint
+  style?: 'solid' | 'dashed' | 'ghost';  // Arrow style
+}
+
+/** A badge/icon on a square */
+export interface SquareBadge {
+  square: string;
+  text: string;             // Emoji or short text
+  severity: 'info' | 'warning' | 'danger' | 'success';
+  tooltip?: string;         // Hover tooltip
+}
+
+/** A ghost piece (for showing future positions) */
+export interface GhostPiece {
+  square: string;
+  piece: string;            // FEN piece char: 'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', etc.
+  opacity: number;          // 0-1
+}
+
+/** Complete overlay frame - one layer of visualization */
+export interface OverlayFrame {
+  id: string;               // Provider ID that created this
+  priority: number;         // Higher = rendered on top (0-100)
+  highlights: SquareHighlight[];
+  arrows: OverlayArrow[];
+  badges: SquareBadge[];
+  ghostPieces: GhostPiece[];
+}
+
+/** Context passed to overlay providers */
+export interface OverlayContext {
+  fen: string;
+  sideToMove: Side;
+  lastMove?: { from: string; to: string };
+  hoveredChoice?: MoveChoice;        // If user is hovering a choice
+  selectedSquare?: string;           // If user has selected a piece
+  legalMoves?: string[];             // Legal moves from selected square
+  engineAnalysis?: {
+    eval: number;
+    pv: string[];
+    threats: string[];
+  };
+  userPreferences?: {
+    showAttacks: boolean;
+    showThreats: boolean;
+    showKeySquares: boolean;
+  };
+}
+
+/** Overlay provider interface - implement this to create new visualizations */
+export interface OverlayProvider {
+  id: string;               // Unique provider ID
+  name: string;             // Display name
+  description: string;      // What this overlay shows
+  defaultEnabled: boolean;  // On by default?
+  compute(context: OverlayContext): OverlayFrame;
+}
+
+/** Combined overlay state for frontend */
+export interface OverlayState {
+  frames: OverlayFrame[];
+  activeProviders: string[];
+}
+
+// ============================================================================
+// PV PREVIEW FOR HOVER (Sprint 2 prep)
+// ============================================================================
+
+/** Extended move choice with preview data */
+export interface MoveChoiceWithPreview extends MoveChoice {
+  pvPreview: {
+    yourMove: { from: string; to: string };
+    opponentReply?: { from: string; to: string; san: string };
+    yourFollowUp?: { from: string; to: string; san: string };
+    evalShift: number;      // Eval change after opponent reply
+    newlyAttacked: string[];    // Squares you attack after move
+    newlyDefended: string[];    // Squares you defend after move
+  };
+}
+

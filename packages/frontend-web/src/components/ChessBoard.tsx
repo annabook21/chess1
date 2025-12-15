@@ -1,14 +1,15 @@
 /**
  * ChessBoard Component
- * Clean, modern chess board with visualization features
+ * Clean, modern chess board with modular overlay plugin system
  * Using react-chessboard v4.x
  */
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Chessboard } from 'react-chessboard';
 import type { Square } from 'react-chessboard/dist/chessboard/types';
 import { MoveChoice } from '@master-academy/contracts';
-import { BoardVisualization } from './BoardVisualization';
+import { OverlayRenderer, useOverlayManager } from '../overlays';
+import type { OverlayContext } from '../overlays';
 import './ChessBoard.css';
 
 interface ChessBoardProps {
@@ -16,19 +17,42 @@ interface ChessBoardProps {
   onMove?: (move: string) => void;
   choices?: MoveChoice[];
   selectedChoice?: string | null;
+  hoveredChoice?: MoveChoice | null;
   predictionHover?: { from: string | null; to: string | null };
+  lastMove?: { from: string; to: string };
 }
 
 export const ChessBoard: React.FC<ChessBoardProps> = ({
   fen,
   choices,
   selectedChoice,
+  hoveredChoice,
   predictionHover,
+  lastMove,
 }) => {
-  // Visualization toggles
-  const [showAttacks, setShowAttacks] = useState(false);
-  const [showThreats, setShowThreats] = useState(false);
-  const [showKeySquares, setShowKeySquares] = useState(false);
+  // Overlay manager for plugin-based visualization
+  const overlayManager = useOverlayManager({
+    defaultActiveProviders: ['selectedMove', 'hoverPreview'],
+  });
+
+  // Build overlay context from current state
+  const overlayContext = useMemo<OverlayContext>(() => ({
+    fen,
+    sideToMove: fen.includes(' w ') ? 'w' : 'b',
+    lastMove,
+    hoveredChoice: hoveredChoice || undefined,
+    userPreferences: {
+      showAttacks: overlayManager.isProviderActive('attacks'),
+      showThreats: overlayManager.isProviderActive('threats'),
+      showKeySquares: overlayManager.isProviderActive('keySquares'),
+    },
+  }), [fen, lastMove, hoveredChoice, overlayManager]);
+
+  // Compute overlay frames
+  const overlayFrames = useMemo(() => 
+    overlayManager.computeFrames(overlayContext),
+    [overlayManager, overlayContext]
+  );
   
   const customSquareStyles = useMemo(() => {
     const styles: Record<string, React.CSSProperties> = {};
@@ -62,8 +86,20 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
       }
     }
     
+    // Highlight last move
+    if (lastMove) {
+      styles[lastMove.from] = {
+        ...styles[lastMove.from],
+        background: 'rgba(255, 255, 0, 0.3)',
+      };
+      styles[lastMove.to] = {
+        ...styles[lastMove.to],
+        background: 'rgba(255, 255, 0, 0.4)',
+      };
+    }
+    
     return styles;
-  }, [selectedChoice, choices, predictionHover]);
+  }, [selectedChoice, choices, predictionHover, lastMove]);
 
   // Custom arrows for prediction hover
   const customArrows = useMemo(() => {
@@ -74,33 +110,28 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
   }, [predictionHover]);
 
   const isWhiteToMove = fen.includes(' w ');
-  const selectedMoveUci = selectedChoice && choices 
-    ? choices.find(c => c.id === selectedChoice)?.moveUci 
-    : undefined;
-
-  const anyVisualizationActive = showAttacks || showThreats || showKeySquares;
 
   return (
     <div className="chess-board-wrapper">
-      {/* Visualization controls */}
+      {/* Visualization controls - Plugin toggles */}
       <div className="viz-controls">
         <button 
-          className={`viz-btn ${showAttacks ? 'active' : ''}`}
-          onClick={() => setShowAttacks(!showAttacks)}
+          className={`viz-btn ${overlayManager.isProviderActive('attacks') ? 'active' : ''}`}
+          onClick={() => overlayManager.toggleProvider('attacks')}
           title="Show square control heatmap"
         >
           🎯 Attacks
         </button>
         <button 
-          className={`viz-btn ${showThreats ? 'active' : ''}`}
-          onClick={() => setShowThreats(!showThreats)}
+          className={`viz-btn ${overlayManager.isProviderActive('threats') ? 'active' : ''}`}
+          onClick={() => overlayManager.toggleProvider('threats')}
           title="Show capture threats"
         >
           ⚔️ Threats
         </button>
         <button 
-          className={`viz-btn ${showKeySquares ? 'active' : ''}`}
-          onClick={() => setShowKeySquares(!showKeySquares)}
+          className={`viz-btn ${overlayManager.isProviderActive('keySquares') ? 'active' : ''}`}
+          onClick={() => overlayManager.toggleProvider('keySquares')}
           title="Show key central squares"
         >
           📍 Key Squares
@@ -127,16 +158,8 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
           animationDuration={180}
         />
         
-        {/* Visualization overlay */}
-        {anyVisualizationActive && (
-          <BoardVisualization
-            fen={fen}
-            showAttacks={showAttacks}
-            showThreats={showThreats}
-            showKeySquares={showKeySquares}
-            selectedMove={selectedMoveUci}
-          />
-        )}
+        {/* Plugin-based overlay system */}
+        <OverlayRenderer frames={overlayFrames} boardSize={440} />
       </div>
       
       <div className={`turn-indicator ${isWhiteToMove ? 'white-turn' : 'black-turn'}`}>
