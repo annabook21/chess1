@@ -291,3 +291,73 @@ body {
 .text-green { color: var(--accent-secondary); }
 .text-red { color: var(--accent-danger); }
 .text-muted { color: var(--text-muted); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE UTILITIES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Improve touch targets */
+@media (max-width: 768px) {
+  .btn {
+    min-height: 44px; /* Apple HIG recommended */
+    padding: 12px 20px;
+  }
+  
+  /* Prevent text size adjustment on orientation change */
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  /* Improve scrolling performance */
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Hide evaluation bar horizontal on mobile */
+  .eval-bar-container {
+    width: 100%;
+    height: 12px;
+    display: flex;
+    flex-direction: row;
+  }
+  
+  .eval-bar-white {
+    position: relative;
+    width: auto;
+    height: 100%;
+    transition: width 0.4s ease;
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus styles for accessibility */
+.btn:focus-visible,
+.choice-card:focus-visible,
+.move-option-v2:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Desktop-only elements */
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+/* Mobile-only elements */
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+}

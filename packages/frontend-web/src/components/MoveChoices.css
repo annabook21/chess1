@@ -8,9 +8,37 @@
   gap: 14px;
 }
 
-@media (max-width: 900px) {
+/* Tablet: 2 columns */
+@media (max-width: 1100px) and (min-width: 769px) {
   .move-choices-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile: Horizontal scroll */
+@media (max-width: 768px) {
+  .move-choices-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 10px;
+    padding: 4px 0;
+    margin: 0 -12px;
+    padding-left: 12px;
+    padding-right: 12px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  .move-choices-grid::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+  }
+  
+  .move-choices-grid .choice-card {
+    flex: 0 0 280px;
+    scroll-snap-align: start;
+    min-width: 280px;
+    max-width: 280px;
   }
 }
 
@@ -191,4 +219,107 @@
   border: 1px solid var(--border-color);
   border-radius: 16px;
   color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE COMPACT CARDS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .choice-card {
+    padding: 14px;
+    gap: 10px;
+  }
+  
+  .choice-card:hover {
+    transform: none; /* Disable hover lift on touch devices */
+  }
+  
+  .choice-card:active {
+    transform: scale(0.98);
+    background: var(--bg-tertiary);
+  }
+  
+  .choice-selected-indicator {
+    width: 20px;
+    height: 20px;
+    top: 8px;
+    right: 8px;
+  }
+  
+  .choice-selected-indicator::after {
+    font-size: 11px;
+  }
+  
+  .master-avatar {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .master-emoji {
+    font-size: 17px;
+  }
+  
+  .master-name {
+    font-size: 14px;
+  }
+  
+  .master-title {
+    font-size: 10px;
+  }
+  
+  .choice-plan {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+  
+  .choice-move {
+    padding: 8px 10px;
+  }
+  
+  .move-notation-display {
+    font-size: 14px;
+    gap: 6px;
+  }
+  
+  .move-eval {
+    font-size: 12px;
+    padding: 3px 8px;
+  }
+  
+  .choice-tags {
+    gap: 4px;
+  }
+  
+  .choice-tag {
+    font-size: 9px;
+    padding: 3px 8px;
+  }
+}
+
+@media (max-width: 375px) {
+  .move-choices-grid .choice-card {
+    flex: 0 0 250px;
+    min-width: 250px;
+    max-width: 250px;
+  }
+  
+  .choice-card {
+    padding: 12px;
+    gap: 8px;
+  }
+  
+  .master-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .master-emoji {
+    font-size: 15px;
+  }
+  
+  .choice-plan {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
 }

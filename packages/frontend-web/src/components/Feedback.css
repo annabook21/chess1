@@ -311,3 +311,94 @@
   color: var(--text-secondary);
   text-transform: capitalize;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .feedback-card {
+    padding: 14px;
+    gap: 12px;
+  }
+  
+  .feedback-header h3 {
+    font-size: 14px;
+  }
+  
+  .feedback-icon {
+    font-size: 16px;
+  }
+  
+  .feedback-badge {
+    font-size: 10px;
+    padding: 4px 10px;
+  }
+  
+  .feedback-eval {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+  
+  .eval-change {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .eval-delta {
+    font-size: 20px;
+  }
+  
+  .eval-meter {
+    width: 100%;
+  }
+  
+  .feedback-coach,
+  .feedback-opponent {
+    padding: 12px;
+    gap: 10px;
+  }
+  
+  .coach-avatar {
+    font-size: 20px;
+  }
+  
+  .coach-text {
+    font-size: 12px;
+  }
+  
+  .opponent-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  
+  .opponent-move-san {
+    font-size: 16px;
+  }
+  
+  .opponent-justification {
+    font-size: 11px;
+  }
+  
+  .concept-tag {
+    font-size: 10px;
+    padding: 4px 10px;
+  }
+  
+  .feedback-blunder {
+    padding: 10px;
+  }
+  
+  .blunder-icon {
+    font-size: 18px;
+  }
+  
+  .blunder-text {
+    font-size: 11px;
+  }
+}

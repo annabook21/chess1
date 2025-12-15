@@ -118,9 +118,60 @@
 }
 
 /* Responsive */
-@media (max-width: 520px) {
+@media (max-width: 768px) {
   .chess-board-wrapper {
-    transform: scale(0.9);
-    transform-origin: top center;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .viz-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+  
+  .viz-btn {
+    padding: 6px 12px;
+    font-size: 11px;
+    gap: 4px;
+  }
+  
+  .turn-indicator {
+    padding: 8px 16px;
+    gap: 8px;
+  }
+  
+  .turn-piece {
+    font-size: 20px;
+  }
+  
+  .turn-text {
+    font-size: 13px;
+  }
+  
+  /* Ensure board fits screen width */
+  .chess-board-container {
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vw - 24px);
+  }
+}
+
+@media (max-width: 375px) {
+  .viz-btn {
+    padding: 5px 10px;
+    font-size: 10px;
+  }
+  
+  .turn-indicator {
+    padding: 6px 12px;
+  }
+  
+  .turn-piece {
+    font-size: 18px;
+  }
+  
+  .turn-text {
+    font-size: 12px;
   }
 }

@@ -394,3 +394,186 @@
 .predict-opponent {
   display: none; /* Hide old version */
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .predict-opponent-v2 {
+    padding: 16px;
+    gap: 14px;
+    border-radius: var(--radius-lg);
+  }
+  
+  .predict-header-v2 {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  
+  .predict-title-v2 {
+    gap: 10px;
+  }
+  
+  .predict-icon-v2 {
+    font-size: 26px;
+  }
+  
+  .title-text h3 {
+    font-size: 16px;
+  }
+  
+  .title-text .subtitle {
+    font-size: 12px;
+  }
+  
+  .predict-timer-v2 {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+  }
+  
+  .timer-ring {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .timer-value-v2 {
+    font-size: 15px;
+  }
+  
+  .master-hint-v2 {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  
+  .master-emoji-v2 {
+    font-size: 20px;
+  }
+  
+  .hint-text {
+    font-size: 12px;
+  }
+  
+  .move-options-v2 {
+    gap: 8px;
+  }
+  
+  .move-option-v2 {
+    padding: 12px 14px;
+    gap: 12px;
+  }
+  
+  .move-option-v2:hover {
+    transform: none; /* Disable on touch */
+  }
+  
+  .move-option-v2:active {
+    transform: scale(0.98);
+  }
+  
+  .option-label {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  
+  .move-san-v2 {
+    font-size: 16px;
+  }
+  
+  .move-arrow {
+    font-size: 11px;
+  }
+  
+  .move-purpose {
+    font-size: 11px;
+  }
+  
+  .predict-actions-v2 {
+    gap: 10px;
+  }
+  
+  .btn-ghost {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+  
+  .predict-actions-v2 .btn-primary {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  .predict-reward {
+    padding: 8px;
+  }
+  
+  .reward-icon {
+    font-size: 14px;
+  }
+  
+  .reward-text {
+    font-size: 12px;
+  }
+  
+  /* Maia specific */
+  .maia-status {
+    padding: 6px 10px;
+    gap: 8px;
+  }
+  
+  .maia-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+  
+  .inference-time {
+    font-size: 10px;
+  }
+  
+  .maia-loading {
+    padding: 24px 16px;
+    gap: 12px;
+  }
+  
+  .maia-loading span {
+    font-size: 13px;
+  }
+  
+  .move-probability {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+}
+
+@media (max-width: 375px) {
+  .predict-opponent-v2 {
+    padding: 12px;
+    gap: 12px;
+  }
+  
+  .timer-ring {
+    width: 42px;
+    height: 42px;
+  }
+  
+  .timer-value-v2 {
+    font-size: 13px;
+  }
+  
+  .move-option-v2 {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  
+  .option-label {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  
+  .move-san-v2 {
+    font-size: 14px;
+  }
+}

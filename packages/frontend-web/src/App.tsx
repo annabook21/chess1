@@ -14,6 +14,7 @@ import { Celebration } from './components/Celebration';
 import { PredictOpponent } from './components/PredictOpponent';
 import { MasterMonologue } from './components/MasterMonologue';
 import { WeaknessTracker } from './components/WeaknessTracker';
+import { BottomNav } from './components/BottomNav';
 import { createGame, getTurn, submitMove } from './api/client';
 import { TurnPackage, MoveRequest, MoveResponse } from '@master-academy/contracts';
 import { 
@@ -642,6 +643,14 @@ function App() {
           currentEval={feedback?.evalAfter || 0}
         />
       </main>
+      
+      {/* Mobile Bottom Navigation */}
+      <BottomNav
+        predictionEnabled={predictionEnabled}
+        onTogglePrediction={() => setPredictionEnabled((prev: boolean) => !prev)}
+        onOpenWeaknessTracker={() => setShowWeaknessTracker(true)}
+        onNewGame={initializeGame}
+      />
     </div>
   );
 }

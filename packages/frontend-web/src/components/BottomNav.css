@@ -1,0 +1,93 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOTTOM NAV - Mobile Only
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.bottom-nav {
+  display: none; /* Hidden on desktop */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  padding: 8px 16px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom)); /* iOS safe area */
+}
+
+/* Show on mobile */
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.bottom-nav-item:active {
+  transform: scale(0.95);
+  background: var(--bg-tertiary);
+}
+
+.bottom-nav-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.bottom-nav-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Active state */
+.bottom-nav-item.active {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
+}
+
+.bottom-nav-item.active .bottom-nav-label {
+  color: #22c55e;
+}
+
+/* Badge */
+.bottom-nav-badge {
+  position: absolute;
+  top: 2px;
+  right: 50%;
+  transform: translateX(calc(50% + 12px));
+  font-size: 8px;
+  font-weight: 700;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.2);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+/* Primary action (New Game) */
+.bottom-nav-primary {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+}
+
+.bottom-nav-primary:active {
+  background: var(--bg-elevated);
+}
