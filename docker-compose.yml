@@ -1,10 +1,8 @@
-version: '3.8'
-
 services:
   engine-service:
     build:
-      context: ./packages/engine-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: packages/engine-service/Dockerfile
     ports:
       - "3001:3001"
     environment:
@@ -17,8 +15,8 @@ services:
 
   style-service:
     build:
-      context: ./packages/style-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: packages/style-service/Dockerfile
     ports:
       - "3002:3002"
     environment:
@@ -35,8 +33,8 @@ services:
 
   coach-service:
     build:
-      context: ./packages/coach-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: packages/coach-service/Dockerfile
     ports:
       - "3003:3003"
     environment:
@@ -53,8 +51,8 @@ services:
 
   game-api:
     build:
-      context: ./packages/game-api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: packages/game-api/Dockerfile
     ports:
       - "3000:3000"
     environment:
