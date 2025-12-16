@@ -1,0 +1,226 @@
+/**
+ * Achievement Toast Styles
+ */
+
+.achievement-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 360px;
+  max-width: calc(100vw - 40px);
+  background: linear-gradient(
+    135deg,
+    var(--castle-bg, #1a1a2e) 0%,
+    var(--castle-bg-alt, #16213e) 100%
+  );
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px var(--castle-border, #3d3d5c);
+  z-index: 2000;
+  animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.achievement-toast.exiting {
+  animation: slideOut 0.3s ease-in forwards;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes slideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%) scale(0.9);
+  }
+}
+
+/* Animated border effect */
+.toast-border {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--rarity-color, #c9a227) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Content */
+.toast-content {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  position: relative;
+}
+
+/* Icon */
+.toast-icon {
+  font-size: 40px;
+  flex-shrink: 0;
+  animation: iconBounce 0.6s ease-out 0.2s;
+}
+
+@keyframes iconBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+/* Text */
+.toast-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.toast-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--castle-accent2, #4ecdc4);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.toast-rarity {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.toast-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  color: var(--castle-text, #e8e8e8);
+  margin: 0 0 6px 0;
+  line-height: 1.4;
+}
+
+.toast-flavor {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--castle-text-secondary, #b8b8c8);
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.toast-reward {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+}
+
+.xp-icon {
+  font-size: 14px;
+}
+
+.xp-value {
+  color: var(--castle-accent, #c9a227);
+}
+
+/* Dismiss button */
+.toast-dismiss {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--castle-text-muted, #7a7a8c);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.toast-dismiss:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* Progress bar */
+.toast-progress {
+  height: 3px;
+  width: 100%;
+  animation: progressShrink linear forwards;
+  transform-origin: left;
+}
+
+@keyframes progressShrink {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .achievement-toast {
+    top: auto;
+    bottom: 80px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+  }
+
+  .toast-content {
+    padding: 12px;
+  }
+
+  .toast-icon {
+    font-size: 32px;
+  }
+
+  .toast-name {
+    font-size: 10px;
+  }
+
+  .toast-flavor {
+    font-size: 11px;
+  }
+}
+
+/* Multiple toasts stacking */
+.achievement-toast:nth-child(2) {
+  top: 120px;
+  opacity: 0.9;
+  transform: scale(0.95);
+}
+
+.achievement-toast:nth-child(3) {
+  top: 220px;
+  opacity: 0.8;
+  transform: scale(0.9);
+}
+

@@ -1,6 +1,7 @@
 /**
  * Master Academy Chess - Main Application
  * Premium chess learning experience with master-style coaching
+ * With Cursed Castle Spirit theme integration
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -25,6 +26,18 @@ import {
   uciToSan,
   getPositionConcepts
 } from './utils/moveTracker';
+
+// Castle theme components
+import { 
+  SpiritWhisper, 
+  SettingsPanel, 
+  CastleMap, 
+  DEFAULT_ROOMS,
+  AchievementToast,
+  useAchievementToast,
+} from './ui/castle';
+import { useNarration } from './hooks/useNarration';
+import { TaggerInput } from './narration/types';
 import './App.css';
 
 // Gamification state - improved system
@@ -127,6 +140,50 @@ function App() {
   const [showWeaknessTracker, setShowWeaknessTracker] = useState(false);
   const [moveCounter, setMoveCounter] = useState(1);
 
+  // Castle theme state
+  const [showSettings, setShowSettings] = useState(false);
+  const [showCastleMap, setShowCastleMap] = useState(false);
+  const [currentRoom, setCurrentRoom] = useState('courtyard');
+  const [rooms, setRooms] = useState(() => {
+    const saved = localStorage.getItem('masterAcademy_rooms');
+    return saved ? JSON.parse(saved) : DEFAULT_ROOMS;
+  });
+
+  // Narration hook
+  const { 
+    narration, 
+    tone, 
+    setTone, 
+    narrateMove, 
+    narratePredictionResult,
+    showNarration,
+    hideNarration,
+    getWelcomeNarration,
+  } = useNarration(gameId || 'new-game');
+
+  // Achievement toast hook
+  const { 
+    currentAchievement, 
+    showAchievement, 
+    dismissCurrent: dismissAchievement 
+  } = useAchievementToast();
+
+  // Save rooms progress
+  useEffect(() => {
+    localStorage.setItem('masterAcademy_rooms', JSON.stringify(rooms));
+  }, [rooms]);
+
+  // Unlock rooms based on rating
+  useEffect(() => {
+    const rating = playerStats.skillRating;
+    setRooms((prev: typeof DEFAULT_ROOMS) => prev.map(room => {
+      if (room.id === 'crypt' && rating >= 1500) {
+        return { ...room, unlocked: true };
+      }
+      return room;
+    }));
+  }, [playerStats.skillRating]);
+
   const initializeGame = useCallback(async () => {
     try {
       setLoading(true);
@@ -138,6 +195,9 @@ function App() {
       setGameId(gameId);
       const turn = await getTurn(gameId);
       setTurnPackage(turn);
+      
+      // Show welcome narration from the Spirit
+      getWelcomeNarration();
       
       setPlayerStats(prev => ({
         ...prev,
@@ -449,6 +509,26 @@ function App() {
     // Clear celebration after animation
     setTimeout(() => setCelebration(null), 2000);
 
+    // Generate castle spirit narration for the move
+    const chess = new Chess(currentTurn.fen);
+    const move = chess.move({ from: choice.moveUci.slice(0, 2), to: choice.moveUci.slice(2, 4) });
+    if (move) {
+      const taggerInput: TaggerInput = {
+        evalBefore: response.feedback.evalBefore,
+        evalAfter: response.feedback.evalAfter,
+        isCapture: move.captured !== undefined,
+        isCheck: move.san.includes('+'),
+        isMate: move.san.includes('#'),
+        pieceType: move.piece,
+        fromSquare: move.from,
+        toSquare: move.to,
+        conceptTags: response.feedback.conceptTags,
+        isPlayerMove: true,
+        moveNumber: moveCounter,
+      };
+      narrateMove(taggerInput, moveCounter);
+    }
+
     if (response.nextTurn) {
       setTurnPackage(response.nextTurn);
       setSelectedChoice(null);
@@ -494,15 +574,48 @@ function App() {
   };
 
   return (
-    <div className="app">
+    <div className="app castle-theme">
       {/* Celebration overlay */}
       {celebration && <Celebration type={celebration} />}
+      
+      {/* Achievement Toast */}
+      <AchievementToast 
+        achievement={currentAchievement}
+        onDismiss={dismissAchievement}
+      />
       
       {/* Weakness Tracker Modal */}
       <WeaknessTracker 
         isOpen={showWeaknessTracker} 
         onClose={() => setShowWeaknessTracker(false)} 
       />
+      
+      {/* Settings Panel Modal */}
+      <SettingsPanel
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        onSettingsChange={(settings) => setTone(settings.tone)}
+      />
+      
+      {/* Castle Map Modal */}
+      {showCastleMap && (
+        <div className="castle-map-modal" onClick={() => setShowCastleMap(false)}>
+          <div className="castle-map-modal-content" onClick={e => e.stopPropagation()}>
+            <button 
+              className="modal-close" 
+              onClick={() => setShowCastleMap(false)}
+            >
+              ✕
+            </button>
+            <CastleMap
+              rooms={rooms}
+              currentRoomId={currentRoom}
+              onRoomSelect={setCurrentRoom}
+              playerRating={playerStats.skillRating}
+            />
+          </div>
+        </div>
+      )}
       
       {/* Header with stats */}
       <Header 
@@ -634,6 +747,22 @@ function App() {
               <Feedback feedback={feedback} />
             </div>
           )}
+
+          {/* Spirit Whisper Narration */}
+          {narration.isVisible && (
+            <div className="spirit-section animate-fade-in-up">
+              <SpiritWhisper
+                text={narration.text}
+                severity={narration.severity}
+                typewriterSpeed={tone === 'ruthless' ? 20 : tone === 'whimsical' ? 40 : 30}
+                showPortrait={true}
+                onComplete={() => {
+                  // Auto-hide after 5 seconds
+                  setTimeout(hideNarration, 5000);
+                }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Right: Sidebar */}
@@ -644,6 +773,24 @@ function App() {
         />
       </main>
       
+      {/* Castle Quick Actions (Desktop) */}
+      <div className="castle-quick-actions">
+        <button 
+          className="castle-action-btn"
+          onClick={() => setShowCastleMap(true)}
+          title="Castle Map"
+        >
+          🏰
+        </button>
+        <button 
+          className="castle-action-btn"
+          onClick={() => setShowSettings(true)}
+          title="Settings"
+        >
+          ⚙️
+        </button>
+      </div>
+
       {/* Mobile Bottom Navigation */}
       <BottomNav
         predictionEnabled={predictionEnabled}

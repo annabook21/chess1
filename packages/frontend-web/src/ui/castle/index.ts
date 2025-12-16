@@ -8,3 +8,8 @@ export { SpiritPortrait, severityToMood } from './SpiritPortrait';
 export type { SpiritMood } from './SpiritPortrait';
 export { HeroSheet } from './HeroSheet';
 export { RitualBar, DEFAULT_RITUALS } from './RitualBar';
+export { SettingsPanel, useCastleSettings } from './SettingsPanel';
+export type { CastleSettings, NarrationTone } from './SettingsPanel';
+export { CastleMap, DEFAULT_ROOMS } from './CastleMap';
+export { AchievementToast, useAchievementToast } from './AchievementToast';
+
