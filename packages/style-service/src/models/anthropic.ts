@@ -10,7 +10,7 @@ import { StyleResponse, parseStyleResponse } from '../schemas/styleResponse';
 import { MASTER_PROFILES } from './master-profiles';
 
 const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-west-2' });
-const modelId = process.env.BEDROCK_MODEL_ID_ANTHROPIC || 'anthropic.claude-3-5-sonnet-20241022-v2:0';
+const modelId = process.env.BEDROCK_MODEL_ID_ANTHROPIC || 'anthropic.claude-sonnet-4-5-20250929-v1:0';
 
 export interface MultiMoveResult {
   moves: string[]; // UCI format
