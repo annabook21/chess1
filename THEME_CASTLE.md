@@ -203,3 +203,135 @@ Key test files:
 3. **Deterministic**: Same input → same output (seeded randomness)
 4. **Graceful Degradation**: Missing templates → fallback text
 5. **No Copyrighted Assets**: All content is original
+
+---
+
+## Phase 3 Additions
+
+### Board Frame (War Table Aesthetic)
+
+The `BoardFrame` component wraps the chessboard in a medieval castle war table style:
+
+```tsx
+import { BoardFrame } from './components/BoardFrame';
+
+<BoardFrame variant="stone" showTorches={true}>
+  <ChessBoard ... />
+</BoardFrame>
+```
+
+Variants: `stone` | `brass` | `wood`
+
+### Keyboard Shortcuts
+
+Sierra games had keyboard shortcuts - use `useKeyboardShortcuts`:
+
+```tsx
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+
+useKeyboardShortcuts({
+  observe: () => toggleThreats(),      // O
+  foresee: () => togglePV(),           // F
+  intuit: () => togglePrediction(),    // I
+  openMap: () => setShowMap(true),     // M
+  selectChoice1: () => selectMove(0),  // 1
+  confirmMove: () => submitMove(),     // Enter
+});
+```
+
+### Ritual Bar (Sierra Verb Style)
+
+Enhanced with verb names and shortcuts:
+
+```tsx
+import { RitualBar, DEFAULT_RITUALS } from './ui/castle';
+
+<RitualBar
+  buttons={DEFAULT_RITUALS}
+  onButtonClick={handleRitual}
+  showShortcuts={true}
+/>
+```
+
+### Game End Screens
+
+Sierra-style dramatic endings:
+
+```tsx
+import { GameOverScreen, VictoryScreen, DrawScreen } from './ui/castle';
+
+// On checkmate (loss)
+<GameOverScreen
+  xpEarned={150}
+  movesPlayed={42}
+  accuracy={68}
+  onTryAgain={startNewGame}
+  onReturnToMap={openCastleMap}
+/>
+
+// On victory
+<VictoryScreen ... bestMoveDescription="Rxh7+! Brilliant sacrifice" />
+
+// On draw
+<DrawScreen ... />
+```
+
+### Mood Mapper
+
+Connect narration tags to Spirit moods:
+
+```tsx
+import { tagToMood, taggerOutputToMood } from './narration/moodMapper';
+
+const mood = tagToMood('FOUND_BRILLIANT_MOVE'); // 'impressed'
+const mood2 = taggerOutputToMood(taggerOutput); // Based on severity + tag
+```
+
+### Room-Specific Narration Packs
+
+Each castle room has unique narration tone:
+
+```
+narration/packs/
+├── castle_spirit/    # Default (gothic)
+├── courtyard/        # Beginner-friendly, encouraging
+├── armory/           # Martial, tactical language
+├── library/          # Scholarly (future)
+├── crypt/            # Dark, punishing (future)
+└── throne_room/      # Grand, climactic (future)
+```
+
+To add a room pack:
+1. Create folder: `narration/packs/{room_id}/`
+2. Add core tags: `FOUND_BEST_MOVE/`, `BLUNDER_HANGS_PIECE/`, etc.
+3. Add variants: `v1.md`, `v2.md`
+4. Tone defaults cascade: room → castle_spirit → hardcoded
+
+### Audio Hooks (Placeholder)
+
+Audio system ready for real sounds:
+
+```tsx
+import { useAudio, useTypewriterAudio } from './audio';
+
+const { playSound } = useAudio();
+playSound('achievement_unlock');
+
+// For typewriter effect
+const { onCharacter } = useTypewriterAudio();
+```
+
+Sound effects: `typewriter_char`, `move_submit`, `blunder`, `brilliant`, `achievement_unlock`, `victory`, etc.
+
+### Testing
+
+New test file:
+- `narration/moodMapper.test.ts` - Mood mapping logic
+
+Run with:
+```bash
+cd packages/frontend-web
+pnpm exec vitest run
+```
+
+

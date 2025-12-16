@@ -43,3 +43,5 @@ export interface PlayerAchievements {
   totalXp: number;
   unlockedRooms: string[];
 }
+
+

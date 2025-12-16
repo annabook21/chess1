@@ -37,3 +37,5 @@ echo "Frontend URL: $(aws cloudformation describe-stacks \
   --stack-name MasterAcademyChess \
   --query 'Stacks[0].Outputs[?OutputKey==`FrontendUrl`].OutputValue' \
   --output text)"
+
+

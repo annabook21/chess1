@@ -106,3 +106,5 @@ export const severityToMood = (
 };
 
 export default SpiritPortrait;
+
+

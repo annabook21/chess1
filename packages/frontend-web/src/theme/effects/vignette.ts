@@ -77,3 +77,5 @@ export const getTorchGlowCSS = (color: string = '#c9a227'): string => `
       0 0 60px ${color}10;
   }
 `;
+
+

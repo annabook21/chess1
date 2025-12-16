@@ -1,36 +1,63 @@
 /**
  * Ritual Bar Styles
- * Adventure game action bar aesthetic
+ * Sierra-style verb bar with keyboard shortcuts
+ * Inspired by Quest for Glory's icon interface
  */
 
 .ritual-bar {
   width: 100%;
-  padding: 8px;
+  padding: 12px 16px;
   background: linear-gradient(
     180deg,
     var(--castle-surface-alt) 0%,
     var(--castle-bg) 100%
   );
   border-top: 3px solid var(--castle-frame);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .ritual-bar__frame {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Title bar */
+.ritual-bar__title {
+  font-family: var(--castle-font-display, 'Press Start 2P', monospace);
+  font-size: 10px;
+  color: var(--castle-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+/* Button container */
+.ritual-bar__buttons {
   display: flex;
   gap: 8px;
   justify-content: center;
   flex-wrap: wrap;
 }
 
-/* Individual ritual button */
+/* ═══════════════════════════════════════════════════════════
+   RITUAL BUTTON - Sierra Verb Style
+   ═══════════════════════════════════════════════════════════ */
+
 .ritual-button {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 10px 16px;
-  min-width: 80px;
-  background: var(--castle-surface);
+  padding: 12px 16px 8px;
+  min-width: 90px;
+  background: linear-gradient(
+    180deg,
+    var(--castle-surface) 0%,
+    var(--castle-surface-alt) 100%
+  );
   border: 2px solid var(--castle-border);
   border-top-color: var(--castle-frame-highlight);
   border-left-color: var(--castle-frame-highlight);
@@ -40,60 +67,106 @@
   cursor: pointer;
   transition: all 0.15s ease;
   font-family: inherit;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-.ritual-button:hover:not(:disabled) {
-  background: var(--castle-surface-alt);
+.ritual-button:hover:not(.ritual-button--disabled) {
+  background: linear-gradient(
+    180deg,
+    var(--castle-surface-alt) 0%,
+    var(--castle-surface) 100%
+  );
   color: var(--castle-text);
-  border-color: var(--castle-border-strong);
+  border-color: var(--castle-accent1);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    0 0 12px rgba(var(--castle-accent1-rgb, 139, 119, 101), 0.2);
 }
 
-.ritual-button:active:not(:disabled) {
+.ritual-button:active:not(.ritual-button--disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   border-top-color: var(--castle-frame-shadow);
   border-left-color: var(--castle-frame-shadow);
   border-bottom-color: var(--castle-frame-highlight);
   border-right-color: var(--castle-frame-highlight);
-  transform: translateY(1px);
 }
 
-.ritual-button:disabled {
-  opacity: 0.4;
+.ritual-button--disabled {
+  opacity: 0.5;
   cursor: not-allowed;
+  filter: grayscale(50%);
 }
 
-/* Active state */
+/* Active/toggled state */
 .ritual-button--active {
-  background: var(--castle-bg);
+  background: linear-gradient(
+    180deg,
+    var(--castle-bg) 0%,
+    var(--castle-surface-alt) 100%
+  );
   border-color: var(--castle-accent1);
   color: var(--castle-accent1);
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.3),
+    0 0 12px rgba(var(--castle-accent1-rgb, 139, 119, 101), 0.3);
 }
 
 .ritual-button--active::before {
   content: '';
   position: absolute;
-  inset: -1px;
+  inset: -2px;
   border: 1px solid var(--castle-accent1);
   opacity: 0.5;
   animation: activePulse 2s ease-in-out infinite;
+  pointer-events: none;
 }
 
 @keyframes activePulse {
   0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.6; }
+  50% { opacity: 0.7; }
 }
 
 /* Icon */
 .ritual-button__icon {
-  font-size: 20px;
+  font-size: 24px;
   line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 
-/* Label */
-.ritual-button__label {
-  font-size: 10px;
+/* Verb name - Sierra style */
+.ritual-button__verb {
+  font-family: var(--castle-font-display, 'Press Start 2P', monospace);
+  font-size: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
+  margin-top: 2px;
+}
+
+/* Keyboard shortcut badge */
+.ritual-button__shortcut {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-family: var(--castle-font-mono, 'IBM Plex Mono', monospace);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--castle-text-muted);
+  background: var(--castle-bg);
+  padding: 1px 4px;
+  border-radius: 2px;
+  border: 1px solid var(--castle-border);
+  opacity: 0.7;
+}
+
+.ritual-button:hover .ritual-button__shortcut {
+  opacity: 1;
+  color: var(--castle-accent1);
+  border-color: var(--castle-accent1);
 }
 
 /* Glow effect for active buttons */
@@ -105,22 +178,77 @@
     var(--castle-accent1) 0%,
     transparent 70%
   );
-  opacity: 0.15;
+  opacity: 0.2;
   pointer-events: none;
+  animation: glowBreath 3s ease-in-out infinite;
 }
 
-/* Mobile adjustments */
+@keyframes glowBreath {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.25; }
+}
+
+/* Lock icon for disabled */
+.ritual-button__lock {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COMPACT MODE
+   ═══════════════════════════════════════════════════════════ */
+
+.ritual-bar--compact .ritual-bar__title {
+  display: none;
+}
+
+.ritual-bar--compact .ritual-button {
+  padding: 8px 12px 6px;
+  min-width: 70px;
+}
+
+.ritual-bar--compact .ritual-button__icon {
+  font-size: 20px;
+}
+
+.ritual-bar--compact .ritual-button__verb {
+  font-size: 7px;
+}
+
+.ritual-bar--compact .ritual-button__shortcut {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE
+   ═══════════════════════════════════════════════════════════ */
+
 @media (max-width: 480px) {
+  .ritual-bar {
+    padding: 8px;
+  }
+  
+  .ritual-bar__title {
+    font-size: 8px;
+  }
+  
   .ritual-button {
-    padding: 8px 12px;
-    min-width: 60px;
+    padding: 8px 10px 6px;
+    min-width: 65px;
   }
   
   .ritual-button__icon {
     font-size: 18px;
   }
   
-  .ritual-button__label {
-    font-size: 9px;
+  .ritual-button__verb {
+    font-size: 7px;
+  }
+  
+  .ritual-button__shortcut {
+    display: none;
   }
 }

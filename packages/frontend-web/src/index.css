@@ -488,3 +488,200 @@ body.castle-theme.pixel-scale svg {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE UTILITIES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Improve touch targets */
+@media (max-width: 768px) {
+  .btn {
+    min-height: 44px; /* Apple HIG recommended */
+    padding: 12px 20px;
+  }
+  
+  /* Prevent text size adjustment on orientation change */
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  /* Improve scrolling performance */
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Hide evaluation bar horizontal on mobile */
+  .eval-bar-container {
+    width: 100%;
+    height: 12px;
+    display: flex;
+    flex-direction: row;
+  }
+  
+  .eval-bar-white {
+    position: relative;
+    width: auto;
+    height: 100%;
+    transition: width 0.4s ease;
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus styles for accessibility */
+.btn:focus-visible,
+.choice-card:focus-visible,
+.move-option-v2:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Desktop-only elements */
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+/* Mobile-only elements */
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CURSED CASTLE SPIRIT THEME - Sierra-era Adventure Game Aesthetic
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.castle-theme {
+  --bg-primary: var(--castle-bg, #1a1a2e);
+  --bg-secondary: var(--castle-bg-alt, #16213e);
+  --bg-tertiary: var(--castle-surface, #252a40);
+  --bg-elevated: var(--castle-surface-alt, #2d3250);
+  --bg-card: var(--castle-surface, #252a40);
+  
+  --text-primary: var(--castle-text, #e8e8e8);
+  --text-secondary: var(--castle-text-secondary, #b8b8c8);
+  --text-muted: var(--castle-text-muted, #7a7a8a);
+  
+  --border-color: var(--castle-border, #4a4a5a);
+  --border-hover: var(--castle-border-strong, #6a6a7a);
+  
+  --accent-primary: var(--castle-accent2, #c9a227);
+  --accent-secondary: var(--castle-success, #4a9c6d);
+  --accent-danger: var(--castle-danger, #9c4a4a);
+  --accent-info: var(--castle-info, #4a7a9c);
+  
+  /* Pixel font for headers */
+  --font-display: 'Press Start 2P', monospace;
+  
+  background: var(--castle-bg, #1a1a2e);
+  position: relative;
+}
+
+/* Apply pixel font to key elements in castle theme */
+body.castle-theme .app-title,
+body.castle-theme .section-title,
+body.castle-theme .master-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+/* Stone frame borders for panels */
+body.castle-theme .card,
+body.castle-theme .choice-card,
+body.castle-theme .choices-section {
+  border: 3px solid var(--castle-frame, #3d3d50);
+  border-top-color: var(--castle-frame-highlight, #5a5a70);
+  border-left-color: var(--castle-frame-highlight, #5a5a70);
+  border-right-color: var(--castle-frame-shadow, #1a1a28);
+  border-bottom-color: var(--castle-frame-shadow, #1a1a28);
+  box-shadow: 
+    inset 1px 1px 0 var(--castle-frame-highlight, #5a5a70),
+    inset -1px -1px 0 var(--castle-frame-shadow, #1a1a28);
+}
+
+/* Brass/gold accents */
+body.castle-theme .btn-primary {
+  background: linear-gradient(180deg, 
+    var(--castle-accent2, #c9a227) 0%, 
+    #a68318 100%);
+  border: 2px solid #8b6914;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+}
+
+body.castle-theme .btn-primary:hover {
+  background: linear-gradient(180deg, 
+    #d9b237 0%, 
+    var(--castle-accent2, #c9a227) 100%);
+}
+
+/* Mystical glow for selected items */
+body.castle-theme .choice-card.selected,
+body.castle-theme .move-option-v2.selected {
+  box-shadow: 
+    0 0 20px rgba(159, 211, 199, 0.3),
+    inset 0 0 10px rgba(159, 211, 199, 0.1);
+  border-color: var(--castle-accent1, #9fd3c7);
+}
+
+/* CRT/scanline overlay effect */
+body.castle-theme::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: 
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.1) 0px,
+      rgba(0, 0, 0, 0.1) 1px,
+      transparent 1px,
+      transparent 2px
+    );
+  opacity: 0.3;
+}
+
+/* Vignette effect */
+body.castle-theme::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+}
+
+/* Pixel-scale rendering hint */
+body.castle-theme.pixel-scale {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+body.castle-theme.pixel-scale img,
+body.castle-theme.pixel-scale svg {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}

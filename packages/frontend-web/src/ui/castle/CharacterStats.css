@@ -1,0 +1,136 @@
+/**
+ * Character Stats Panel Styles
+ * Quest for Glory-style stat display
+ */
+
+.character-stats {
+  background: linear-gradient(180deg, #2a2a3d 0%, #1e1e2e 100%);
+  border: 3px solid #1a1a28;
+  box-shadow: 
+    inset 2px 2px 0 #4a4a5a,
+    inset -2px -2px 0 #0a0a12,
+    0 4px 12px rgba(0, 0, 0, 0.5);
+  padding: 12px;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-size: 10px;
+  color: #e8e8e8;
+  min-width: 180px;
+}
+
+/* Header */
+.character-stats__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 2px solid #3a3a4a;
+}
+
+.character-stats__class {
+  color: #9fd3c7;
+  font-size: 9px;
+}
+
+.character-stats__level {
+  color: #c9a227;
+  font-size: 10px;
+}
+
+/* XP Bar */
+.character-stats__xp {
+  margin-bottom: 10px;
+}
+
+.character-stats__xp-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 8px;
+  color: #b8b8c8;
+}
+
+.character-stats__xp-bar {
+  height: 8px;
+  background: #1a1a28;
+  border: 1px solid #3a3a4a;
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.character-stats__xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4a9c6d 0%, #6abd8a 100%);
+  transition: width 0.3s ease;
+}
+
+/* Rating */
+.character-stats__rating {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  margin-bottom: 10px;
+  background: #1a1a28;
+  border: 1px solid #3a3a4a;
+}
+
+.rating-label {
+  font-size: 8px;
+  color: #7a7a8a;
+}
+
+.rating-value {
+  font-size: 14px;
+  color: #c9a227;
+  text-shadow: 0 0 10px rgba(201, 162, 39, 0.5);
+}
+
+/* Stats Grid */
+.character-stats__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-name {
+  width: 32px;
+  font-size: 8px;
+  color: #b8b8c8;
+  text-transform: uppercase;
+}
+
+.stat-bar {
+  flex: 1;
+  height: 6px;
+  background: #1a1a28;
+  border: 1px solid #2a2a3a;
+}
+
+.stat-bar__fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 4px currentColor;
+}
+
+.stat-value {
+  width: 24px;
+  text-align: right;
+  font-size: 9px;
+  color: #e8e8e8;
+}
+
+/* Footer */
+.character-stats__footer {
+  padding-top: 8px;
+  border-top: 2px solid #3a3a4a;
+  font-size: 8px;
+  color: #7a7a8a;
+  text-align: center;
+}

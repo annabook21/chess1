@@ -441,3 +441,5 @@ export function getPolicyUci(index: number): string | undefined {
   initMoveMappings();
   return _policyToUci?.[index];
 }
+
+

@@ -78,3 +78,5 @@ if (typeof window !== 'undefined') {
   (window as any).inspectMaiaModel = inspectModel;
   console.log('Run window.inspectMaiaModel(1500) to inspect the model');
 }
+
+

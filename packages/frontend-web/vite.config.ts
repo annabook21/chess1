@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig({
+  resolve: {
+    // Prevent duplicate React instances in production bundle
+    dedupe: ['react', 'react-dom'],
+  },
   plugins: [
     react(),
     // Copy ONNX runtime WASM loader files to dist

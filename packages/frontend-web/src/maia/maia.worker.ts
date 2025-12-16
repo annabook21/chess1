@@ -261,3 +261,5 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
 
 // Signal that worker is ready
 self.postMessage({ type: 'ready' });
+
+

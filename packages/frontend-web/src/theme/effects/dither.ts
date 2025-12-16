@@ -85,3 +85,5 @@ export const generateNoisePattern = (size: number = 64): string => {
   ctx.putImageData(imageData, 0, 0);
   return canvas.toDataURL();
 };
+
+

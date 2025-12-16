@@ -63,3 +63,5 @@ export const LC0_INPUT_SIZE = LC0_INPUT_PLANES * LC0_BOARD_SIZE * LC0_BOARD_SIZE
  * - 1858 possible moves in Lc0 encoding
  */
 export const LC0_POLICY_SIZE = 1858;
+
+

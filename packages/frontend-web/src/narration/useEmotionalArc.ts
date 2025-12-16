@@ -77,3 +77,5 @@ export const useEmotionalArc = (): UseEmotionalArcReturn => {
 };
 
 export default useEmotionalArc;
+
+

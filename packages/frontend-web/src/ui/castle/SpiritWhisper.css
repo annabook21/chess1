@@ -1,6 +1,7 @@
 /**
  * Spirit Whisper Window Styles
- * Sierra-era adventure game dialog box aesthetic
+ * Quest for Glory-era adventure game dialog box aesthetic
+ * Double-border pixel frame with corner accents
  */
 
 .spirit-whisper {
@@ -11,25 +12,78 @@
 }
 
 .spirit-whisper__frame {
+  position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
+  gap: 16px;
+  padding: 20px 24px;
+  
+  /* Dark blue-gray background like QFG4 dialogs */
   background: linear-gradient(
     180deg,
-    var(--castle-surface) 0%,
-    var(--castle-surface-alt) 100%
+    #2a2a3d 0%,
+    #1e1e2e 100%
   );
-  border: 3px solid var(--castle-frame);
-  border-top-color: var(--castle-frame-highlight);
-  border-left-color: var(--castle-frame-highlight);
-  border-bottom-color: var(--castle-frame-shadow);
-  border-right-color: var(--castle-frame-shadow);
+  
+  /* Outer border - dark */
+  border: 4px solid #1a1a28;
+  
+  /* Inner highlight using box-shadow */
   box-shadow: 
-    inset 0 1px 0 var(--castle-frame-highlight),
-    inset 0 -1px 0 var(--castle-frame-shadow),
-    0 4px 12px rgba(0, 0, 0, 0.5);
+    /* Inner light border (top-left) */
+    inset 2px 2px 0 #4a4a5a,
+    /* Inner dark border (bottom-right) */
+    inset -2px -2px 0 #0a0a12,
+    /* Outer glow */
+    0 4px 16px rgba(0, 0, 0, 0.6);
+  
   image-rendering: pixelated;
+}
+
+/* Corner accents - pixel-art style */
+.spirit-whisper__frame::before,
+.spirit-whisper__frame::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #6a6a7a;
+  box-shadow: 
+    inset 1px 1px 0 #8a8a9a,
+    inset -1px -1px 0 #3a3a4a;
+}
+
+.spirit-whisper__frame::before {
+  top: 6px;
+  left: 6px;
+}
+
+.spirit-whisper__frame::after {
+  top: 6px;
+  right: 6px;
+}
+
+/* Additional corners using content wrapper pseudo-elements */
+.spirit-whisper__content::before,
+.spirit-whisper__content::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #6a6a7a;
+  box-shadow: 
+    inset 1px 1px 0 #8a8a9a,
+    inset -1px -1px 0 #3a3a4a;
+}
+
+.spirit-whisper__content::before {
+  bottom: 6px;
+  left: 6px;
+}
+
+.spirit-whisper__content::after {
+  bottom: 6px;
+  right: 6px;
 }
 
 /* Spirit portrait */
@@ -56,6 +110,7 @@
 
 /* Text content */
 .spirit-whisper__content {
+  position: relative;
   flex: 1;
   min-height: 48px;
   display: flex;
@@ -124,3 +179,5 @@
   0%, 100% { box-shadow: 0 0 10px rgba(156, 74, 74, 0.3); }
   50% { box-shadow: 0 0 20px rgba(156, 74, 74, 0.5); }
 }
+
+

@@ -1,0 +1,278 @@
+/**
+ * BoardFrame Styles
+ * War table aesthetic with ornate medieval frame
+ * Uses layered box-shadows and CSS gradients for depth
+ */
+
+.board-frame {
+  --frame-stone: #4a4a4a;
+  --frame-stone-light: #6a6a6a;
+  --frame-stone-dark: #2a2a2a;
+  --frame-brass: #b8860b;
+  --frame-brass-light: #daa520;
+  --frame-brass-dark: #8b6914;
+  --frame-wood: #654321;
+  --frame-wood-light: #8b7355;
+  --frame-wood-dark: #3d2914;
+  --frame-inset: rgba(0, 0, 0, 0.4);
+  --torch-glow: rgba(255, 147, 41, 0.4);
+  
+  position: relative;
+  display: inline-block;
+}
+
+/* Size variants */
+.board-frame--compact {
+  --frame-thickness: 12px;
+  --corner-size: 24px;
+}
+
+.board-frame--standard {
+  --frame-thickness: 8px;
+  --corner-size: 16px;
+}
+
+.board-frame--large {
+  --frame-thickness: 28px;
+  --corner-size: 48px;
+}
+
+/* Outer frame container */
+.board-frame__outer {
+  position: relative;
+  padding: var(--frame-thickness);
+  background: var(--frame-stone-dark);
+  border-radius: 6px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Variant: Brass */
+.board-frame--brass .board-frame__outer {
+  background: linear-gradient(
+    145deg,
+    var(--frame-brass-light) 0%,
+    var(--frame-brass) 50%,
+    var(--frame-brass-dark) 100%
+  );
+  box-shadow:
+    inset 2px 2px 0 var(--frame-brass-light),
+    inset -2px -2px 0 var(--frame-brass-dark),
+    0 8px 24px rgba(0, 0, 0, 0.6),
+    0 0 20px rgba(184, 134, 11, 0.2);
+}
+
+/* Variant: Wood */
+.board-frame--wood .board-frame__outer {
+  background: linear-gradient(
+    145deg,
+    var(--frame-wood-light) 0%,
+    var(--frame-wood) 50%,
+    var(--frame-wood-dark) 100%
+  );
+  box-shadow:
+    inset 2px 2px 0 var(--frame-wood-light),
+    inset -2px -2px 0 var(--frame-wood-dark),
+    0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* Inner frame with inset effect */
+.board-frame__inner {
+  position: relative;
+  background: var(--frame-stone-dark);
+  padding: 2px;
+  border-radius: 2px;
+  box-shadow:
+    inset 2px 2px 4px var(--frame-inset);
+}
+
+/* Content area */
+.board-frame__content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Corner positions */
+.board-frame__corner {
+  display: none;
+}
+
+.board-frame__corner--tl { top: 0; left: 0; }
+.board-frame__corner--tr { top: 0; right: 0; }
+.board-frame__corner--bl { bottom: 0; left: 0; }
+.board-frame__corner--br { bottom: 0; right: 0; }
+
+/* ═══════════════════════════════════════════════════════════
+   TORCH SCONCE
+   ═══════════════════════════════════════════════════════════ */
+
+.torch-sconce {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 14px;
+}
+
+.torch-sconce--tl {
+  top: -8px;
+  left: 4px;
+}
+
+.torch-sconce--tr {
+  top: -8px;
+  right: 4px;
+}
+
+.torch-sconce__bracket {
+  color: var(--frame-brass);
+  font-size: 12px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.torch-sconce__flame {
+  position: relative;
+  margin-top: -4px;
+}
+
+.flame-core {
+  font-size: 16px;
+  animation: flameFlicker 0.3s ease-in-out infinite alternate;
+  filter: brightness(1.2);
+}
+
+.flame-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 30px;
+  height: 30px;
+  background: radial-gradient(
+    circle,
+    var(--torch-glow) 0%,
+    transparent 70%
+  );
+  animation: glowPulse 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes flameFlicker {
+  0% { 
+    transform: scale(1) rotate(-2deg);
+    opacity: 0.9;
+  }
+  100% { 
+    transform: scale(1.1) rotate(2deg);
+    opacity: 1;
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% { 
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% { 
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CORNER ORNAMENT
+   ═══════════════════════════════════════════════════════════ */
+
+.corner-ornament {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.corner-ornament__icon {
+  color: var(--frame-brass);
+  font-size: 14px;
+  text-shadow: 
+    0 1px 0 var(--frame-brass-dark),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+  opacity: 0.8;
+}
+
+.board-frame__corner--bl .corner-ornament__icon,
+.board-frame__corner--br .corner-ornament__icon {
+  transform: rotate(45deg);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   EDGE DECORATIONS
+   ═══════════════════════════════════════════════════════════ */
+
+.board-frame__edge {
+  display: none;
+}
+
+.board-frame__edge--top {
+  top: 2px;
+}
+
+.board-frame__edge--bottom {
+  bottom: 2px;
+}
+
+.edge-decoration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edge-decoration__rune {
+  font-size: 10px;
+  color: var(--frame-brass);
+  opacity: 0.6;
+  letter-spacing: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AMBIENT LIGHTING EFFECT (optional)
+   ═══════════════════════════════════════════════════════════ */
+
+.board-frame--stone .board-frame__outer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    ellipse at top,
+    rgba(255, 147, 41, 0.1) 0%,
+    transparent 50%
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .board-frame--standard {
+    --frame-thickness: 12px;
+    --corner-size: 24px;
+  }
+  
+  .torch-sconce__flame,
+  .flame-glow {
+    display: none;
+  }
+  
+  .edge-decoration {
+    display: none;
+  }
+}

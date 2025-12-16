@@ -132,3 +132,5 @@ if (typeof window !== 'undefined') {
   (window as any).testMaiaEncoder = testEncoder;
   console.log('Run window.testMaiaEncoder() to test the encoder');
 }
+
+

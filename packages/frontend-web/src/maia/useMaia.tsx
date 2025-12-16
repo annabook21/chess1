@@ -440,3 +440,5 @@ export function useMaiaEngine(rating: MaiaRating = 1500, useWorker: boolean = fa
 
   return { predict, isReady, isLoading, error };
 }
+
+

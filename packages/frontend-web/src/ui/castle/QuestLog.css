@@ -1,0 +1,315 @@
+/**
+ * Quest Log Styles
+ * Quest for Glory-style quest tracking interface
+ */
+
+.quest-log {
+  background: linear-gradient(180deg, #2a2a3d 0%, #1e1e2e 100%);
+  border: 4px solid #1a1a28;
+  box-shadow: 
+    inset 2px 2px 0 #4a4a5a,
+    inset -2px -2px 0 #0a0a12,
+    0 8px 24px rgba(0, 0, 0, 0.6);
+  color: #e8e8e8;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* Header */
+.quest-log__header {
+  padding: 16px 20px;
+  background: linear-gradient(180deg, #3a3a4d 0%, #2a2a3d 100%);
+  border-bottom: 3px solid #1a1a28;
+  text-align: center;
+}
+
+.quest-log__title {
+  font-size: 14px;
+  color: #c9a227;
+  margin: 0 0 4px 0;
+  text-shadow: 2px 2px 0 #1a1a28;
+}
+
+.quest-log__subtitle {
+  font-size: 8px;
+  color: #7a7a8a;
+}
+
+/* Content layout */
+.quest-log__content {
+  display: flex;
+  min-height: 300px;
+}
+
+/* Quest list */
+.quest-log__list {
+  width: 200px;
+  border-right: 2px solid #3a3a4a;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.quest-list-section {
+  margin-bottom: 16px;
+}
+
+.quest-list-title {
+  font-size: 9px;
+  color: #9fd3c7;
+  margin: 0 0 8px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #3a3a4a;
+}
+
+.quest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.quest-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 8px;
+}
+
+.quest-item:hover {
+  background: rgba(159, 211, 199, 0.1);
+}
+
+.quest-item.selected {
+  background: rgba(159, 211, 199, 0.2);
+  border-left: 2px solid #9fd3c7;
+}
+
+.quest-item--locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quest-item--completed .quest-title {
+  text-decoration: line-through;
+  color: #7a7a8a;
+}
+
+.quest-status {
+  width: 12px;
+  text-align: center;
+  color: #c9a227;
+}
+
+.quest-item--completed .quest-status {
+  color: #4a9c6d;
+}
+
+.quest-item--active .quest-status {
+  color: #9fd3c7;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.quest-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quest-chapter {
+  font-size: 7px;
+  color: #7a7a8a;
+}
+
+/* Quest details */
+.quest-log__details {
+  flex: 1;
+  padding: 16px;
+}
+
+.quest-details__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #3a3a4a;
+}
+
+.quest-details__title {
+  font-size: 11px;
+  color: #c9a227;
+  margin: 0;
+}
+
+.quest-details__status {
+  font-size: 8px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+
+.quest-details__status--active {
+  background: #9fd3c7;
+  color: #1a1a28;
+}
+
+.quest-details__status--available {
+  background: #4a7a9c;
+  color: #e8e8e8;
+}
+
+.quest-details__status--completed {
+  background: #4a9c6d;
+  color: #e8e8e8;
+}
+
+.quest-details__status--locked {
+  background: #4a4a5a;
+  color: #7a7a8a;
+}
+
+.quest-details__description {
+  font-size: 9px;
+  line-height: 1.6;
+  color: #b8b8c8;
+  margin-bottom: 16px;
+}
+
+/* Objectives */
+.quest-details__objectives h4 {
+  font-size: 9px;
+  color: #9fd3c7;
+  margin: 0 0 8px 0;
+}
+
+.quest-details__objectives ul {
+  list-style: none;
+  margin: 0 0 16px 0;
+  padding: 0;
+}
+
+.objective {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 8px;
+  border-bottom: 1px solid #2a2a3a;
+}
+
+.objective.completed {
+  color: #4a9c6d;
+}
+
+.objective.completed .objective-text {
+  text-decoration: line-through;
+}
+
+.objective-check {
+  width: 14px;
+  font-size: 10px;
+}
+
+.objective-text {
+  flex: 1;
+}
+
+.objective-progress {
+  color: #7a7a8a;
+  font-size: 7px;
+}
+
+/* Rewards */
+.quest-details__rewards h4 {
+  font-size: 9px;
+  color: #c9a227;
+  margin: 0 0 8px 0;
+}
+
+.rewards-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.reward {
+  font-size: 8px;
+  padding: 4px 8px;
+  background: #1a1a28;
+  border: 1px solid #3a3a4a;
+}
+
+.reward--xp {
+  border-color: #c9a227;
+  color: #c9a227;
+}
+
+.reward--room_unlock {
+  border-color: #9fd3c7;
+  color: #9fd3c7;
+}
+
+.reward--title {
+  border-color: #8b5cf6;
+  color: #8b5cf6;
+}
+
+.reward--achievement {
+  border-color: #f39c12;
+  color: #f39c12;
+}
+
+/* Story text */
+.quest-details__story {
+  padding: 12px;
+  background: rgba(159, 211, 199, 0.1);
+  border-left: 3px solid #9fd3c7;
+  font-size: 9px;
+  font-style: italic;
+  line-height: 1.6;
+  color: #9fd3c7;
+}
+
+/* Activate button */
+.quest-details__activate {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin-top: 16px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: #1a1a28;
+  background: linear-gradient(180deg, #c9a227 0%, #a88420 100%);
+  border: 2px solid #8b6914;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quest-details__activate:hover {
+  background: linear-gradient(180deg, #dab738 0%, #c9a227 100%);
+  transform: translateY(-1px);
+}
+
+.quest-details__activate:active {
+  transform: translateY(1px);
+}
+
+/* Empty state */
+.quest-details__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #7a7a8a;
+  font-size: 9px;
+}

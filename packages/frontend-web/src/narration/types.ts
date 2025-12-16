@@ -97,3 +97,5 @@ export interface TemplateVars {
   pieceValue?: string;
   moveNumber?: string;
 }
+
+
