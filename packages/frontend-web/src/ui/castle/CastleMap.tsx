@@ -1,10 +1,12 @@
 /**
  * Castle Map
  * SVG-based room progression map with unlock states
+ * Uses CSS pixel sprites for authentic retro look
  */
 
 import React, { useMemo } from 'react';
 import './CastleMap.css';
+import './PixelSprites.css';
 
 // Room definitions from rooms.json
 interface Room {

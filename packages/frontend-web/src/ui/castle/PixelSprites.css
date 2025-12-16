@@ -1,0 +1,456 @@
+/**
+ * Pixel Art CSS Sprites
+ * Pure CSS pixel art icons to replace emojis
+ * Quest for Glory-inspired retro aesthetic
+ */
+
+/* Base sprite container */
+.pixel-sprite {
+  display: inline-block;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SPIRIT FACE - Ghost portrait using CSS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.spirit-face {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(159, 211, 199, 0.9) 0%,
+    rgba(159, 211, 199, 0.6) 40%,
+    rgba(159, 211, 199, 0.2) 70%,
+    transparent 100%
+  );
+  border-radius: 50% 50% 40% 40%;
+  animation: spiritHover 3s ease-in-out infinite;
+}
+
+/* Eyes */
+.spirit-face::before {
+  content: '';
+  position: absolute;
+  top: 35%;
+  left: 20%;
+  width: 4px;
+  height: 6px;
+  background: #1a1a2e;
+  border-radius: 50%;
+  box-shadow: 
+    12px 0 0 #1a1a2e; /* Right eye */
+}
+
+/* Mouth - changes based on mood */
+.spirit-face::after {
+  content: '';
+  position: absolute;
+  bottom: 25%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 3px;
+  background: #1a1a2e;
+  border-radius: 0 0 4px 4px;
+}
+
+@keyframes spiritHover {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* Spirit mood variations */
+.spirit-face--neutral::after {
+  width: 6px;
+  height: 2px;
+  border-radius: 2px;
+}
+
+.spirit-face--pleased::after {
+  width: 10px;
+  height: 4px;
+  border-radius: 0 0 6px 6px;
+  background: transparent;
+  border-bottom: 2px solid #1a1a2e;
+}
+
+.spirit-face--impressed {
+  animation: spiritGlow 1.5s ease-in-out infinite;
+}
+
+.spirit-face--impressed::after {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+  border: 2px solid #1a1a2e;
+}
+
+.spirit-face--concerned::before {
+  /* Slanted worried eyes */
+  transform: rotate(-10deg);
+}
+
+.spirit-face--concerned::after {
+  width: 8px;
+  height: 2px;
+  border-radius: 50%;
+  transform: translateX(-50%) scaleY(-1);
+}
+
+.spirit-face--dismayed {
+  animation: spiritShake 0.3s ease-in-out infinite;
+}
+
+.spirit-face--dismayed::after {
+  width: 10px;
+  height: 6px;
+  border-radius: 50%;
+  background: #1a1a2e;
+}
+
+@keyframes spiritGlow {
+  0%, 100% { 
+    filter: drop-shadow(0 0 8px rgba(201, 162, 39, 0.6));
+  }
+  50% { 
+    filter: drop-shadow(0 0 16px rgba(201, 162, 39, 0.9));
+  }
+}
+
+@keyframes spiritShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROOM ICONS - Pixel art for castle map
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.pixel-icon {
+  width: 24px;
+  height: 24px;
+  position: relative;
+}
+
+/* Courtyard - Columns */
+.pixel-icon--courtyard {
+  background: 
+    /* Left pillar */
+    linear-gradient(to right, #6a6a7a 0%, #8a8a9a 50%, #6a6a7a 100%);
+  width: 6px;
+  height: 20px;
+  margin: 2px auto;
+  box-shadow:
+    10px 0 0 0 #6a6a7a,
+    10px 0 0 0 linear-gradient(to right, #6a6a7a 0%, #8a8a9a 50%, #6a6a7a 100%);
+}
+
+.pixel-icon--courtyard::before,
+.pixel-icon--courtyard::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 4px;
+  background: #8a8a9a;
+  left: -1px;
+}
+
+.pixel-icon--courtyard::before {
+  top: -2px;
+}
+
+.pixel-icon--courtyard::after {
+  bottom: -2px;
+}
+
+/* Armory - Crossed swords */
+.pixel-icon--armory {
+  position: relative;
+}
+
+.pixel-icon--armory::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 3px;
+  background: linear-gradient(90deg, #4a4a5a 0%, #8a8a9a 50%, #4a4a5a 100%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  box-shadow: inset 0 1px 0 #aaa;
+}
+
+.pixel-icon--armory::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 3px;
+  background: linear-gradient(90deg, #4a4a5a 0%, #8a8a9a 50%, #4a4a5a 100%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  box-shadow: inset 0 1px 0 #aaa;
+}
+
+/* Library - Book */
+.pixel-icon--library {
+  width: 16px;
+  height: 20px;
+  background: #8b4513;
+  margin: 2px auto;
+  border-radius: 0 2px 2px 0;
+  box-shadow:
+    inset -2px 0 0 #654321,
+    inset 2px 0 0 #a0522d;
+}
+
+.pixel-icon--library::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 3px;
+  width: 10px;
+  height: 2px;
+  background: #f5deb3;
+  box-shadow:
+    0 4px 0 #f5deb3,
+    0 8px 0 #f5deb3,
+    0 12px 0 #f5deb3;
+}
+
+/* Chapel - Cross */
+.pixel-icon--chapel {
+  position: relative;
+}
+
+.pixel-icon--chapel::before {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 18px;
+  background: #c9a227;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: inset 1px 0 0 #daa520;
+}
+
+.pixel-icon--chapel::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 4px;
+  background: #c9a227;
+  top: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: inset 0 1px 0 #daa520;
+}
+
+/* Crypt - Skull */
+.pixel-icon--crypt {
+  width: 18px;
+  height: 20px;
+  margin: 2px auto;
+  background: #e8e8e8;
+  border-radius: 50% 50% 40% 40%;
+  position: relative;
+}
+
+.pixel-icon--crypt::before {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #1a1a2e;
+  border-radius: 50%;
+  top: 8px;
+  left: 4px;
+  box-shadow: 6px 0 0 #1a1a2e;
+}
+
+.pixel-icon--crypt::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 4px;
+  background: #1a1a2e;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 0 0 2px 2px;
+}
+
+/* Throne Room - Crown */
+.pixel-icon--throne {
+  position: relative;
+}
+
+.pixel-icon--throne::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 10px;
+  background: #c9a227;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  clip-path: polygon(
+    0% 100%, 
+    10% 40%, 
+    25% 100%,
+    40% 20%,
+    50% 80%,
+    60% 20%,
+    75% 100%,
+    90% 40%,
+    100% 100%
+  );
+  box-shadow: inset 0 -2px 0 #b8860b;
+}
+
+.pixel-icon--throne::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 6px;
+  background: linear-gradient(180deg, #daa520 0%, #c9a227 100%);
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 0 0 2px 2px;
+}
+
+/* Lock icon for locked rooms */
+.pixel-icon--lock {
+  width: 14px;
+  height: 18px;
+  margin: 3px auto;
+  position: relative;
+}
+
+.pixel-icon--lock::before {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 8px;
+  border: 3px solid #6a6a7a;
+  border-radius: 50% 50% 0 0;
+  border-bottom: none;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.pixel-icon--lock::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 10px;
+  background: #6a6a7a;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 2px;
+  box-shadow: inset 2px 2px 0 #8a8a9a;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STAT ICONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Sword for Tactics */
+.pixel-icon--sword {
+  position: relative;
+}
+
+.pixel-icon--sword::before {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 16px;
+  background: linear-gradient(180deg, #c0c0c0 0%, #808080 100%);
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.pixel-icon--sword::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 3px;
+  background: #8b4513;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Shield for Defense */
+.pixel-icon--shield {
+  width: 16px;
+  height: 18px;
+  margin: 3px auto;
+  background: linear-gradient(180deg, #4a7a9c 0%, #3a6a8c 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%);
+  box-shadow: inset 2px 2px 0 #5a8aac;
+}
+
+/* Star for Achievement */
+.pixel-icon--star {
+  width: 20px;
+  height: 20px;
+  margin: 2px auto;
+  background: #c9a227;
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIZE VARIANTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.spirit-face--small {
+  width: 24px;
+  height: 24px;
+}
+
+.spirit-face--large {
+  width: 48px;
+  height: 48px;
+}
+
+.spirit-face--large::before {
+  width: 6px;
+  height: 8px;
+  box-shadow: 18px 0 0 #1a1a2e;
+}
+
+.spirit-face--large::after {
+  width: 12px;
+  height: 4px;
+}
+
+.pixel-icon--small {
+  transform: scale(0.75);
+}
+
+.pixel-icon--large {
+  transform: scale(1.5);
+}

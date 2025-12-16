@@ -2,10 +2,13 @@
  * Spirit Portrait
  * Animated portrait that reacts to move severity
  * Based on Quest for Glory IV's expressive character portraits
+ * 
+ * Uses CSS pixel art sprites instead of emojis for authentic retro look
  */
 
 import React from 'react';
 import './SpiritPortrait.css';
+import './PixelSprites.css';
 
 export type SpiritMood = 
   | 'neutral'   // Default state
@@ -20,9 +23,11 @@ interface SpiritPortraitProps {
   mood: SpiritMood;
   size?: 'small' | 'medium' | 'large';
   animated?: boolean;
+  /** Use emoji fallback instead of CSS sprites */
+  useEmoji?: boolean;
 }
 
-/** Map mood to emoji expression */
+/** Map mood to emoji expression (fallback) */
 const MOOD_EXPRESSIONS: Record<SpiritMood, string> = {
   neutral: '👻',
   pleased: '😊',
@@ -59,10 +64,15 @@ export const SpiritPortrait: React.FC<SpiritPortraitProps> = ({
   mood,
   size = 'medium',
   animated = true,
+  useEmoji = false,
 }) => {
   const expression = MOOD_EXPRESSIONS[mood];
   const glowColor = MOOD_COLORS[mood];
   const animation = animated ? MOOD_ANIMATIONS[mood] : undefined;
+  
+  // Map size to CSS class modifier
+  const sizeClass = size === 'small' ? 'spirit-face--small' : 
+                    size === 'large' ? 'spirit-face--large' : '';
   
   return (
     <div 
@@ -70,21 +80,31 @@ export const SpiritPortrait: React.FC<SpiritPortraitProps> = ({
       style={{ '--spirit-glow': glowColor } as React.CSSProperties}
     >
       <div className="spirit-portrait__frame">
-        <div 
-          className={`spirit-portrait__face ${animation ? `spirit-portrait__face--${animation}` : ''}`}
-        >
-          {expression}
-        </div>
+        {useEmoji ? (
+          // Emoji fallback
+          <div 
+            className={`spirit-portrait__face ${animation ? `spirit-portrait__face--${animation}` : ''}`}
+          >
+            {expression}
+          </div>
+        ) : (
+          // CSS pixel art sprite
+          <div 
+            className={`spirit-face spirit-face--${mood} ${sizeClass} ${animation ? `spirit-portrait__face--${animation}` : ''}`}
+            role="img"
+            aria-label={`Spirit feeling ${mood}`}
+          />
+        )}
         
         {/* Ethereal glow effect */}
         <div className="spirit-portrait__glow" />
         
-        {/* Particle effects for impressive/excited moods */}
+        {/* Particle effects for impressive/excited moods - CSS only */}
         {(mood === 'impressed' || mood === 'excited') && (
           <div className="spirit-portrait__particles">
-            <span className="particle">✨</span>
-            <span className="particle">✨</span>
-            <span className="particle">✨</span>
+            <span className="particle pixel-icon--star pixel-icon--small" />
+            <span className="particle pixel-icon--star pixel-icon--small" />
+            <span className="particle pixel-icon--star pixel-icon--small" />
           </div>
         )}
       </div>

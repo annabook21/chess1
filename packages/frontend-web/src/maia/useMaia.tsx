@@ -17,6 +17,7 @@ import React, {
   useCallback,
   useRef,
   useMemo,
+  useTransition,
 } from 'react';
 import { MaiaEngine, MaiaWorkerEngine } from './MaiaEngine';
 import {
@@ -82,6 +83,9 @@ export function MaiaProvider({
     error: null,
   });
   const [isUsingWorker, setIsUsingWorker] = useState(useWorker);
+  
+  // Use transition for non-blocking state updates (React 19 best practice)
+  const [isPending, startTransition] = useTransition();
 
   // Initialize engine
   useEffect(() => {
@@ -118,11 +122,14 @@ export function MaiaProvider({
           
           if (disposed) return false;
           
-          setState({
-            isLoading: false,
-            isReady: true,
-            currentModel: initialRating,
-            error: null,
+          // Use transition for non-blocking state update
+          startTransition(() => {
+            setState({
+              isLoading: false,
+              isReady: true,
+              currentModel: initialRating,
+              error: null,
+            });
           });
           console.log('[MaiaProvider] ✅ Worker engine initialized successfully');
         }
@@ -150,11 +157,14 @@ export function MaiaProvider({
           
           if (disposed) return false;
           
-          setState({
-            isLoading: false,
-            isReady: true,
-            currentModel: initialRating,
-            error: null,
+          // Use transition for non-blocking state update
+          startTransition(() => {
+            setState({
+              isLoading: false,
+              isReady: true,
+              currentModel: initialRating,
+              error: null,
+            });
           });
           console.log('[MaiaProvider] ✅ Main thread engine initialized successfully');
         }
@@ -200,23 +210,29 @@ export function MaiaProvider({
   const loadModel = useCallback(async (rating: MaiaRating) => {
     if (!engineRef.current) return;
 
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    startTransition(() => {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
+    });
 
     try {
       await engineRef.current.loadModel(rating);
-      setState({
-        isLoading: false,
-        isReady: true,
-        currentModel: rating,
-        error: null,
+      startTransition(() => {
+        setState({
+          isLoading: false,
+          isReady: true,
+          currentModel: rating,
+          error: null,
+        });
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load model';
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: message,
-      }));
+      startTransition(() => {
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: message,
+        }));
+      });
       console.error('[MaiaProvider] Load error:', error);
     }
   }, []);
