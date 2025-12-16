@@ -74,7 +74,7 @@ export class ChoiceBuilder {
     console.log(`[TIMING] Style suggestions (3 parallel): ${Date.now() - stylesStart}ms`);
 
     // Build choices from engine + style results
-    const choices = this.buildChoicesFromResults(
+    const choices = await this.buildChoicesFromResults(
       fen,
       engineAnalysis,
       styleResults,
@@ -138,20 +138,21 @@ export class ChoiceBuilder {
    * Build 3 diverse choices from engine + style results
    * Now includes pvPreview for hover visualization
    */
-  private buildChoicesFromResults(
+  private async buildChoicesFromResults(
     fen: string,
     engineAnalysis: { eval: number; pv: string[] },
     styleResults: Map<MasterStyle, string[]>,
     legalMovesUci: string[],
     masters: MasterStyle[]
-  ): MoveChoiceWithPreview[] {
+  ): Promise<MoveChoiceWithPreview[]> {
     const choices: MoveChoiceWithPreview[] = [];
     const usedMoves = new Set<string>();
+    const movesToAnalyze: string[] = [];
 
     // Best move from engine
     const bestMove = engineAnalysis.pv[0] || legalMovesUci[0];
 
-    // Create choice for each master
+    // First pass: collect all moves we'll use
     for (let i = 0; i < 3 && i < masters.length; i++) {
       const styleId = masters[i];
       const styleMoves = styleResults.get(styleId) || [];
@@ -184,9 +185,26 @@ export class ChoiceBuilder {
 
       if (moveToUse) {
         usedMoves.add(moveToUse);
+        movesToAnalyze.push(moveToUse);
+      }
+    }
+
+    // Get PV for ALL moves (not just first one)
+    const movePvs = await this.getPvsForMoves(fen, movesToAnalyze, engineAnalysis.pv);
+
+    // Second pass: build choices with full PV data
+    let moveIndex = 0;
+    usedMoves.clear();
+    
+    for (let i = 0; i < 3 && i < masters.length; i++) {
+      const styleId = masters[i];
+      const moveToUse = movesToAnalyze[moveIndex];
+      
+      if (moveToUse) {
+        usedMoves.add(moveToUse);
         
-        // Get PV for this move (use engine PV for first choice, simulate for others)
-        const movePv = i === 0 ? engineAnalysis.pv.slice(0, 4) : [moveToUse];
+        // Get PV for this specific move
+        const movePv = movePvs.get(moveToUse) || [moveToUse];
         
         // Build pvPreview for hover visualization
         const pvPreview = this.buildPvPreview(fen, moveToUse, movePv, engineAnalysis.eval);
@@ -201,10 +219,165 @@ export class ChoiceBuilder {
           conceptTags: ['development'],
           pvPreview,
         });
+        
+        moveIndex++;
       }
     }
 
     return choices;
+  }
+  
+  /**
+   * Get principal variations for multiple moves
+   * Uses scoreMoves to get accurate PVs for all moves
+   */
+  private async getPvsForMoves(
+    fen: string,
+    moves: string[],
+    enginePv: string[]
+  ): Promise<Map<string, string[]>> {
+    const result = new Map<string, string[]>();
+    const bestMove = enginePv[0];
+    
+    // Get non-best moves that need analysis
+    const movesToScore = moves.filter(m => m !== bestMove);
+    
+    // Use engine's PV for best move
+    if (moves.includes(bestMove)) {
+      result.set(bestMove, enginePv.slice(0, 4));
+    }
+    
+    // Score remaining moves to get their PVs
+    if (movesToScore.length > 0) {
+      try {
+        const scoreResult = await this.deps.engineClient.scoreMoves({
+          fen,
+          moves: movesToScore,
+        });
+        
+        for (const scored of scoreResult.scores) {
+          result.set(scored.move, scored.pv.slice(0, 4));
+        }
+      } catch (error) {
+        console.warn('scoreMoves failed, using computed PVs:', error);
+        // Fallback: compute simple PVs for each move
+        for (const move of movesToScore) {
+          result.set(move, this.computeSimplePv(fen, move));
+        }
+      }
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Compute a simple PV for a move by finding likely opponent responses
+   */
+  private computeSimplePv(fen: string, moveUci: string): string[] {
+    try {
+      const chess = new Chess(fen);
+      
+      // Apply our move
+      const from = moveUci.slice(0, 2) as Square;
+      const to = moveUci.slice(2, 4) as Square;
+      const promotion = moveUci.length > 4 ? (moveUci[4] as 'q' | 'r' | 'b' | 'n') : undefined;
+      
+      const moveResult = chess.move({ from, to, promotion });
+      if (!moveResult) {
+        return [moveUci];
+      }
+      
+      const pv = [moveUci];
+      
+      // Find opponent's most likely response (simple heuristics)
+      const opponentMoves = chess.moves({ verbose: true });
+      if (opponentMoves.length === 0) {
+        return pv; // Checkmate or stalemate
+      }
+      
+      // Sort by move quality heuristics
+      const scoredMoves = opponentMoves.map(m => ({
+        move: m,
+        uci: `${m.from}${m.to}${m.promotion || ''}`,
+        score: this.scoreMoveSimple(m, chess),
+      })).sort((a, b) => b.score - a.score);
+      
+      // Take the "best" opponent response
+      const oppResponse = scoredMoves[0];
+      pv.push(oppResponse.uci);
+      
+      // Apply opponent move to find our follow-up
+      const oppMoveResult = chess.move({
+        from: oppResponse.move.from,
+        to: oppResponse.move.to,
+        promotion: oppResponse.move.promotion,
+      });
+      
+      if (oppMoveResult) {
+        // Find our follow-up
+        const followUpMoves = chess.moves({ verbose: true });
+        if (followUpMoves.length > 0) {
+          const scoredFollowUps = followUpMoves.map(m => ({
+            move: m,
+            uci: `${m.from}${m.to}${m.promotion || ''}`,
+            score: this.scoreMoveSimple(m, chess),
+          })).sort((a, b) => b.score - a.score);
+          
+          pv.push(scoredFollowUps[0].uci);
+        }
+      }
+      
+      return pv;
+    } catch (error) {
+      console.warn('Error computing simple PV:', error);
+      return [moveUci];
+    }
+  }
+  
+  /**
+   * Simple move scoring heuristic (not accurate, but gives reasonable responses)
+   */
+  private scoreMoveSimple(move: { 
+    from: string; 
+    to: string; 
+    captured?: string;
+    san: string;
+    piece: string;
+  }, chess: Chess): number {
+    let score = 0;
+    
+    // Captures are good
+    if (move.captured) {
+      const pieceValues: Record<string, number> = {
+        'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9, 'k': 0
+      };
+      score += pieceValues[move.captured] || 0;
+    }
+    
+    // Check is good
+    if (move.san.includes('+')) {
+      score += 0.5;
+    }
+    
+    // Checkmate is best
+    if (move.san.includes('#')) {
+      score += 100;
+    }
+    
+    // Center control (d4, d5, e4, e5) is good
+    if (['d4', 'd5', 'e4', 'e5'].includes(move.to)) {
+      score += 0.2;
+    }
+    
+    // Developing pieces in opening is good
+    if (move.piece === 'n' || move.piece === 'b') {
+      const rank = move.from[1];
+      if (rank === '1' || rank === '8') {
+        score += 0.3; // Developing from back rank
+      }
+    }
+    
+    return score;
   }
   
   /**
