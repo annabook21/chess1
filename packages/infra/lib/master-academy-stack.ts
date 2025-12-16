@@ -11,6 +11,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
+import { Platform } from 'aws-cdk-lib/aws-ecr-assets';
 import * as path from 'path';
 import { Construct } from 'constructs';
 
@@ -130,6 +131,7 @@ export class MasterAcademyStack extends cdk.Stack {
       image: ecs.ContainerImage.fromAsset('../../', {
         file: 'packages/engine-service/Dockerfile',
         exclude: ['cdk.out', '**/cdk.out', 'node_modules', '**/node_modules', 'embodied-chess-demo-with-amazon-bedrock', '.git'],
+        platform: Platform.LINUX_AMD64,
       }),
       logging: ecs.LogDrivers.awsLogs({
         streamPrefix: 'engine',
@@ -188,6 +190,7 @@ export class MasterAcademyStack extends cdk.Stack {
       image: ecs.ContainerImage.fromAsset('../../', {
         file: 'packages/style-service/Dockerfile',
         exclude: ['cdk.out', '**/cdk.out', 'node_modules', '**/node_modules', 'embodied-chess-demo-with-amazon-bedrock', '.git'],
+        platform: Platform.LINUX_AMD64,
       }),
       logging: ecs.LogDrivers.awsLogs({
         streamPrefix: 'style',
@@ -250,6 +253,7 @@ export class MasterAcademyStack extends cdk.Stack {
       image: ecs.ContainerImage.fromAsset('../../', {
         file: 'packages/coach-service/Dockerfile',
         exclude: ['cdk.out', '**/cdk.out', 'node_modules', '**/node_modules', 'embodied-chess-demo-with-amazon-bedrock', '.git'],
+        platform: Platform.LINUX_AMD64,
       }),
       logging: ecs.LogDrivers.awsLogs({
         streamPrefix: 'coach',
@@ -310,6 +314,7 @@ export class MasterAcademyStack extends cdk.Stack {
       image: ecs.ContainerImage.fromAsset('../../', {
         file: 'packages/game-api/Dockerfile',
         exclude: ['cdk.out', '**/cdk.out', 'node_modules', '**/node_modules', 'embodied-chess-demo-with-amazon-bedrock', '.git'],
+        platform: Platform.LINUX_AMD64,
       }),
       logging: ecs.LogDrivers.awsLogs({
         streamPrefix: 'game-api',
@@ -375,6 +380,7 @@ export class MasterAcademyStack extends cdk.Stack {
       image: ecs.ContainerImage.fromAsset('../../', {
         file: 'packages/drill-worker/Dockerfile',
         exclude: ['cdk.out', '**/cdk.out', 'node_modules', '**/node_modules', 'embodied-chess-demo-with-amazon-bedrock', '.git'],
+        platform: Platform.LINUX_AMD64,
       }),
       logging: ecs.LogDrivers.awsLogs({
         streamPrefix: 'drill-worker',

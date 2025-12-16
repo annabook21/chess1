@@ -1,68 +1,449 @@
 # Master Academy Chess
 
-A chess learning platform that teaches users through micro-lessons, turning each move into an educational experience.
+An AI-powered chess learning platform that lets you learn from legendary grandmaster playing styles (Karpov, Fischer, Tal) with real-time position analysis, human-like opponent move prediction, and personalized coaching.
 
-## Architecture
+## Table of Contents
 
-This is a monorepo containing containerized microservices:
+- [Features](#features)
+- [Architecture Overview](#architecture-overview)
+- [DynamoDB Design & Optimization](#dynamodb-design--optimization)
+- [AI Integration](#ai-integration)
+- [Human Move Prediction (Maia)](#human-move-prediction-maia)
+- [Deployment](#deployment)
+- [Local Development](#local-development)
 
-- **contracts**: Shared types and JSON schemas
-- **frontend-web**: React-based UI
-- **game-api**: Orchestration API layer
-- **engine-service**: Stockfish chess engine wrapper
-- **style-service**: Master-style move suggestion service
-- **coach-service**: Bedrock-powered explanations
-- **drill-worker**: Puzzle generation and spaced repetition
+---
 
-## Chess Masters
+## Features
 
-The system uses 4 internationally recognized chess masters who wrote influential books:
+### 🎓 Master Style Learning
+Choose moves in the style of legendary players:
+- **Karpov (The Constrictor)**: Positional accumulation, prophylaxis, endgame mastery
+- **Fischer (The Perfectionist)**: Precision, tactical accuracy, punishing inaccuracies  
+- **Tal (The Magician)**: Sacrifices, complications, creative attacks
 
-1. **Capablanca** - "Chess Fundamentals" - Positional play, endgame mastery
-2. **Tal** - "The Life and Games of Mikhail Tal" - Tactical brilliance, attacking play
-3. **Karpov** - Strategic positional play - Patient, methodical
-4. **Fischer** - "My 60 Memorable Games" - Precise, aggressive, principled
+### 🔮 Human Move Prediction
+Predict your opponent's next move using the Maia neural network—a model trained on millions of human games that predicts what a ~1200-rated human would play (not the computer-optimal move).
 
-## Quick Start
+### 📊 Position Evaluation
+Real-time Stockfish analysis showing:
+- Centipawn evaluation
+- Principal variation (best continuation)
+- Visual arrows showing predicted sequences
+
+### 🏆 Achievement System
+Earn achievements for good moves, game completions, and learning milestones.
+
+### 📈 Weakness Tracking
+Identifies your weakest concepts (e.g., "Open file control", "Knight outposts") based on move history.
+
+---
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         CloudFront CDN                              │
+│  (HTTPS termination, SPA routing, WASM headers, API proxy)          │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                    ┌───────────────┴───────────────┐
+                    │                               │
+                    ▼                               ▼
+        ┌───────────────────┐           ┌───────────────────┐
+        │    S3 Bucket      │           │   ALB (HTTP)      │
+        │  (Static Assets)  │           │   Path-based      │
+        │  - React App      │           │   routing         │
+        │  - ONNX Models    │           └───────────────────┘
+        └───────────────────┘                    │
+                                    ┌───────────┼───────────┐
+                                    │           │           │
+                                    ▼           ▼           ▼
+                            ┌─────────┐   ┌─────────┐   ┌─────────┐
+                            │game-api │   │ engine  │   │  style  │
+                            │(Fargate)│   │(Fargate)│   │(Fargate)│
+                            └────┬────┘   └─────────┘   └─────────┘
+                                 │                           │
+                    ┌────────────┼────────────┐              │
+                    │            │            │              │
+                    ▼            ▼            ▼              ▼
+              ┌──────────┐ ┌──────────┐ ┌──────────┐  ┌───────────┐
+              │ DynamoDB │ │   SQS    │ │  coach   │  │  Bedrock  │
+              │  (Games) │ │(Blunders)│ │(Fargate) │  │  (Claude) │
+              └──────────┘ └────┬─────┘ └──────────┘  └───────────┘
+                                │
+                                ▼
+                         ┌─────────────┐
+                         │drill-worker │
+                         │  (Fargate)  │
+                         └─────────────┘
+```
+
+### Services
+
+| Service | Purpose | Resources |
+|---------|---------|-----------|
+| **game-api** | Orchestrates gameplay, coordinates services | 512 CPU, 1GB RAM |
+| **engine-service** | Stockfish chess engine wrapper | 1024 CPU, 2GB RAM |
+| **style-service** | Bedrock-powered master style move generation | 512 CPU, 1GB RAM |
+| **coach-service** | Educational explanations and feedback | 256 CPU, 512MB RAM |
+| **drill-worker** | Async blunder processing for drills | 256 CPU, 512MB RAM |
+
+---
+
+## DynamoDB Design & Optimization
+
+### Table Schema
+
+```
+Table: MasterAcademy-GameSessions
+├── Partition Key: gameId (String)
+├── Billing Mode: PAY_PER_REQUEST
+├── Point-in-Time Recovery: ENABLED
+│
+└── GSI: ByUserV2
+    ├── Partition Key: userId (String)
+    ├── Sort Key: updatedAt (String, ISO-8601)
+    └── Projection: INCLUDE [status, turnNumber, opponentStyle, lastEval]
+```
+
+### Stored Item Structure
+
+```typescript
+interface GameStateRecord {
+  gameId: string;              // Partition key
+  userId: string;              // For GSI queries
+  fen: string;                 // Chess position (~100 bytes)
+  userElo: number;             // Player rating
+  turnNumber: number;          // Progress tracking
+  opponentStyle: MasterStyle;  // 'karpov' | 'fischer' | 'tal'
+  status: 'active' | 'completed' | 'abandoned';
+  version: number;             // Optimistic locking
+  createdAt: string;           // ISO timestamp
+  updatedAt: string;           // ISO timestamp, GSI sort key
+  lastEval?: number;           // Last centipawn evaluation
+}
+```
+
+### Key Optimization Patterns
+
+#### 1. **Minimal Item Size (Don't Store Computed Data)**
+```typescript
+// ❌ ANTI-PATTERN: Storing large computed objects
+interface BadRecord {
+  currentTurn: TurnPackage;  // 10-50KB with PV lines, explanations, etc.
+}
+
+// ✅ OUR PATTERN: Store minimal state, recompute on demand
+interface GameStateRecord {
+  fen: string;  // Just the position - everything else is computed
+}
+```
+**Impact**: DynamoDB charges per 4KB read. A 50KB item costs 13 RCUs vs 1 RCU for our minimal items. This is a **13x cost reduction** and proportional latency improvement.
+
+#### 2. **GSI with Sort Key for Efficient Range Queries**
+```typescript
+// Query user's games, sorted by most recent
+const games = await docClient.send(new QueryCommand({
+  TableName: 'MasterAcademy-GameSessions',
+  IndexName: 'ByUserV2',
+  KeyConditionExpression: 'userId = :userId',
+  ExpressionAttributeValues: { ':userId': userId },
+  ScanIndexForward: false,  // Descending order (most recent first)
+  Limit: 10,
+}));
+```
+**Why it matters**:
+- Without GSI: Full table `Scan` + client-side filter = O(n) reads
+- With GSI + Sort Key: Single `Query` = O(1) reads, pre-sorted by DynamoDB
+
+#### 3. **Projection Expressions (Fetch Only What You Need)**
+```typescript
+await docClient.send(new GetCommand({
+  TableName: this.tableName,
+  Key: { gameId },
+  ProjectionExpression: 'gameId, fen, turnNumber, #status',
+  ExpressionAttributeNames: { '#status': 'status' },
+}));
+```
+**Impact**: Reduces network payload. If an item has 20 attributes but you need 5, you transfer 75% less data.
+
+#### 4. **GSI Attribute Projection (Storage Efficiency)**
+```typescript
+// In CDK stack
+gameTable.addGlobalSecondaryIndex({
+  indexName: 'ByUserV2',
+  projectionType: ProjectionType.INCLUDE,
+  nonKeyAttributes: ['status', 'turnNumber', 'opponentStyle', 'lastEval'],
+  // NOT projecting: fen, version, createdAt
+});
+```
+**Impact**: GSI only stores what list queries need. Smaller index = lower storage cost + faster queries.
+
+#### 5. **Optimistic Locking (Concurrent Access Handling)**
+```typescript
+await docClient.send(new UpdateCommand({
+  TableName: this.tableName,
+  Key: { gameId },
+  UpdateExpression: 'SET #version = :newVersion, fen = :fen',
+  ConditionExpression: '#version = :expectedVersion',  // Lock check
+  ExpressionAttributeValues: {
+    ':expectedVersion': currentVersion,
+    ':newVersion': currentVersion + 1,
+    ':fen': newFen,
+  },
+}));
+```
+**Why not DynamoDB Transactions?**
+- Transactions cost 2x WCUs
+- Chess is mostly single-writer (one user per game)
+- Optimistic locking handles edge cases at 50% cost
+
+### Query Performance
+
+| Operation | Pattern | Cost | Latency |
+|-----------|---------|------|---------|
+| Get game state | `GetItem(gameId)` | 0.5-1 RCU | 5-10ms |
+| Make a move | `UpdateItem(gameId)` | 1 WCU | 5-10ms |
+| List user games | `Query(GSI: userId)` | 0.5-1 RCU | 5-15ms |
+| Create new game | `PutItem` | 1 WCU | 5-10ms |
+
+---
+
+## AI Integration
+
+### Amazon Bedrock (Claude Sonnet 4.5)
+
+Used for two services:
+
+#### Style Service
+Generates move recommendations in the style of legendary players:
+
+```typescript
+// Prompt structure for master-style move generation
+const prompt = `You are ${masterName}, the legendary chess player.
+Given this position (FEN: ${fen}), recommend a move that reflects your style.
+
+${masterProfile.systemPrompt}
+
+Legal moves: ${legalMoves.join(', ')}
+
+Respond with:
+- Your recommended move in UCI format
+- A brief explanation in your characteristic voice
+- Key positional concepts being applied`;
+```
+
+Each master has a distinct profile:
+- **Karpov**: Emphasizes prophylaxis, positional squeezes, endgame technique
+- **Fischer**: Focuses on precision, tactical shots, punishing inaccuracies
+- **Tal**: Prioritizes sacrifices, complications, attacking chances
+
+#### Coach Service
+Provides educational feedback after moves:
+
+```typescript
+const prompt = `Analyze this chess position and the move just played.
+Position: ${fen}
+Move played: ${move}
+Engine evaluation: ${evalBefore} → ${evalAfter}
+
+Provide:
+1. Assessment of the move quality
+2. What concepts it demonstrates (or violates)
+3. What the player should consider next time`;
+```
+
+### Bedrock Integration Details
+
+```typescript
+// style-service/src/models/anthropic.ts
+const response = await bedrockClient.send(new InvokeModelCommand({
+  modelId: 'anthropic.claude-sonnet-4-5-20250929-v1:0',  // Claude Sonnet 4.5
+  contentType: 'application/json',
+  body: JSON.stringify({
+    anthropic_version: 'bedrock-2023-05-31',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: prompt }],
+  }),
+}));
+```
+
+**Available Claude models on Bedrock:**
+- `anthropic.claude-sonnet-4-5-20250929-v1:0` - Claude Sonnet 4.5 (current)
+- `anthropic.claude-opus-4-5-20251101-v1:0` - Claude Opus 4.5
+- `anthropic.claude-haiku-4-5-20251001-v1:0` - Claude Haiku 4.5
+
+---
+
+## Human Move Prediction (Maia)
+
+### What is Maia?
+Maia is a neural network trained by Microsoft Research on millions of human chess games. Unlike traditional engines that find the objectively best move, Maia predicts what a human of a specific rating would actually play.
+
+### Architecture
+```
+┌─────────────────────────────────────────────────┐
+│                   Browser                        │
+│  ┌─────────────────────────────────────────┐    │
+│  │         Web Worker                       │    │
+│  │  ┌─────────────────────────────────┐    │    │
+│  │  │    ONNX Runtime (WASM)          │    │    │
+│  │  │    + Maia 1200 Model (3.5MB)    │    │    │
+│  │  └─────────────────────────────────┘    │    │
+│  └─────────────────────────────────────────┘    │
+│              ▲                                   │
+│              │ Position encoding (808 features) │
+│              │                                   │
+│  ┌───────────┴───────────────────────────────┐  │
+│  │           MaiaEngine.ts                    │  │
+│  │  - FEN → 808-dim tensor encoding          │  │
+│  │  - Policy head → move probabilities       │  │
+│  │  - Returns top-k human-like moves         │  │
+│  └───────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────┘
+```
+
+### Usage in the App
+When the "Predict" feature is enabled, users can:
+1. Before seeing the opponent's move, predict what they think the opponent will play
+2. Maia runs inference client-side to show what a ~1200-rated human would likely play
+3. Correct predictions earn bonus points and achievements
+
+### Technical Implementation
+
+```typescript
+// maia/MaiaEngine.ts
+export class MaiaEngine {
+  private session: ort.InferenceSession | null = null;
+
+  async initialize(modelPath: string): Promise<void> {
+    this.session = await ort.InferenceSession.create(modelPath, {
+      executionProviders: ['wasm'],
+      graphOptimizationLevel: 'all',
+    });
+  }
+
+  async predictMove(fen: string): Promise<MaiaPrediction[]> {
+    // Encode position to 808-dimensional feature vector
+    const encoded = encodePosition(fen);  // 8x8x12 board + 8 meta features
+    
+    // Run inference
+    const tensor = new ort.Tensor('float32', encoded, [1, 808]);
+    const results = await this.session!.run({ input: tensor });
+    
+    // Decode policy output to move probabilities
+    const policy = results.policy.data as Float32Array;
+    return decodeMoves(policy, fen);
+  }
+}
+```
+
+### Why Client-Side?
+- **Latency**: No network round-trip for predictions
+- **Cost**: No server infrastructure for inference
+- **Privacy**: Position data stays in browser
+- **Scalability**: Each user's device handles their own inference
+
+---
+
+## Deployment
 
 ### Prerequisites
 
-**IMPORTANT**: This application requires **AWS Bedrock** for AI-powered chess moves. The game is not deterministic - Bedrock generates moves dynamically in master styles.
+- AWS CLI configured with appropriate credentials
+- Node.js 20+
+- pnpm 8+
+- Docker (for building container images)
 
-1. **AWS Account** with Bedrock access
-2. **AWS Credentials** configured
-3. **Bedrock Model Access** (request access to Claude models in AWS Console)
-
-### Setup
+### Deploy to AWS
 
 ```bash
-# Install dependencies
-npm install
+# 1. Install dependencies
+pnpm install
 
-# Build contracts package first
-cd packages/contracts && npm run build && cd ../..
+# 2. Build all packages
+pnpm -r build
 
-# Set AWS credentials (required for AI-powered moves)
-export AWS_REGION=us-east-1
-export AWS_ACCESS_KEY_ID=your-key
-export AWS_SECRET_ACCESS_KEY=your-secret
+# 3. Bootstrap CDK (first time only, per region)
+cd packages/infra
+npx cdk bootstrap aws://ACCOUNT_ID/us-west-2
 
-# Start all services with Docker Compose
-docker-compose up
-
-# Or start services individually
-cd packages/game-api && npm run dev
+# 4. Deploy
+AWS_DEFAULT_REGION=us-west-2 npx cdk deploy --require-approval never
 ```
 
-### Without AWS Credentials
+### Stack Outputs
 
-The services will run with **mock responses**, but the chess game will be deterministic and uninspired. **This defeats the purpose** - the game is designed to be AI-powered and dynamic.
+After deployment, CDK outputs:
+- `FrontendUrl`: CloudFront distribution URL (https://dxxxxx.cloudfront.net)
+- `ApiEndpoint`: ALB URL for API calls
+- `ModelBucketName`: S3 bucket for ONNX model uploads
 
-See [SETUP.md](./SETUP.md) for detailed instructions.
+### Upload Maia Models
 
-## Development
+```bash
+# After initial deploy, upload ONNX models to S3
+cd packages/frontend-web
+./scripts/download-maia-models.sh
+aws s3 sync dist/models s3://BUCKET_NAME/models --cache-control "max-age=31536000"
+```
 
-Each package is independently containerized and can be developed/tested in isolation. The `contracts` package ensures type safety across services.
+---
+
+## Local Development
+
+### Quick Start
+
+```bash
+# 1. Start backend services (Docker)
+docker-compose up -d
+
+# 2. Start frontend dev server
+cd packages/frontend-web
+pnpm dev
+```
+
+### Service URLs (Local)
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:5174 |
+| Game API | http://localhost:3000 |
+| Engine | http://localhost:3001 |
+| Style | http://localhost:3002 |
+| Coach | http://localhost:3003 |
+
+### Environment Variables
+
+For local Bedrock access, ensure AWS credentials are configured:
+```bash
+export AWS_REGION=us-west-2
+export AWS_PROFILE=your-profile  # Or use IAM credentials
+```
+
+---
+
+## Project Structure
+
+```
+packages/
+├── frontend-web/      # React + Vite frontend
+│   ├── src/
+│   │   ├── maia/      # Maia neural network integration
+│   │   ├── components/
+│   │   └── overlays/  # Board visualization overlays
+│   └── public/models/ # ONNX model files
+├── game-api/          # Main game orchestration service
+├── engine-service/    # Stockfish wrapper
+├── style-service/     # Bedrock master style generation
+├── coach-service/     # Bedrock coaching feedback
+├── drill-worker/      # Async blunder processing
+├── contracts/         # Shared TypeScript types
+└── infra/             # AWS CDK infrastructure
+```
+
+---
 
 ## License
 

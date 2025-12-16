@@ -23,6 +23,21 @@ import {
 } from './types';
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ONNX RUNTIME CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Configure WASM paths for main thread execution
+// WASM files are served from /assets/ by vite-plugin-static-copy
+ort.env.wasm.wasmPaths = '/assets/';
+
+// Use single-threaded execution for better browser compatibility
+// SharedArrayBuffer requires specific COEP/COOP headers
+ort.env.wasm.numThreads = 1;
+
+// Enable SIMD for performance (widely supported in modern browsers)
+ort.env.wasm.simd = true;
+
+// ═══════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
