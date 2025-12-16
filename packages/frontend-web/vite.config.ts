@@ -5,15 +5,26 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 export default defineConfig({
   plugins: [
     react(),
-    // Copy ONNX runtime WASM loader files to dist
+    // Copy ONNX runtime WASM files to dist for browser inference
+    // Both .mjs (JavaScript loader) and .wasm (binary) files are required
     viteStaticCopy({
       targets: [
+        // JavaScript loaders
         {
           src: 'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.mjs',
           dest: 'assets',
         },
         {
           src: 'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs',
+          dest: 'assets',
+        },
+        // WASM binaries (required for actual inference)
+        {
+          src: 'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.wasm',
+          dest: 'assets',
+        },
+        {
+          src: 'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm',
           dest: 'assets',
         },
       ],
@@ -23,6 +34,10 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/game': {
         target: 'http://localhost:3000',
         changeOrigin: true,
       },
