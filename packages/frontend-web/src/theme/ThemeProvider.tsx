@@ -3,7 +3,7 @@
  * React context for theme system
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import { Theme, ThemeContextValue } from './theme';
 import { cursedCastleSpirit } from './themes/cursedCastleSpirit';
 import { getVignetteOverlayCSS, getCandleFlickerCSS } from './effects/vignette';
@@ -134,11 +134,17 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     };
   }, [theme]);
 
-  const value: ThemeContextValue = {
+  // Memoize setTheme callback
+  const setTheme = useCallback((themeId: string) => {
+    setCurrentThemeId(themeId);
+  }, []);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo((): ThemeContextValue => ({
     theme,
-    setTheme: setCurrentThemeId,
+    setTheme,
     availableThemes: Object.keys(THEMES),
-  };
+  }), [theme, setTheme]);
 
   return (
     <ThemeContext.Provider value={value}>

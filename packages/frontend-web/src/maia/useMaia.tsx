@@ -252,7 +252,9 @@ export function MaiaProvider({
     engineRef.current?.clearHistory();
   }, []);
 
-  const value: MaiaContextValue = {
+  // Memoize context value to prevent unnecessary re-renders
+  // Pattern from maia-platform-frontend
+  const value = useMemo((): MaiaContextValue => ({
     state,
     loadModel,
     predict,
@@ -260,7 +262,7 @@ export function MaiaProvider({
     clearHistory,
     availableRatings: MaiaEngine.getAvailableRatings(),
     isUsingWorker,
-  };
+  }), [state, loadModel, predict, updateHistory, clearHistory, isUsingWorker]);
 
   return (
     <MaiaContext.Provider value={value}>
