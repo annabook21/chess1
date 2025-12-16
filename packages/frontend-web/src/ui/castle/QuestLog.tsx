@@ -311,3 +311,4 @@ export const CASTLE_QUESTS: Quest[] = [
     storyText: 'The curse is lifted. You have become a true master of the castle. The Spirit bows before you...',
   },
 ];
+

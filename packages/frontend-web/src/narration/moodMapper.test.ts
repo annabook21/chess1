@@ -171,3 +171,4 @@ describe('getMoodAnimation', () => {
     expect(getMoodAnimation('neutral')).toBe('idle');
   });
 });
+

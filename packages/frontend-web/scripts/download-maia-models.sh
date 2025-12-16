@@ -83,3 +83,4 @@ echo -e "${GREEN}Done! Run 'pnpm dev' to start the app with Maia predictions.${N
 echo ""
 
 
+

@@ -178,3 +178,4 @@ function isWeaklyDefended(chess: Chess, square: string, defenderColor: 'w' | 'b'
 
 
 
+

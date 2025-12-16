@@ -434,6 +434,7 @@ export class ChoiceBuilder {
     
     for (let i = 0; i < 3 && i < masters.length; i++) {
       const styleId = masters[i];
+      const strategy = STRATEGIES[styleId];
       const moveToUse = movesToAnalyze[moveIndex];
       
       if (moveToUse) {

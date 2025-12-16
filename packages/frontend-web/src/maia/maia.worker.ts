@@ -263,3 +263,4 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
 self.postMessage({ type: 'ready' });
 
 
+

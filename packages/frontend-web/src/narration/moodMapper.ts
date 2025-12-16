@@ -165,3 +165,4 @@ export const getMoodAnimation = (mood: SpiritMood): string => {
       return 'idle';
   }
 };
+
