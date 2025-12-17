@@ -135,6 +135,12 @@ function App() {
     };
   });
   
+  // Ref to track latest playerStats (avoids stale closure in game-over logic)
+  const playerStatsRef = useRef<PlayerStats>(playerStats);
+  useEffect(() => {
+    playerStatsRef.current = playerStats;
+  }, [playerStats]);
+  
   // Celebration state
   const [celebration, setCelebration] = useState<'good' | 'great' | 'blunder' | 'predict' | null>(null);
   
@@ -519,6 +525,98 @@ function App() {
       initializeGame();
     }
   }, [restartRequested, initializeGame]);
+
+  // When player is black, AI (white) should make the first move
+  // This effect triggers when the game starts and it's not the player's turn
+  const aiFirstMoveTriggeredRef = useRef<string | null>(null);
+  
+  useEffect(() => {
+    // Only trigger once per game
+    if (!gameId || !turnPackage || loading) return;
+    if (aiFirstMoveTriggeredRef.current === gameId) return;
+    
+    // Check if AI should move first (player is black, it's white's turn)
+    const isAiTurn = playerColor === 'black' && turnPackage.sideToMove === 'w';
+    if (!isAiTurn) return;
+    
+    console.log('[App] Player is black, AI (white) makes first move');
+    aiFirstMoveTriggeredRef.current = gameId;
+    
+    const makeAiFirstMove = async () => {
+      setLoading(true);
+      
+      try {
+        if (opponentType === 'human-like') {
+          // Use Maia for human-like opponent
+          const targetRating = (maiaOpponentRating || 1500) as MaiaRating;
+          
+          // Ensure model is loaded
+          if (maiaLoadRef.current.promise) {
+            await maiaLoadRef.current.promise;
+          }
+          if (!maiaLoadRef.current.promise || maiaLoadRef.current.rating !== targetRating) {
+            const loadPromise = maiaContext.loadModel(targetRating);
+            maiaLoadRef.current = { rating: targetRating, promise: loadPromise, timeoutId: null };
+            await loadPromise;
+          }
+          
+          // Generate Maia move
+          const result = await maiaContext.predict(turnPackage.fen);
+          if (result.predictions.length > 0) {
+            const sampledMove = sampleMove(result.predictions, TEMPERATURE_PRESETS.realistic);
+            if (sampledMove) {
+              // Apply the move
+              const chess = new Chess(turnPackage.fen);
+              const from = sampledMove.uci.slice(0, 2);
+              const to = sampledMove.uci.slice(2, 4);
+              const promo = sampledMove.uci.length > 4 ? sampledMove.uci[4] : undefined;
+              chess.move({ from, to, promotion: promo as any });
+              
+              // Update turn package with new FEN
+              const newTurn: TurnPackage = {
+                ...turnPackage,
+                fen: chess.fen(),
+                sideToMove: 'b', // Now it's black's (player's) turn
+              };
+              setTurnPackage(newTurn);
+              
+              // Add to move history
+              setMoveHistory([{ moveNumber: 1, white: sampledMove.san }]);
+              
+              console.log('[App] AI first move (Maia):', sampledMove.san);
+            }
+          }
+        } else {
+          // For AI master, use a simple engine move or call backend
+          // For simplicity, let's just pick a good opening move
+          const chess = new Chess(turnPackage.fen);
+          const openingMoves = ['e2e4', 'd2d4', 'c2c4', 'g1f3'];
+          const randomOpening = openingMoves[Math.floor(Math.random() * openingMoves.length)];
+          
+          const from = randomOpening.slice(0, 2);
+          const to = randomOpening.slice(2, 4);
+          const moveResult = chess.move({ from, to });
+          
+          if (moveResult) {
+            const newTurn: TurnPackage = {
+              ...turnPackage,
+              fen: chess.fen(),
+              sideToMove: 'b',
+            };
+            setTurnPackage(newTurn);
+            setMoveHistory([{ moveNumber: 1, white: moveResult.san }]);
+            console.log('[App] AI first move (Master):', moveResult.san);
+          }
+        }
+      } catch (err) {
+        console.error('[App] Failed to make AI first move:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    makeAiFirstMove();
+  }, [gameId, turnPackage, playerColor, opponentType, loading, maiaOpponentRating, maiaContext]);
 
   const handleChoiceSelect = (choiceId: string) => {
     setSelectedChoice(choiceId);
@@ -1417,13 +1515,16 @@ function App() {
       const finalChess = new Chess(currentTurn.fen);
       finalChess.move({ from: choice.moveUci.slice(0, 2), to: choice.moveUci.slice(2, 4) });
       
+      // Use ref to get current stats (avoids stale closure issues)
+      const currentStats = playerStatsRef.current;
+      
       // Calculate accuracy
-      const accuracy = playerStats.totalMoves > 0 
-        ? Math.round((playerStats.accurateMoves / playerStats.totalMoves) * 100)
+      const accuracy = currentStats.totalMoves > 0 
+        ? Math.round((currentStats.accurateMoves / currentStats.totalMoves) * 100)
         : 0;
       
       // Calculate XP earned this game (rough estimate from recent moves)
-      const xpEarned = Math.max(20, (playerStats.goodMoves * 25) - (playerStats.blunders * 10));
+      const xpEarned = Math.max(20, (currentStats.goodMoves * 25) - (currentStats.blunders * 10));
       
       setGameStats({
         xpEarned,
@@ -1434,8 +1535,12 @@ function App() {
       // Determine game result
       let playerWon = false;
       if (finalChess.isCheckmate()) {
-        // Check who won
-        playerWon = finalChess.turn() !== 'w'; // If it's white's turn and checkmate, black won
+        // The side whose turn it is in checkmate is the loser
+        // If it's white's turn (and checkmate), white lost → player wins if player is black
+        // If it's black's turn (and checkmate), black lost → player wins if player is white
+        const loserColor = finalChess.turn(); // 'w' or 'b'
+        const playerColorChar = playerColor === 'white' ? 'w' : 'b';
+        playerWon = loserColor !== playerColorChar; // Player wins if the loser is not them
         setGameEndState(playerWon ? 'victory' : 'defeat');
         playSound(playerWon ? 'victory' : 'game_over');
       } else if (finalChess.isDraw() || finalChess.isStalemate()) {
@@ -1459,13 +1564,13 @@ function App() {
         streak: updatedStreak, // Update streak from day streak tracker
       }));
       
-      // Track game completion achievement with accurate data
+      // Track game completion achievement with accurate data (using current stats from ref)
       const gameAchievements = achievementCtx.trackEvent({
         type: 'GAME_COMPLETED',
         won: playerWon,
         accuracy: accuracy,
-        blunders: playerStats.blunders,
-        mistakes: playerStats.mistakes,
+        blunders: currentStats.blunders,
+        mistakes: currentStats.mistakes,
       });
       
       // Show achievement toasts for game completion achievements

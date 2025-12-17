@@ -26,8 +26,6 @@ export interface AIMove {
 }
 
 export class AIOpponent {
-  private moveCounter = 0;
-
   constructor(private deps: AIOpponentDeps) {}
 
   /**
@@ -43,9 +41,10 @@ export class AIOpponent {
       throw new Error('No legal moves available');
     }
 
-    // Rotate through opponent styles for variety
-    const styleId = OPPONENT_STYLES[this.moveCounter % OPPONENT_STYLES.length];
-    this.moveCounter++;
+    // Rotate through opponent styles based on move number from FEN
+    // This makes style selection deterministic per-game and avoids shared counter issues
+    const moveNumber = chess.moveNumber();
+    const styleId = OPPONENT_STYLES[moveNumber % OPPONENT_STYLES.length];
 
     // Try to get a Bedrock-generated move (2 attempts max to avoid timeout)
     for (let attempt = 0; attempt < 2; attempt++) {

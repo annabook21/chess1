@@ -20,6 +20,15 @@ export interface EngineAnalysis {
 // Engine singleton
 let engineInstance: StockfishWrapper | null = null;
 
+// Request queue item for serializing engine requests
+interface QueuedRequest {
+  id: string;
+  fen: string;
+  depth?: number;
+  timeMs?: number;
+  resolve: (result: EngineAnalysis) => void;
+}
+
 export class StockfishWrapper {
   private process: ChildProcess | null = null;
   private ready: boolean = false;
@@ -29,6 +38,11 @@ export class StockfishWrapper {
   private outputBuffer: string[] = [];
   private useFallback: boolean = false;
   private debugging: boolean = process.env.DEBUG_ENGINE === 'true';
+  
+  // Request queue for serializing engine requests (prevents race conditions)
+  private requestQueue: QueuedRequest[] = [];
+  private isProcessing: boolean = false;
+  private requestCounter: number = 0;
 
   constructor() {
     this.initEngine();
@@ -128,12 +142,16 @@ export class StockfishWrapper {
       this.ready = true;
       console.log('[STOCKFISH] Engine ready');
     } else if (line.startsWith('bestmove')) {
-      // Analysis complete - resolve pending callback
-      const cb = this.pendingCallbacks.get('go');
-      if (cb) {
-        this.pendingCallbacks.delete('go');
-        cb([...this.outputBuffer]);
-        this.outputBuffer = [];
+      // Analysis complete - resolve the current pending callback (from queue)
+      // Find the first pending callback (there should only be one due to queue serialization)
+      const pendingId = Array.from(this.pendingCallbacks.keys())[0];
+      if (pendingId) {
+        const cb = this.pendingCallbacks.get(pendingId);
+        if (cb) {
+          this.pendingCallbacks.delete(pendingId);
+          cb([...this.outputBuffer]);
+          this.outputBuffer = [];
+        }
       }
     }
   }
@@ -169,7 +187,8 @@ export class StockfishWrapper {
   }
 
   /**
-   * Analyze a position and return the best move with evaluation
+   * Analyze a position and return the best move with evaluation.
+   * Uses a queue pattern to serialize requests (Stockfish only handles one at a time).
    */
   async analyzePosition(fen: string, depth: number = 15): Promise<EngineAnalysis> {
     await this.waitReady();
@@ -178,30 +197,17 @@ export class StockfishWrapper {
       return this.fallbackAnalysis(fen);
     }
 
+    // Queue the request and process
     return new Promise((resolve) => {
-      this.outputBuffer = [];
-
-      this.pendingCallbacks.set('go', (lines: string[]) => {
-        const result = this.parseAnalysisOutput(lines, fen);
-        resolve(result);
-      });
-
-      this.send(`position fen ${fen}`);
-      this.send(`go depth ${depth}`);
-
-      // Timeout fallback
-      setTimeout(() => {
-        if (this.pendingCallbacks.has('go')) {
-          this.pendingCallbacks.delete('go');
-          this.send('stop');
-          resolve(this.fallbackAnalysis(fen));
-        }
-      }, 10000);
+      const requestId = `req-${++this.requestCounter}`;
+      this.requestQueue.push({ id: requestId, fen, depth, resolve });
+      this.processNextRequest();
     });
   }
 
   /**
-   * Analyze position with time limit
+   * Analyze position with time limit.
+   * Uses a queue pattern to serialize requests.
    */
   async analyzePositionWithTime(fen: string, timeMs: number): Promise<EngineAnalysis> {
     await this.waitReady();
@@ -211,24 +217,58 @@ export class StockfishWrapper {
     }
 
     return new Promise((resolve) => {
-      this.outputBuffer = [];
-
-      this.pendingCallbacks.set('go', (lines: string[]) => {
-        const result = this.parseAnalysisOutput(lines, fen);
-        resolve(result);
-      });
-
-      this.send(`position fen ${fen}`);
-      this.send(`go movetime ${timeMs}`);
-
-      setTimeout(() => {
-        if (this.pendingCallbacks.has('go')) {
-          this.pendingCallbacks.delete('go');
-          this.send('stop');
-          resolve(this.fallbackAnalysis(fen));
-        }
-      }, timeMs + 5000);
+      const requestId = `req-${++this.requestCounter}`;
+      this.requestQueue.push({ id: requestId, fen, timeMs, resolve });
+      this.processNextRequest();
     });
+  }
+
+  /**
+   * Process the next request in the queue (serializes engine access)
+   */
+  private processNextRequest(): void {
+    if (this.isProcessing || this.requestQueue.length === 0) {
+      return;
+    }
+
+    this.isProcessing = true;
+    const request = this.requestQueue.shift()!;
+    
+    if (this.debugging) {
+      console.log(`[STOCKFISH] Processing ${request.id} for FEN: ${request.fen.substring(0, 30)}...`);
+    }
+
+    this.outputBuffer = [];
+
+    // Set up callback for this specific request
+    this.pendingCallbacks.set(request.id, (lines: string[]) => {
+      const result = this.parseAnalysisOutput(lines, request.fen);
+      this.isProcessing = false;
+      request.resolve(result);
+      // Process next request in queue
+      this.processNextRequest();
+    });
+
+    this.send(`position fen ${request.fen}`);
+    
+    if (request.timeMs) {
+      this.send(`go movetime ${request.timeMs}`);
+    } else {
+      this.send(`go depth ${request.depth || 15}`);
+    }
+
+    // Timeout fallback
+    const timeoutMs = request.timeMs ? request.timeMs + 5000 : 10000;
+    setTimeout(() => {
+      if (this.pendingCallbacks.has(request.id)) {
+        console.warn(`[STOCKFISH] Request ${request.id} timed out, using fallback`);
+        this.pendingCallbacks.delete(request.id);
+        this.send('stop');
+        this.isProcessing = false;
+        request.resolve(this.fallbackAnalysis(request.fen));
+        this.processNextRequest();
+      }
+    }, timeoutMs);
   }
 
   private parseAnalysisOutput(lines: string[], fen: string): EngineAnalysis {

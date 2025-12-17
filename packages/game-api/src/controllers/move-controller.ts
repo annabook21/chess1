@@ -23,8 +23,87 @@ import { Chess } from 'chess.js';
 // Reduced depth for faster validation (was 10)
 const QUICK_ANALYSIS_DEPTH = 6;
 
-// In-memory cache for pre-computed turns (in production, use Redis)
-const precomputedTurns = new Map<string, TurnPackage>();
+// LRU Cache with TTL for pre-computed turns (prevents memory leaks)
+// Max 100 entries, 5 minute TTL
+const CACHE_MAX_SIZE = 100;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+interface CacheEntry {
+  turn: TurnPackage;
+  timestamp: number;
+  lastAccess: number;
+}
+
+class TurnCache {
+  private cache = new Map<string, CacheEntry>();
+
+  get(gameId: string): TurnPackage | undefined {
+    const entry = this.cache.get(gameId);
+    if (!entry) return undefined;
+
+    // Check TTL
+    if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+      this.cache.delete(gameId);
+      return undefined;
+    }
+
+    // Update last access for LRU
+    entry.lastAccess = Date.now();
+    return entry.turn;
+  }
+
+  set(gameId: string, turn: TurnPackage): void {
+    // Evict oldest entries if at capacity
+    if (this.cache.size >= CACHE_MAX_SIZE) {
+      this.evictOldest();
+    }
+
+    this.cache.set(gameId, {
+      turn,
+      timestamp: Date.now(),
+      lastAccess: Date.now(),
+    });
+  }
+
+  delete(gameId: string): void {
+    this.cache.delete(gameId);
+  }
+
+  has(gameId: string): boolean {
+    const entry = this.cache.get(gameId);
+    if (!entry) return false;
+    if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+      this.cache.delete(gameId);
+      return false;
+    }
+    return true;
+  }
+
+  private evictOldest(): void {
+    let oldestKey: string | null = null;
+    let oldestAccess = Infinity;
+
+    for (const [key, entry] of this.cache) {
+      // First, remove expired entries
+      if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+        this.cache.delete(key);
+        continue;
+      }
+      // Track least recently accessed
+      if (entry.lastAccess < oldestAccess) {
+        oldestAccess = entry.lastAccess;
+        oldestKey = key;
+      }
+    }
+
+    // If still at capacity, remove LRU entry
+    if (this.cache.size >= CACHE_MAX_SIZE && oldestKey) {
+      this.cache.delete(oldestKey);
+    }
+  }
+}
+
+const precomputedTurns = new TurnCache();
 const precomputeInProgress = new Set<string>();
 
 interface MoveControllerDeps {
