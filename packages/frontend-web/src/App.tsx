@@ -655,7 +655,10 @@ function App() {
           const response = await submitMove(gameId, moveRequest);
 
           // If human-like opponent, generate AI move with Maia (frontend)
-          if (opponentType === 'human-like' && response.feedback.aiMove && response.nextTurn) {
+          // Note: With skipAiMove=true, response.feedback.aiMove will be undefined
+          // so we need to generate the move ourselves
+          if (opponentType === 'human-like' && response.nextTurn) {
+            console.log('[App] Generating Maia opponent move for human-like opponent');
             const maiaMove = await generateMaiaOpponentMove(fenAfterUserMove);
             
             if (maiaMove) {
@@ -663,6 +666,7 @@ function App() {
               setCurrentMaiaPredictions(maiaMove.allPredictions);
               
               const probPercent = (maiaMove.probability * 100).toFixed(0);
+              // Create or override the AI move with Maia's move
               response.feedback.aiMove = {
                 moveSan: maiaMove.moveSan,
                 styleId: 'capablanca',
@@ -680,9 +684,10 @@ function App() {
                 promotion: maiaPromo as 'q' | 'r' | 'b' | 'n' | undefined,
               });
 
-              if (response.nextTurn) {
-                response.nextTurn.fen = chessAfterMaia.fen();
-              }
+              response.nextTurn.fen = chessAfterMaia.fen();
+              console.log('[App] Maia opponent move applied:', maiaMove.moveSan);
+            } else {
+              console.warn('[App] Maia failed to generate move, game may be stuck');
             }
           }
 
@@ -900,14 +905,16 @@ function App() {
       const response = await submitMove(gameId, moveRequest);
 
       // STEP 4: If using human-like opponent, generate AI move with Maia (frontend)
-      if (opponentType === 'human-like' && response.feedback.aiMove && response.nextTurn) {
+      // Note: With skipAiMove=true, response.feedback.aiMove will be undefined
+      if (opponentType === 'human-like' && response.nextTurn) {
+        console.log('[App] Generating Maia opponent move for human-like opponent (guided)');
         const maiaMove = await generateMaiaOpponentMove(fenAfterUserMove);
         
         if (maiaMove) {
           // Store predictions for proper scoring
           setCurrentMaiaPredictions(maiaMove.allPredictions);
           
-          // Override the AI move with Maia's sampled prediction
+          // Create the AI move with Maia's sampled prediction
           const probPercent = (maiaMove.probability * 100).toFixed(0);
           response.feedback.aiMove = {
             moveSan: maiaMove.moveSan,
@@ -928,9 +935,10 @@ function App() {
           });
           
           // Update the next turn with the new FEN
-          if (response.nextTurn) {
-            response.nextTurn.fen = chessAfterMaia.fen();
-          }
+          response.nextTurn.fen = chessAfterMaia.fen();
+          console.log('[App] Maia opponent move applied (guided):', maiaMove.moveSan);
+        } else {
+          console.warn('[App] Maia failed to generate move (guided), game may be stuck');
         }
       }
       
