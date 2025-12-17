@@ -86,6 +86,8 @@ function App() {
   const [turnPackage, setTurnPackage] = useState<TurnPackage | null>(null);
   // Track optimistic FEN separately to prevent board resets when switching modes
   const [optimisticFen, setOptimisticFen] = useState<string | null>(null);
+  // Ref to track current optimisticFen (avoids stale closure in async callbacks)
+  const optimisticFenRef = useRef<string | null>(null);
   // Track the FEN that triggered the current pending API call (to avoid race conditions)
   const pendingMoveFenRef = useRef<string | null>(null);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
@@ -199,6 +201,11 @@ function App() {
   useEffect(() => {
     localStorage.setItem('masterAcademy_predictionEnabled', JSON.stringify(predictionEnabled));
   }, [predictionEnabled]);
+
+  // Keep optimisticFenRef in sync with state (avoids stale closure in async callbacks)
+  useEffect(() => {
+    optimisticFenRef.current = optimisticFen;
+  }, [optimisticFen]);
 
   // Save opponent settings
   useEffect(() => {
@@ -1080,7 +1087,14 @@ function App() {
         
         setTurnPackage(pendingResponse.nextTurn);
         // Only clear if user hasn't made another move while prediction was shown
-        if (optimisticFen === pendingMoveFenRef.current) {
+        // Use optimisticFenRef.current to avoid potential stale closure issues
+        console.log('[App] finishPredictionFlow clearing check:', {
+          optimisticFenRef: optimisticFenRef.current?.substring(0, 40) + '...',
+          pendingMoveFenRef: pendingMoveFenRef.current?.substring(0, 40) + '...',
+          match: optimisticFenRef.current === pendingMoveFenRef.current,
+        });
+        if (optimisticFenRef.current === pendingMoveFenRef.current) {
+          console.log('[App] Clearing optimisticFen after prediction flow');
           setOptimisticFen(null);
           pendingMoveFenRef.current = null;
         }
