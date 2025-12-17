@@ -558,6 +558,14 @@ function App() {
       setOptimisticFen(fenAfterUserMove);
       // Track which FEN this API call is for (to prevent race conditions)
       pendingMoveFenRef.current = fenAfterUserMove;
+      // Capture the FEN for this specific request (to check against in the callback)
+      const thisRequestFen = fenAfterUserMove;
+      
+      console.log('[App] Free move optimistic update:', {
+        userMove: moveUci,
+        fenAfterUserMove: fenAfterUserMove.substring(0, 40) + '...',
+        pendingMoveFenRef: pendingMoveFenRef.current?.substring(0, 40) + '...',
+      });
       
       // Also update move history optimistically
       const newMoveNum = Math.ceil(moveHistory.length / 2) + 1;
@@ -651,12 +659,23 @@ function App() {
               } else {
                 // No predictions - process move immediately and update turn package
                 // The optimistic update already shows the user's move, now add AI's move
+                console.log('[App] Free move response (no prediction):', {
+                  thisRequestFen: thisRequestFen?.substring(0, 40) + '...',
+                  pendingMoveFenRef: pendingMoveFenRef.current?.substring(0, 40) + '...',
+                  match: thisRequestFen === pendingMoveFenRef.current,
+                  nextTurnFen: response.nextTurn?.fen?.substring(0, 40) + '...',
+                  aiMove: response.feedback.aiMove?.moveSan,
+                });
                 setTurnPackage(response.nextTurn);
                 // Only clear optimistic FEN if user hasn't made another move while we were waiting
                 // This prevents a race condition where move 2 gets cleared by move 1's response
-                if (optimisticFen === pendingMoveFenRef.current) {
+                // Use thisRequestFen (captured at request time) instead of optimisticFen (stale closure)
+                if (thisRequestFen === pendingMoveFenRef.current) {
+                  console.log('[App] Clearing optimisticFen (no race condition)');
                   setOptimisticFen(null);
                   pendingMoveFenRef.current = null;
+                } else {
+                  console.log('[App] NOT clearing optimisticFen (user made another move)');
                 }
                 setFeedback(response.feedback);
                 setSelectedChoice(null);
@@ -694,7 +713,8 @@ function App() {
             setShowPrediction(false);
             setTurnPackage(null);
             // Only clear if user hasn't made another move
-            if (optimisticFen === pendingMoveFenRef.current) {
+            // Use thisRequestFen (captured at request time) instead of optimisticFen (stale closure)
+            if (thisRequestFen === pendingMoveFenRef.current) {
               setOptimisticFen(null);
               pendingMoveFenRef.current = null;
             }
