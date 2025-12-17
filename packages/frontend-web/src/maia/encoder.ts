@@ -385,21 +385,51 @@ export function decodePolicyToMoves(
   // Collect legal moves with probabilities
   const moveProbs: Array<{ uci: string; probability: number }> = [];
   
+  // Debug: track how many moves we process
+  let foundCount = 0;
+  let missedCount = 0;
+  let outOfBoundsCount = 0;
+  
   for (const [uci] of legalUcis) {
     // Transform UCI if black to move (policy is from mover's perspective)
     const lookupUci = isBlackTurn ? flipUci(uci) : uci;
     
-    // For queen promotions, look up the base move
+    // For queen promotions, look up the base move (Lc0 doesn't have separate queen promo indices)
     let policyUci = lookupUci;
     if (lookupUci.length === 5 && lookupUci[4] === 'q') {
       policyUci = lookupUci.slice(0, 4);
     }
     
     const idx = _uciToPolicy.get(policyUci);
-    if (idx !== undefined && idx < expValues.length) {
+    if (idx === undefined) {
+      missedCount++;
+      // Try without flip as fallback
+      const altIdx = _uciToPolicy.get(uci.length === 5 && uci[4] === 'q' ? uci.slice(0, 4) : uci);
+      if (altIdx !== undefined && altIdx < expValues.length) {
+        const probability = expValues[altIdx] / sumExp;
+        moveProbs.push({ uci, probability });
+        foundCount++;
+      }
+    } else if (idx >= expValues.length) {
+      outOfBoundsCount++;
+    } else {
       const probability = expValues[idx] / sumExp;
       moveProbs.push({ uci, probability });
+      foundCount++;
     }
+  }
+  
+  // Debug log if we had issues
+  if (missedCount > 0 || outOfBoundsCount > 0) {
+    console.warn('[Maia Decoder] Policy lookup issues:', {
+      legalMoves: legalUcis.size,
+      found: foundCount,
+      missed: missedCount,
+      outOfBounds: outOfBoundsCount,
+      policySize: policy.length,
+      mappingSize: _uciToPolicy?.size,
+      isBlackTurn,
+    });
   }
   
   // Sort by probability descending

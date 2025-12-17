@@ -199,6 +199,16 @@ export class MaiaEngine {
       // Get policy output
       const policyOutput = results[this.session.outputNames[0]];
       const policyData = policyOutput.data as Float32Array;
+      
+      // Debug: Log policy output shape (first inference only)
+      if (!(globalThis as any)._maiaPolicyLogged) {
+        console.log('[MaiaEngine] Policy output:', {
+          length: policyData.length,
+          shape: policyOutput.dims,
+          outputName: this.session.outputNames[0],
+        });
+        (globalThis as any)._maiaPolicyLogged = true;
+      }
 
       // Decode policy to moves
       const decodedMoves = decodePolicyToMoves(policyData, fen, this.config.topK);
@@ -229,6 +239,26 @@ export class MaiaEngine {
           }
         } catch {
           // Skip invalid moves
+        }
+      }
+      
+      // FALLBACK: If decoder failed to find any moves, use uniform distribution over legal moves
+      if (predictions.length === 0) {
+        console.warn('[MaiaEngine] Policy decoder found no moves, using fallback');
+        const chess = new Chess(fen);
+        const legalMoves = chess.moves({ verbose: true });
+        const uniformProb = 1.0 / legalMoves.length;
+        
+        for (const m of legalMoves.slice(0, this.config.topK)) {
+          const uci = m.from + m.to + (m.promotion || '');
+          predictions.push({
+            uci,
+            san: m.san,
+            from: m.from,
+            to: m.to,
+            probability: uniformProb,
+            promotion: m.promotion,
+          });
         }
       }
 

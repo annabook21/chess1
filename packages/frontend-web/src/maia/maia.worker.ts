@@ -169,8 +169,19 @@ async function predict(
   const policyOutput = results[session.outputNames[0]];
   const policyData = policyOutput.data as Float32Array;
   
+  // Debug: Log policy output shape (first inference only)
+  if (!(self as any)._maiaPolicyLogged) {
+    console.log('[MaiaWorker] Policy output:', {
+      length: policyData.length,
+      shape: policyOutput.dims,
+      outputName: session.outputNames[0],
+      sample: Array.from(policyData.slice(0, 5)).map(v => v.toFixed(4)),
+    });
+    (self as any)._maiaPolicyLogged = true;
+  }
+
   // Decode to moves
-  const decodedMoves = decodePolicyToMoves(policyData, fen, topK);
+  let decodedMoves = decodePolicyToMoves(policyData, fen, topK);
   
   // Convert to MovePrediction with SAN notation
   const predictions: MovePrediction[] = [];
@@ -196,6 +207,27 @@ async function predict(
       }
     } catch {
       // Skip invalid moves
+    }
+  }
+  
+  // FALLBACK: If decoder failed to find any moves, use uniform distribution over legal moves
+  // This ensures we always return something rather than an empty array
+  if (predictions.length === 0) {
+    console.warn('[MaiaWorker] Policy decoder found no moves, using fallback');
+    const chess = new Chess(fen);
+    const legalMoves = chess.moves({ verbose: true });
+    const uniformProb = 1.0 / legalMoves.length;
+    
+    for (const m of legalMoves.slice(0, topK)) {
+      const uci = m.from + m.to + (m.promotion || '');
+      predictions.push({
+        uci,
+        san: m.san,
+        from: m.from,
+        to: m.to,
+        probability: uniformProb,
+        promotion: m.promotion,
+      });
     }
   }
   
