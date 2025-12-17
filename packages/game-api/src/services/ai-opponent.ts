@@ -130,6 +130,11 @@ export class AIOpponent {
         'Following opening principles strictly.',
         'Maintaining the initiative.',
       ],
+      'human-like': [
+        'This felt like the natural move.',
+        'Developing my pieces naturally.',
+        'A solid, intuitive choice.',
+      ],
     };
 
     const options = justifications[styleId] || justifications.fischer;

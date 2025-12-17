@@ -167,6 +167,8 @@ const STRATEGIES: Record<MasterStyle, MoveStrategy> = {
   tal: new TalStrategy(),
   capablanca: new CapablancaStrategy(),
   karpov: new KarpovStrategy(),
+  // Human-like is handled by Maia on frontend, use Capablanca as fallback
+  'human-like': new CapablancaStrategy(),
 };
 
 /**
