@@ -7,7 +7,7 @@
 
 export type Side = 'w' | 'b';
 
-export type MasterStyle = 'capablanca' | 'tal' | 'karpov' | 'fischer';
+export type MasterStyle = 'capablanca' | 'tal' | 'karpov' | 'fischer' | 'human-like';
 
 export interface MoveChoice {
   id: string; // 'A', 'B', 'C'

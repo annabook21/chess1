@@ -18,7 +18,7 @@ import { MasterMonologue } from './components/MasterMonologue';
 import { WeaknessTracker } from './components/WeaknessTracker';
 import { BottomNav } from './components/BottomNav';
 import { createGame, getTurn, submitMove } from './api/client';
-import { TurnPackage, MoveRequest, MoveResponse } from '@master-academy/contracts';
+import { TurnPackage, MoveRequest, MoveResponse, MoveQuality } from '@master-academy/contracts';
 import { 
   trackMove, 
   getGamePhase, 
@@ -47,6 +47,7 @@ import { TaggerInput } from './narration/types';
 import { useAchievementContext, Achievement, AchievementProgress } from './achievements';
 import { useMaiaContext, sampleMove, calculatePredictionReward, TEMPERATURE_PRESETS } from './maia';
 import type { MovePrediction } from './maia';
+import { getCurrentDayStreak, updateDayStreak } from './utils/dayStreak';
 import './App.css';
 
 // Game end state type
@@ -71,7 +72,8 @@ interface PlayerStats {
   streak: number;
   gamesPlayed: number;
   goodMoves: number;       // Moves better than engine suggestion
-  blunders: number;        // Bad moves
+  blunders: number;        // Bad moves (delta <= -200)
+  mistakes: number;        // Mistakes (delta between -100 and -200)
   totalMoves: number;      // All moves made
   accurateMoves: number;   // Moves within top-3 engine suggestions
   skillRating: number;     // Fluctuating rating (like puzzle rating)
@@ -82,6 +84,10 @@ function App() {
   // Game state
   const [gameId, setGameId] = useState<string | null>(null);
   const [turnPackage, setTurnPackage] = useState<TurnPackage | null>(null);
+  // Track optimistic FEN separately to prevent board resets when switching modes
+  const [optimisticFen, setOptimisticFen] = useState<string | null>(null);
+  // Track the FEN that triggered the current pending API call (to avoid race conditions)
+  const pendingMoveFenRef = useRef<string | null>(null);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<MoveResponse['feedback'] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -98,17 +104,30 @@ function App() {
   // Gamification - with improved progression
   const [playerStats, setPlayerStats] = useState<PlayerStats>(() => {
     const saved = localStorage.getItem('masterAcademy_stats_v2');
-    return saved ? JSON.parse(saved) : {
+    const savedStats = saved ? JSON.parse(saved) : {
       xp: 0,
       level: 1,
       streak: 1,
       gamesPlayed: 0,
       goodMoves: 0,
       blunders: 0,
+      mistakes: 0,
       totalMoves: 0,
       accurateMoves: 0,
       skillRating: 1200,    // Starting rating (like chess.com)
       highestRating: 1200,
+    };
+    
+    // Ensure mistakes field exists for backward compatibility
+    if (savedStats.mistakes === undefined) {
+      savedStats.mistakes = 0;
+    }
+    
+    // Initialize/update day streak on app load
+    const currentStreak = getCurrentDayStreak();
+    return {
+      ...savedStats,
+      streak: currentStreak, // Update streak from day streak tracker
     };
   });
   
@@ -456,6 +475,7 @@ function App() {
       setError(null);
       setMoveHistory([]);
       setFeedback(null);
+      setOptimisticFen(null); // Clear optimistic FEN on new game
       
       const { gameId } = await createGame(1200);
       setGameId(gameId);
@@ -465,27 +485,8 @@ function App() {
       // Show welcome narration from the Spirit
       getWelcomeNarration();
       
-      // Track game started (will track completion when game ends)
-      setPlayerStats(prev => ({
-        ...prev,
-        gamesPlayed: prev.gamesPlayed + 1,
-      }));
-      
-      // Track games played achievement
-      const gameAchievements = achievementCtx.trackEvent({
-        type: 'GAME_COMPLETED',
-        won: false, // Will be updated on actual game end
-        accuracy: 0,
-        blunders: 0,
-        mistakes: 0,
-      });
-      
-      for (const progress of gameAchievements) {
-        const achievement = achievementCtx.getAchievement(progress.achievementId);
-        if (achievement) {
-          handleAchievementUnlock(achievement, progress);
-        }
-      }
+      // Note: Game completion tracking moved to game end (see processMoveResponse)
+      // This ensures accurate data (won, accuracy, blunders, mistakes) is used
     } catch (err) {
       // MOCK MODE: Use mock data when backend is unavailable
       console.warn('Backend unavailable, using mock data for UI testing');
@@ -545,17 +546,42 @@ function App() {
 
       // OPTIMISTIC UPDATE: Update board position immediately before API call
       // This prevents the board from resetting while waiting for the response
+      // Store the original FEN for reference
+      const originalFen = turnPackage.fen;
       const optimisticTurnPackage: TurnPackage = {
         ...turnPackage,
         fen: fenAfterUserMove,
         sideToMove: chess.turn() === 'w' ? 'w' : 'b',
       };
       setTurnPackage(optimisticTurnPackage);
+      // Also store optimistic FEN separately to persist across mode switches
+      setOptimisticFen(fenAfterUserMove);
+      // Track which FEN this API call is for (to prevent race conditions)
+      pendingMoveFenRef.current = fenAfterUserMove;
+      
+      // Also update move history optimistically
+      const newMoveNum = Math.ceil(moveHistory.length / 2) + 1;
+      setMoveHistory(prev => {
+        const updated = [...prev];
+        const isWhiteMove = turnPackage.sideToMove === 'w';
+        if (isWhiteMove) {
+          updated.push({ moveNumber: newMoveNum, white: moveSan });
+        } else {
+          if (updated.length > 0) {
+            updated[updated.length - 1].black = moveSan;
+          } else {
+            updated.push({ moveNumber: newMoveNum, black: moveSan });
+          }
+        }
+        return updated;
+      });
 
       // Move is valid - now process it asynchronously
       (async () => {
         setFenBeforeAiMove(fenAfterUserMove);
 
+        // Only show predictions for human-like opponents
+        // AI master opponents play deterministically based on style rotation, not predictable moves
         const shouldShowPrediction = predictionEnabled && opponentType === 'human-like';
         console.log('[App] Free move prediction check:', { 
           predictionEnabled, 
@@ -623,24 +649,39 @@ function App() {
                 setPendingResponse(response);
                 // Keep showing prediction UI - user will submit or timeout
               } else {
-                // No predictions - process move immediately
+                // No predictions - process move immediately and update turn package
+                // The optimistic update already shows the user's move, now add AI's move
                 setTurnPackage(response.nextTurn);
+                // Only clear optimistic FEN if user hasn't made another move while we were waiting
+                // This prevents a race condition where move 2 gets cleared by move 1's response
+                if (optimisticFen === pendingMoveFenRef.current) {
+                  setOptimisticFen(null);
+                  pendingMoveFenRef.current = null;
+                }
                 setFeedback(response.feedback);
                 setSelectedChoice(null);
                 
-                const newMoveNum = Math.ceil(moveHistory.length / 2) + 1;
-                setMoveHistory(prev => {
-                  const updated = [...prev];
-                  if (updated.length === 0 || updated[updated.length - 1].black) {
-                    updated.push({ moveNumber: newMoveNum, white: moveSan, black: response.feedback.aiMove?.moveSan });
-                  } else {
-                    updated[updated.length - 1].black = moveSan;
-                    if (response.feedback.aiMove) {
-                      updated.push({ moveNumber: newMoveNum, white: response.feedback.aiMove.moveSan });
+                // Update move history - user's move is already there from optimistic update
+                // Just add AI's move
+                if (response.feedback.aiMove) {
+                  const aiMoveSan = response.feedback.aiMove.moveSan;
+                  setMoveHistory(prev => {
+                    const updated = [...prev];
+                    // User's move should be the last entry
+                    if (updated.length > 0) {
+                      // If last entry has white but no black, add black (AI move)
+                      const last = updated[updated.length - 1];
+                      if (last.white && !last.black) {
+                        last.black = aiMoveSan;
+                      } else if (last.black && !last.white) {
+                        // If last entry has black, add new entry with white (AI move)
+                        const newMoveNum = Math.ceil(updated.length / 2) + 1;
+                        updated.push({ moveNumber: newMoveNum, white: aiMoveSan });
+                      }
                     }
-                  }
-                  return updated;
-                });
+                    return updated;
+                  });
+                }
               }
             } else {
               // No AI move (user's move ended the game or it's their turn again)
@@ -652,6 +693,11 @@ function App() {
             // Game is over
             setShowPrediction(false);
             setTurnPackage(null);
+            // Only clear if user hasn't made another move
+            if (optimisticFen === pendingMoveFenRef.current) {
+              setOptimisticFen(null);
+              pendingMoveFenRef.current = null;
+            }
             setFeedback(response.feedback);
             console.log('[App] Game ended after free move');
           }
@@ -661,6 +707,11 @@ function App() {
           setError('Failed to process move');
           // Don't reset the board on error - keep optimistic update
           // The board already shows the user's move, which is valid
+          // Also clear prediction state on error
+          setShowPrediction(false);
+          setFenBeforeAiMove(null);
+          setPendingResponse(null);
+          // Keep optimisticFen so the board doesn't reset
         }
       })();
 
@@ -997,20 +1048,45 @@ function App() {
           processMoveResponse(pendingResponse, choice, turnPackage);
         }
       } else if (pendingResponse.nextTurn) {
-        // For free play mode or when no choice available, just update turn package
+        // For free play mode or when no choice available, update turn package
         // This ensures the opponent's move is shown even if user skipped prediction
-        setTurnPackage(pendingResponse.nextTurn);
-        setFeedback(pendingResponse.feedback);
+        // The pendingResponse.nextTurn.fen should already include the AI's move
+        console.log('[App] Finishing prediction flow - updating turn package:', {
+          hasNextTurn: !!pendingResponse.nextTurn,
+          nextTurnFen: pendingResponse.nextTurn.fen?.substring(0, 30) + '...',
+          hasAiMove: !!pendingResponse.feedback.aiMove,
+          aiMove: pendingResponse.feedback.aiMove?.moveSan
+        });
         
-        // Update move history
+        setTurnPackage(pendingResponse.nextTurn);
+        // Only clear if user hasn't made another move while prediction was shown
+        if (optimisticFen === pendingMoveFenRef.current) {
+          setOptimisticFen(null);
+          pendingMoveFenRef.current = null;
+        }
+        setFeedback(pendingResponse.feedback);
+        setSelectedChoice(null);
+        
+        // Update move history - user's move is already there from optimistic update
+        // Just add AI's move
         if (pendingResponse.feedback.aiMove) {
-          const newMoveNum = Math.ceil(moveHistory.length / 2) + 1;
+          const aiMoveSan = pendingResponse.feedback.aiMove.moveSan;
           setMoveHistory(prev => {
             const updated = [...prev];
-            if (updated.length === 0 || updated[updated.length - 1].black) {
-              updated.push({ moveNumber: newMoveNum, white: pendingResponse.feedback.aiMove?.moveSan });
+            // User's move should be the last entry from optimistic update
+            if (updated.length > 0) {
+              // If last entry has white but no black, add black (AI move)
+              const last = updated[updated.length - 1];
+              if (last.white && !last.black) {
+                last.black = aiMoveSan;
+              } else if (last.black && !last.white) {
+                // If last entry has black, add new entry with white (AI move)
+                const newMoveNum = Math.ceil(updated.length / 2) + 1;
+                updated.push({ moveNumber: newMoveNum, white: aiMoveSan });
+              }
             } else {
-              updated[updated.length - 1].black = pendingResponse.feedback.aiMove?.moveSan;
+              // No history yet - shouldn't happen but handle it
+              updated.push({ moveNumber: 1, white: aiMoveSan });
             }
             return updated;
           });
@@ -1094,8 +1170,9 @@ function App() {
     }
     
     // Track move for weakness analysis
+    let quality: 'brilliant' | 'great' | 'good' | 'book' | 'inaccuracy' | 'mistake' | 'blunder' | null = null;
     if (gameId && currentTurn) {
-      const quality = getMoveQuality(delta, choice.moveUci === currentTurn.bestMove.moveUci);
+      quality = getMoveQuality(delta, choice.moveUci === currentTurn.bestMove.moveUci);
       const phase = getGamePhase(currentTurn.fen);
       const concepts = getPositionConcepts(currentTurn.fen);
       const missedTactics = detectMissedTactics(
@@ -1162,6 +1239,8 @@ function App() {
       // Count move types
       const isGoodMove = moveQuality === 'great' || moveQuality === 'good';
       const isBlunderMove = moveQuality === 'blunder';
+      // Use quality from getMoveQuality for mistake detection (includes 'mistake' type)
+      const isMistakeMove = quality === 'mistake';
       
       return {
         ...prev,
@@ -1171,6 +1250,7 @@ function App() {
         accurateMoves: isAccurate ? prev.accurateMoves + 1 : prev.accurateMoves,
         goodMoves: isGoodMove ? prev.goodMoves + 1 : prev.goodMoves,
         blunders: isBlunderMove ? prev.blunders + 1 : prev.blunders,
+        mistakes: isMistakeMove ? prev.mistakes + 1 : prev.mistakes,
         skillRating: newRating,
         highestRating: newHighest,
       };
@@ -1219,10 +1299,12 @@ function App() {
 
     if (response.nextTurn) {
       setTurnPackage(response.nextTurn);
+      setOptimisticFen(null); // Clear optimistic FEN since we have real update
       setSelectedChoice(null);
     } else {
       // Game is over - determine end state
       setTurnPackage(null);
+      setOptimisticFen(null);
       
       // Check the final position
       const finalChess = new Chess(currentTurn.fen);
@@ -1243,18 +1325,48 @@ function App() {
       });
       
       // Determine game result
+      let playerWon = false;
       if (finalChess.isCheckmate()) {
         // Check who won
-        const playerWon = finalChess.turn() !== 'w'; // If it's white's turn and checkmate, black won
+        playerWon = finalChess.turn() !== 'w'; // If it's white's turn and checkmate, black won
         setGameEndState(playerWon ? 'victory' : 'defeat');
         playSound(playerWon ? 'victory' : 'game_over');
       } else if (finalChess.isDraw() || finalChess.isStalemate()) {
         setGameEndState('draw');
         playSound('draw');
+        playerWon = false; // Draw is not a win
       } else {
         // Game ended for other reason (e.g., resignation) - treat as defeat
         setGameEndState('defeat');
         playSound('game_over');
+        playerWon = false;
+      }
+      
+      // Update day streak when game completes
+      const updatedStreak = updateDayStreak();
+      
+      // Update player stats with game completion
+      setPlayerStats(prev => ({
+        ...prev,
+        gamesPlayed: prev.gamesPlayed + 1,
+        streak: updatedStreak, // Update streak from day streak tracker
+      }));
+      
+      // Track game completion achievement with accurate data
+      const gameAchievements = achievementCtx.trackEvent({
+        type: 'GAME_COMPLETED',
+        won: playerWon,
+        accuracy: accuracy,
+        blunders: playerStats.blunders,
+        mistakes: playerStats.mistakes,
+      });
+      
+      // Show achievement toasts for game completion achievements
+      for (const progress of gameAchievements) {
+        const achievement = achievementCtx.getAchievement(progress.achievementId);
+        if (achievement) {
+          handleAchievementUnlock(achievement, progress);
+        }
       }
     }
   };
@@ -1451,14 +1563,16 @@ function App() {
             </div>
 
             <ChessBoard
-              fen={showPrediction && fenBeforeAiMove
-                ? fenBeforeAiMove
-                : (turnPackage?.fen || 'start')}
+              fen={
+                showPrediction && fenBeforeAiMove
+                  ? fenBeforeAiMove
+                  : (optimisticFen || turnPackage?.fen || 'start')
+              }
               choices={showPrediction ? undefined : (playMode === 'guided' ? turnPackage?.choices : undefined)}
               selectedChoice={showPrediction ? null : selectedChoice}
               hoveredChoice={showPrediction ? null : hoveredChoice}
               predictionHover={showPrediction ? predictionHover : undefined}
-              freePlayMode={playMode === 'free'}
+              freePlayMode={playMode === 'free' && !showPrediction && !loading}
               onMove={handleFreeMove}
               orientation={playerColor}
             />
@@ -1471,7 +1585,7 @@ function App() {
                 fen={fenBeforeAiMove}
                 onPredictionSubmit={handlePredictionSubmit}
                 onSkip={handlePredictionSkip}
-                timeLimit={15}
+                timeLimit={25}
                 masterStyle={getOpponentInfo().styleId}
                 masterName={getOpponentInfo().name}
                 onHoverMove={handlePredictionHover}

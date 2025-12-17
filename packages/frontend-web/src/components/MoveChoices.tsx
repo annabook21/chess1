@@ -50,6 +50,13 @@ const MASTER_INFO: Record<string, {
     gradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)',
     title: 'The Perfectionist'
   },
+  'human-like': {
+    name: 'Human Player',
+    icon: 'ghost',
+    color: '#8b5cf6',
+    gradient: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%)',
+    title: 'Maia Prediction'
+  },
 };
 
 export const MoveChoices: React.FC<MoveChoicesProps> = ({
@@ -126,16 +133,29 @@ export const MoveChoices: React.FC<MoveChoicesProps> = ({
             {/* Selection indicator */}
             {isSelected && <div className="choice-selected-indicator" />}
             
-            {/* Master header */}
+            {/* Master header - show probability for human-like predictions */}
             <div className="choice-header">
               <div className="master-avatar" style={{ color: master.color }}>
                 <PixelIcon name={master.icon} size="medium" />
               </div>
               <div className="master-info">
-                <span className="master-name" style={{ color: master.color }}>
-                  {master.name}
-                </span>
-                <span className="master-title">{master.title}</span>
+                {choice.styleId === 'human-like' ? (
+                  <>
+                    <span className="master-name" style={{ color: master.color }}>
+                      {master.name}
+                    </span>
+                    <span className="master-title">
+                      {choice.conceptTags.find(t => t.includes('%')) || 'Maia Prediction'}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="master-name" style={{ color: master.color }}>
+                      {master.name}
+                    </span>
+                    <span className="master-title">{master.title}</span>
+                  </>
+                )}
               </div>
             </div>
             
@@ -152,7 +172,10 @@ export const MoveChoices: React.FC<MoveChoicesProps> = ({
                 <span className="to-square">{choice.moveUci.slice(2, 4)}</span>
               </div>
               <div className={`move-eval ${choice.eval > 0 ? 'positive' : choice.eval < 0 ? 'negative' : ''}`}>
-                {choice.eval > 0 ? '+' : ''}{(choice.eval / 100).toFixed(2)}
+                {choice.styleId === 'human-like' 
+                  ? `${((choice.eval / 1000) * 100).toFixed(0)}% likely`
+                  : `${choice.eval > 0 ? '+' : ''}${(choice.eval / 100).toFixed(2)}`
+                }
               </div>
             </div>
             

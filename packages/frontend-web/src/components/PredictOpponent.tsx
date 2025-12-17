@@ -9,6 +9,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { Chess, Square } from 'chess.js';
 import { useMaiaPredictions, MovePrediction } from '../maia';
 import { PixelIcon } from '../ui/castle/PixelIcon';
+import { MoveChoices } from './MoveChoices';
+import { MoveChoice } from '@master-academy/contracts';
 import './PredictOpponent.css';
 
 interface PredictOpponentProps {
@@ -48,6 +50,7 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
   const [selectedMove, setSelectedMove] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(timeLimit);
   const [hoveredMove, setHoveredMove] = useState<string | null>(null);
+  const [isLockingIn, setIsLockingIn] = useState(false); // Visual feedback when auto-submitting
 
   // Use Maia for predictions
   const {
@@ -73,32 +76,66 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
     }
   }, [maiaLoading, maiaReady]);
 
-  // Convert Maia predictions to candidate moves
-  const candidateMoves = useMemo((): CandidateMove[] => {
+  // Convert Maia predictions to MoveChoice format for MoveChoices component
+  // Note: Predictions only make sense for human-like opponents
+  // AI master opponents play deterministically, not based on probability
+  const predictionChoices = useMemo((): MoveChoice[] => {
+    if (!isHumanLike) {
+      // Predictions don't apply to AI master opponents
+      return [];
+    }
+    
     // If Maia predictions are available, use them
     if (maiaPredictions.length > 0) {
-      return maiaPredictions.slice(0, 4).map(p => ({
-        san: p.san,
-        uci: p.uci,
-        from: p.from,
-        to: p.to,
-        probability: p.probability,
-        explanation: getMovePurpose(p, fen),
-      }));
+      // Show up to 4 predictions (or all available if less)
+      return maiaPredictions.slice(0, Math.min(4, maiaPredictions.length)).map((p, index) => {
+        const explanation = getMovePurpose(p, fen);
+        const probPercent = (p.probability * 100).toFixed(0);
+        
+        return {
+          id: `prediction-${p.uci}-${index}`,
+          moveUci: p.uci,
+          planOneLiner: `${probPercent}% of ${targetRating}-rated players play this move. ${explanation}`,
+          styleId: 'human-like', // Use special human-like style for Maia predictions
+          pv: [p.uci], // Principal variation - just the move itself for predictions
+          eval: Math.round(p.probability * 1000), // Convert probability to eval-like score
+          conceptTags: ['human-like', `~${probPercent}%`],
+        };
+      });
     }
 
     // Fallback to simple heuristic if Maia not ready or errored
-    return getFallbackMoves(fen);
-  }, [maiaPredictions, fen]);
+    const fallbackMoves = getFallbackMoves(fen);
+    return fallbackMoves.slice(0, Math.min(4, fallbackMoves.length)).map((move, index) => ({
+      id: `fallback-${move.uci}-${index}`,
+      moveUci: move.uci,
+      planOneLiner: move.explanation,
+      styleId: 'human-like',
+      pv: [move.uci], // Principal variation - just the move itself
+      eval: 0,
+      conceptTags: ['heuristic'],
+    }));
+  }, [isHumanLike, maiaPredictions, fen, targetRating]);
   
   // Determine if we should show loading state
   // Show loading only if: Maia is loading AND we haven't timed out AND no fallback available
-  const shouldShowLoading = maiaLoading && !showFallback && candidateMoves.length === 0;
+  const shouldShowLoading = maiaLoading && !showFallback && predictionChoices.length === 0;
+  
+  // Map selectedMove (UCI) to selectedChoice (choice ID)
+  const selectedChoiceId = useMemo(() => {
+    if (!selectedMove) return null;
+    return predictionChoices.find(c => c.moveUci === selectedMove)?.id || null;
+  }, [selectedMove, predictionChoices]);
 
   // Countdown timer
   useEffect(() => {
     if (timeRemaining <= 0) {
-      onSkip();
+      // If user selected a move, auto-submit it; otherwise skip
+      if (selectedMove) {
+        onPredictionSubmit(selectedMove);
+      } else {
+        onSkip();
+      }
       return;
     }
 
@@ -107,41 +144,22 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeRemaining, onSkip]);
+  }, [timeRemaining, onSkip, onPredictionSubmit, selectedMove]);
 
-  // Notify parent of hovered move for board visualization
-  // Use useMemo to avoid unnecessary effect runs when candidateMoves array reference changes
-  const currentHoverMove = useMemo(() => {
-    if (hoveredMove) {
-      const move = candidateMoves.find(m => m.uci === hoveredMove);
-      return move ? { from: move.from, to: move.to } : null;
-    } else if (selectedMove) {
-      const move = candidateMoves.find(m => m.uci === selectedMove);
-      return move ? { from: move.from, to: move.to } : null;
-    }
-    return null;
-  }, [hoveredMove, selectedMove, candidateMoves]);
-
-  useEffect(() => {
-    if (onHoverMove) {
-      onHoverMove(currentHoverMove?.from || null, currentHoverMove?.to || null);
-    }
-  }, [currentHoverMove, onHoverMove]);
+  // Hover is now handled by MoveChoices component via onHoverChoice callback
+  // No need for separate hover tracking here
 
   // Reset selection when FEN changes
   useEffect(() => {
     setSelectedMove(null);
     setTimeRemaining(timeLimit);
+    setIsLockingIn(false);
   }, [fen, timeLimit]);
 
-  const handleSubmit = () => {
-    if (selectedMove) {
-      onPredictionSubmit(selectedMove);
+  const handleSkip = () => {
+    if (!isLockingIn) {
+      onSkip();
     }
-  };
-
-  const handleNotSure = () => {
-    onSkip();
   };
 
   const getMasterIcon = () => {
@@ -169,13 +187,7 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
     }
   };
 
-  const getMoveLabel = (index: number) => {
-    return String.fromCharCode(65 + index); // A, B, C, D
-  };
-
-  const formatProbability = (prob: number) => {
-    return `${(prob * 100).toFixed(0)}%`;
-  };
+  // getMoveLabel and formatProbability no longer needed - MoveChoices handles display
 
   return (
     <div className="predict-opponent-v2">
@@ -230,7 +242,7 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
           ) : (
             <span className="maia-badge maia-loading-badge">
               🧠 Loading Maia...
-            </span>
+          </span>
           )}
         </div>
       )}
@@ -255,57 +267,65 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
           <span>Analyzing human move patterns...</span>
         </div>
       ) : (
-        <div className="move-options-v2">
-          {candidateMoves.map((move, index) => (
-            <button
-              key={move.uci}
-              className={`move-option-v2 ${selectedMove === move.uci ? 'selected' : ''} ${hoveredMove === move.uci ? 'hovered' : ''}`}
-              onClick={() => setSelectedMove(move.uci)}
-              onMouseEnter={() => setHoveredMove(move.uci)}
-              onMouseLeave={() => setHoveredMove(null)}
-            >
-              <div className="option-label">{getMoveLabel(index)}</div>
-              <div className="option-content">
-                <div className="move-notation">
-                  <span className="move-san-v2">{move.san}</span>
-                  <span className="move-arrow">
-                    <span className="from-square">{move.from}</span>
-                    <span className="arrow-icon">→</span>
-                    <span className="to-square">{move.to}</span>
-                  </span>
-                </div>
-                <div className="move-meta">
-                  <span className="move-purpose">{move.explanation}</span>
-                  {maiaReady && (
-                    <span className="move-probability" title="% of humans at this rating who play this move">
-                      {formatProbability(move.probability)} likely
-                    </span>
-                  )}
-                </div>
-              </div>
-              {selectedMove === move.uci && (
-                <div className="selected-check">✓</div>
-              )}
-            </button>
-          ))}
+        <div className={`prediction-choices-wrapper ${isLockingIn ? 'locking-in' : ''}`}>
+          <MoveChoices
+            choices={predictionChoices}
+            selectedChoice={selectedChoiceId}
+            onSelectChoice={(choiceId) => {
+              const choice = predictionChoices.find(c => c.id === choiceId);
+              if (choice && !isLockingIn) {
+                setSelectedMove(choice.moveUci);
+                // Trigger hover on board
+                if (onHoverMove) {
+                  const from = choice.moveUci.slice(0, 2);
+                  const to = choice.moveUci.slice(2, 4);
+                  onHoverMove(from, to);
+                }
+                
+                // Auto-submit after brief visual feedback (like quiz apps)
+                setIsLockingIn(true);
+                setTimeout(() => {
+                  onPredictionSubmit(choice.moveUci);
+                }, 600); // 600ms delay for visual feedback
+              }
+            }}
+            onHoverChoice={(choice) => {
+              if (choice && onHoverMove) {
+                const from = choice.moveUci.slice(0, 2);
+                const to = choice.moveUci.slice(2, 4);
+                onHoverMove(from, to);
+              } else if (!choice && onHoverMove) {
+                onHoverMove(null, null);
+              }
+            }}
+          />
         </div>
       )}
 
       <div className="predict-actions-v2">
-        <button 
-          className="btn btn-ghost"
-          onClick={handleNotSure}
-        >
-          I'm not sure
-        </button>
-        <button 
-          className="btn btn-primary btn-large"
-          onClick={handleSubmit}
-          disabled={!selectedMove}
-        >
-          <span>🎯</span>
-          Lock In Prediction
-        </button>
+        {isLockingIn ? (
+          <div className="locking-in-message">
+            <span className="lock-icon">🎯</span>
+            <span>Locking in your prediction...</span>
+          </div>
+        ) : (
+          <>
+            <button 
+              className="btn btn-ghost"
+              onClick={handleSkip}
+              disabled={isLockingIn}
+            >
+              Skip this round
+            </button>
+            <div className="selection-hint">
+              {selectedMove ? (
+                <span className="hint-selected">✓ Click to confirm or choose another</span>
+              ) : (
+                <span className="hint-choose">👆 Tap a move to lock it in</span>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="predict-reward">

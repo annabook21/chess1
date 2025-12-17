@@ -76,6 +76,8 @@
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+  min-height: 0; /* Prevent flex item from overflowing */
+  overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 @media (max-width: 1200px) {
@@ -91,6 +93,8 @@
   align-items: center;
   gap: 24px;
   width: 100%;
+  min-height: 0; /* Prevent flex overflow */
+  position: relative; /* For proper positioning context */
 }
 
 /* Board Container with Eval Bar */
@@ -159,6 +163,11 @@
 /* Prediction Section */
 .prediction-section {
   margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 200px); /* Leave space for header, board, etc */
+  min-height: 0;
+  overflow: hidden; /* Let child handle scrolling */
 }
 
 /* Prediction Result */
@@ -331,6 +340,8 @@
   /* Prediction section - compact */
   .prediction-section {
     margin-top: 8px;
+    max-height: calc(100vh - 150px); /* Adjust for mobile layout */
+    min-height: 0;
   }
   
   .prediction-result {
