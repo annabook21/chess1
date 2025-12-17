@@ -12,6 +12,7 @@ const STYLE_PROMPTS: Record<MasterStyle, string> = {
   tal: 'Play like Tal - tactical, sacrificial, aggressive.',
   karpov: 'Play like Karpov - positional, prophylactic, squeezing.',
   fischer: 'Play like Fischer - precise, prepared, fighting.',
+  'human-like': 'Play like a typical human - make natural, intuitive moves.',
 };
 
 export async function amazonPredict(fen: string, styleId: MasterStyle): Promise<MoveResult> {
