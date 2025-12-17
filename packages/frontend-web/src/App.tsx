@@ -645,14 +645,16 @@ function App() {
         setLoading(true);
 
         try {
+          // Skip backend AI generation if using Maia (human-like) - frontend handles it
           const moveRequest: MoveRequest = {
             moveUci,
             choiceId: 'free-move',
+            skipAiMove: opponentType === 'human-like',
           };
 
           const response = await submitMove(gameId, moveRequest);
 
-          // If human-like opponent, override AI move with Maia
+          // If human-like opponent, generate AI move with Maia (frontend)
           if (opponentType === 'human-like' && response.feedback.aiMove && response.nextTurn) {
             const maiaMove = await generateMaiaOpponentMove(fenAfterUserMove);
             
@@ -888,14 +890,16 @@ function App() {
       setLoading(true);
       
       // STEP 3: Call API in the background
+      // Skip backend AI generation if using Maia (human-like) - frontend handles it
       const moveRequest: MoveRequest = {
         moveUci: choice.moveUci,
         choiceId: selectedChoice,
+        skipAiMove: opponentType === 'human-like',
       };
 
       const response = await submitMove(gameId, moveRequest);
-      
-      // STEP 4: If using human-like opponent, override AI move with Maia
+
+      // STEP 4: If using human-like opponent, generate AI move with Maia (frontend)
       if (opponentType === 'human-like' && response.feedback.aiMove && response.nextTurn) {
         const maiaMove = await generateMaiaOpponentMove(fenAfterUserMove);
         

@@ -56,6 +56,8 @@ export interface TurnPackage {
 export interface MoveRequest {
   moveUci: string;
   choiceId: string;
+  /** Skip backend AI move generation (for when frontend handles opponent moves, e.g., Maia) */
+  skipAiMove?: boolean;
 }
 
 export interface AIMoveInfo {

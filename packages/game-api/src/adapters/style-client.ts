@@ -17,7 +17,7 @@ export class StyleClient {
   constructor(baseUrl: string = process.env.STYLE_SERVICE_URL || 'http://localhost:3002') {
     this.client = axios.create({
       baseURL: baseUrl,
-      timeout: 10000,
+      timeout: 5000, // Reduced from 10s to 5s to prevent timeouts
     });
   }
 

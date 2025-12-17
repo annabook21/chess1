@@ -130,6 +130,9 @@ export class MoveController {
     const isGameOverAfterUser = game.chess.isGameOver();
 
     // PARALLEL: Get eval after + coach explanation + AI move (if game not over)
+    // Skip AI move generation if frontend handles it (e.g., using Maia)
+    const shouldGenerateAiMove = !isGameOverAfterUser && !request.skipAiMove;
+    
     const parallelPromises: [
       Promise<{ eval: number; pv: string[] }>,
       Promise<{ explanation: string; conceptTags: string[] }>,
@@ -144,13 +147,17 @@ export class MoveController {
         conceptTag,
         userSkill: game.userElo,
       }),
-      isGameOverAfterUser 
-        ? Promise.resolve(null) 
-        : this.aiOpponent.generateMove(fenAfterUserMove).catch(err => {
+      shouldGenerateAiMove 
+        ? this.aiOpponent.generateMove(fenAfterUserMove).catch(err => {
             console.error('AI opponent error:', err);
             return null;
-          }),
+          })
+        : Promise.resolve(null),
     ];
+    
+    if (request.skipAiMove) {
+      console.log('[PERF] Skipping backend AI move generation (frontend handles it)');
+    }
 
     const [evalAfter, coachResponse, aiMoveResult] = await Promise.all(parallelPromises);
 

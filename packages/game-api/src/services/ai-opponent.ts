@@ -47,23 +47,21 @@ export class AIOpponent {
     const styleId = OPPONENT_STYLES[this.moveCounter % OPPONENT_STYLES.length];
     this.moveCounter++;
 
-    // Try to get a Bedrock-generated move (3 attempts)
-    for (let attempt = 0; attempt < 3; attempt++) {
+    // Try to get a Bedrock-generated move (2 attempts max to avoid timeout)
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const suggestedMoves = await this.deps.styleClient.suggestMoves(fen, styleId, 1);
         
         if (suggestedMoves.length > 0) {
           const moveUci = suggestedMoves[0];
           
-          // Validate the move is legal
-          const isLegal = await this.deps.engineClient.isLegalMove(fen, moveUci);
-          if (isLegal) {
-            // Get SAN notation
-            const from = moveUci.substring(0, 2);
-            const to = moveUci.substring(2, 4);
-            const promotion = moveUci.length > 4 ? moveUci[4] : undefined;
-            
-            const testChess = new Chess(fen);
+          // Quick legality check using local chess.js (no API call needed)
+          const from = moveUci.substring(0, 2);
+          const to = moveUci.substring(2, 4);
+          const promotion = moveUci.length > 4 ? moveUci[4] : undefined;
+          
+          const testChess = new Chess(fen);
+          try {
             const moveResult = testChess.move({ from, to, promotion: promotion as any });
             
             if (moveResult) {
@@ -74,6 +72,9 @@ export class AIOpponent {
                 justification: this.generateJustification(styleId, moveResult.san),
               };
             }
+          } catch {
+            // Move was illegal, try next attempt
+            console.log(`Bedrock suggested illegal move ${moveUci}, retrying...`);
           }
         }
       } catch (error) {
@@ -81,9 +82,9 @@ export class AIOpponent {
       }
     }
 
-    // Fallback: Use engine's best move
+    // Fallback: Use engine's best move (reduced depth for speed)
     console.log('AI falling back to engine move');
-    const analysis = await this.deps.engineClient.analyzePosition({ fen, depth: 10 });
+    const analysis = await this.deps.engineClient.analyzePosition({ fen, depth: 6 });
     const bestMoveUci = analysis.pv[0] || this.getRandomLegalMove(chess);
     
     // Convert to SAN
