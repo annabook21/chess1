@@ -63,10 +63,9 @@
   right: 6px;
 }
 
-/* Additional corners using content wrapper pseudo-elements */
-.spirit-whisper__content::before,
-.spirit-whisper__content::after {
-  content: '';
+/* Bottom corners - positioned on frame with additional elements */
+.spirit-whisper__corner-bl,
+.spirit-whisper__corner-br {
   position: absolute;
   width: 8px;
   height: 8px;
@@ -76,12 +75,12 @@
     inset -1px -1px 0 #3a3a4a;
 }
 
-.spirit-whisper__content::before {
+.spirit-whisper__corner-bl {
   bottom: 6px;
   left: 6px;
 }
 
-.spirit-whisper__content::after {
+.spirit-whisper__corner-br {
   bottom: 6px;
   right: 6px;
 }

@@ -1,17 +1,39 @@
 # Maia Chess Engine Integration
 
-Browser-based neural network for human-like move prediction using ONNX Runtime Web.
+Browser-based neural network for **human move prediction** using ONNX Runtime Web.
 
-## Overview
+## What Is Maia?
 
-Maia is a neural network trained on millions of human chess games to predict what moves humans at specific rating levels would play. This integration runs Maia directly in the browser using WebAssembly.
+**Maia is NOT a chess engine that finds the "best" move.** Instead, it predicts **what move a human would actually play** at a given rating level.
 
-### Key Features
+### How It Works
+
+Maia was trained on **300+ million games** from Lichess, learning the patterns of how real humans at different skill levels actually play chess. When you give Maia a position, it returns:
+
+- **Move probabilities** - e.g., "45% of 1500-rated players would play Nf3"
+- **Multiple candidates** - ranked by how likely humans are to play them
+- **Rating-specific predictions** - a 1100 player thinks differently than a 1900 player
+
+### Why This Matters for Quest for Grandmaster
+
+The "Predict the Response" feature uses Maia to:
+1. Generate realistic move options that a human opponent might play
+2. Show you the **likelihood** (not evaluation) of each move
+3. Help you learn to anticipate human opponents, not just engines
+
+**Example**: In a position where Stockfish says Qxd7 is best (+2.5), Maia might show:
+- `Nf3` - 42% of humans play this (develops naturally)
+- `Qxd7` - 28% of humans play this (objectively best)
+- `O-O` - 18% of humans play this (safe, intuitive)
+
+This reflects that most club players prioritize development over tactical wins.
+
+## Key Features
 
 | Feature | Benefit |
 |---------|---------|
-| 🧠 **Human-like predictions** | Trained on 300M+ human games |
-| 🎯 **Rating-specific models** | 1100 to 1900 ELO variants |
+| 🧠 **Human behavior model** | Predicts what humans DO play, not what they SHOULD play |
+| 🎯 **Rating-specific models** | 1100 to 1900 ELO variants - each thinks differently |
 | ⚡ **Web Worker inference** | Non-blocking UI, smooth animations |
 | 💾 **Prediction caching** | Instant results for repeated positions |
 | 📦 **Zero server cost** | All inference happens client-side |
@@ -232,15 +254,40 @@ Place in `public/models/`:
 - Check for CORS issues with model files
 - Fallback to main thread if worker fails
 
+## Maia vs Stockfish: Understanding the Difference
+
+| Aspect | Stockfish | Maia |
+|--------|-----------|------|
+| **Goal** | Find the objectively best move | Predict what a human would play |
+| **Output** | Centipawn evaluation (+1.5, -2.0) | Probability distribution (45%, 28%, 18%) |
+| **Training** | Self-play and endgame tables | 300M+ human games from Lichess |
+| **Use case** | Analysis, playing strength | Human behavior prediction, training |
+
+### In Quest for Grandmaster
+
+- **Stockfish** powers the "engine evaluation" bar and move analysis
+- **Maia** powers the "Predict the Response" challenge
+
+This combination helps you understand both:
+1. What the BEST move is (Stockfish)
+2. What your OPPONENT will likely play (Maia)
+
 ## Research
 
 This implementation is based on:
 
-- [Maia Chess](https://maiachess.com) - Human-like chess AI research
+- [Maia Chess](https://maiachess.com) - Human-like chess AI research by Microsoft & University of Toronto
 - [maia-platform-frontend](https://github.com/csslab/maia-platform-frontend) - Reference implementation
-- [Leela Chess Zero](https://lczero.org) - Neural network architecture
+- [Leela Chess Zero](https://lczero.org) - Neural network architecture (Lc0 input encoding)
 - [ONNX Runtime Web](https://onnxruntime.ai) - Browser inference engine
 - [a0lite-js](https://ishan.page/blog/a0lite-js/) - TypeScript chess engine patterns
+
+### Academic Paper
+
+> McIlroy-Young et al. (2020). "Aligning Superhuman AI with Human Behavior: Chess as a Model System"
+> 
+> The key insight: superhuman AI (like Stockfish) plays moves that humans rarely consider.
+> Maia bridges this gap by learning human decision-making patterns.
 
 
 

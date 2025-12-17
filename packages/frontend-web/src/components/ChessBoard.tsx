@@ -1,7 +1,6 @@
 /**
  * ChessBoard Component
  * Clean, modern chess board with modular overlay plugin system
- * Using react-chessboard v4.x
  */
 
 import { useMemo, useState, useEffect } from 'react';
@@ -10,6 +9,7 @@ import type { Square } from 'react-chessboard/dist/chessboard/types';
 import { MoveChoice } from '@master-academy/contracts';
 import { OverlayRenderer, useOverlayManager } from '../overlays';
 import type { OverlayContext } from '../overlays';
+import { PixelIcon } from '../ui/castle';
 import './ChessBoard.css';
 
 // Hook to calculate responsive board size
@@ -49,21 +49,28 @@ function useBoardSize(): number {
 
 interface ChessBoardProps {
   fen: string;
-  onMove?: (move: string) => void;
+  onMove?: (from: string, to: string, promotion?: string) => boolean | Promise<boolean>;
   choices?: MoveChoice[];
   selectedChoice?: string | null;
   hoveredChoice?: MoveChoice | null;
   predictionHover?: { from: string | null; to: string | null };
   lastMove?: { from: string; to: string };
+  /** Enable free play mode (drag pieces) */
+  freePlayMode?: boolean;
+  /** Board orientation - 'white' means white at bottom */
+  orientation?: 'white' | 'black';
 }
 
 export const ChessBoard: React.FC<ChessBoardProps> = ({
   fen,
+  onMove,
   choices,
   selectedChoice,
   hoveredChoice,
   predictionHover,
   lastMove,
+  freePlayMode = false,
+  orientation = 'white',
 }) => {
   // Responsive board size
   const boardSize = useBoardSize();
@@ -74,17 +81,20 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
   });
 
   // Build overlay context from current state
+  // Only show hover preview when hovering (not when selected) to avoid duplicate arrows
+  // When selected, we only show square highlights, not preview arrows
   const overlayContext = useMemo<OverlayContext>(() => ({
     fen,
     sideToMove: fen.includes(' w ') ? 'w' : 'b',
     lastMove,
-    hoveredChoice: hoveredChoice || undefined,
+    // Only pass hoveredChoice if nothing is selected (to avoid showing preview arrows on selected moves)
+    hoveredChoice: selectedChoice ? undefined : (hoveredChoice || undefined),
     userPreferences: {
       showAttacks: overlayManager.isProviderActive('attacks'),
       showThreats: overlayManager.isProviderActive('threats'),
       showKeySquares: overlayManager.isProviderActive('keySquares'),
     },
-  }), [fen, lastMove, hoveredChoice, overlayManager]);
+  }), [fen, lastMove, hoveredChoice, selectedChoice, overlayManager]);
 
   // Compute overlay frames
   const overlayFrames = useMemo(() => 
@@ -158,21 +168,21 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
           onClick={() => overlayManager.toggleProvider('attacks')}
           title="Show square control heatmap"
         >
-          🎯 Attacks
+          <PixelIcon name="target" size="small" /> Attacks
         </button>
         <button 
           className={`viz-btn ${overlayManager.isProviderActive('threats') ? 'active' : ''}`}
           onClick={() => overlayManager.toggleProvider('threats')}
           title="Show capture threats"
         >
-          ⚔️ Threats
+          <PixelIcon name="sword" size="small" /> Threats
         </button>
         <button 
           className={`viz-btn ${overlayManager.isProviderActive('keySquares') ? 'active' : ''}`}
           onClick={() => overlayManager.toggleProvider('keySquares')}
           title="Show key central squares"
         >
-          📍 Key Squares
+          <PixelIcon name="castle" size="small" /> Key Squares
         </button>
       </div>
 
@@ -180,7 +190,24 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
         <Chessboard
           position={fen}
           boardWidth={boardSize}
-          arePiecesDraggable={false}
+          arePiecesDraggable={freePlayMode}
+          onPieceDrop={(sourceSquare, targetSquare, piece) => {
+            if (!freePlayMode || !onMove) return false;
+            // Check if it's a promotion (pawn reaching last rank)
+            const isPromotion = piece[1] === 'P' && 
+              ((piece[0] === 'w' && targetSquare[1] === '8') ||
+               (piece[0] === 'b' && targetSquare[1] === '1'));
+            const promotion = isPromotion ? 'q' : undefined;
+            // Call onMove - if it returns a promise, the move is processed async
+            const result = onMove(sourceSquare, targetSquare, promotion);
+            if (result instanceof Promise) {
+              // For async, optimistically return true and let the callback handle errors
+              result.catch(err => console.error('Move failed:', err));
+              return true;
+            }
+            return result;
+          }}
+          boardOrientation={orientation}
           customSquareStyles={customSquareStyles}
           customArrows={customArrows}
           customLightSquareStyle={{

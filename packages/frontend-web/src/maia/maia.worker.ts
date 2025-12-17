@@ -53,6 +53,8 @@ console.log('[MaiaWorker] ONNX Runtime configured:', {
 let session: ort.InferenceSession | null = null;
 let currentRating: MaiaRating | null = null;
 let isLoading = false;
+let currentAbortController: AbortController | null = null;
+let pendingLoad: { rating: MaiaRating; resolve: () => void; reject: (err: Error) => void } | null = null;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MESSAGE TYPES
@@ -82,12 +84,27 @@ type WorkerMessage = LoadMessage | PredictMessage | DisposeMessage;
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function loadModel(rating: MaiaRating): Promise<void> {
-  if (isLoading) {
-    throw new Error('Already loading a model');
+  // If already loaded with the correct rating, return immediately
+  if (session && currentRating === rating && !isLoading) {
+    return;
   }
   
-  if (session && currentRating === rating) {
-    return; // Already loaded
+  // If already loading, queue this request
+  if (isLoading) {
+    // Cancel any pending load request (only keep the latest)
+    if (pendingLoad) {
+      pendingLoad.reject(new Error('Load request superseded'));
+    }
+    
+    return new Promise((resolve, reject) => {
+      pendingLoad = { rating, resolve, reject };
+    });
+  }
+  
+  // Cancel any in-flight fetch
+  if (currentAbortController) {
+    currentAbortController.abort();
+    currentAbortController = null;
   }
   
   isLoading = true;
@@ -97,6 +114,7 @@ async function loadModel(rating: MaiaRating): Promise<void> {
     if (session) {
       await session.release();
       session = null;
+      currentRating = null;
     }
     
     const modelPath = `/models/maia-${rating}.onnx`;
@@ -117,11 +135,113 @@ async function loadModel(rating: MaiaRating): Promise<void> {
       }, 30000);
     });
     
-    // Race between model loading and timeout
-    session = await Promise.race([
-      ort.InferenceSession.create(modelPath, options),
-      timeoutPromise,
-    ]);
+    // Try loading directly from URL first (ONNX Runtime Web handles this better)
+    // If that fails, fall back to ArrayBuffer approach
+    console.log(`[MaiaWorker] Attempting to load model from URL: ${modelPath}...`);
+    try {
+      // Create abort controller for this fetch
+      currentAbortController = new AbortController();
+      
+      // First verify the file exists and get its size
+      const headResponse = await fetch(modelPath, {
+        method: 'HEAD',
+        signal: currentAbortController.signal,
+      });
+      
+      if (!headResponse.ok) {
+        throw new Error(`Model file not found (${headResponse.status}): ${modelPath}`);
+      }
+      
+      // Check if we got HTML instead of a model file (CloudFront 404 page)
+      const contentType = headResponse.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        throw new Error(`Model file not found - got HTML response (404). Model ${rating} may not be uploaded to S3.`);
+      }
+      
+      const contentLength = headResponse.headers.get('content-length');
+      if (contentLength) {
+        const sizeMB = parseInt(contentLength) / (1024 * 1024);
+        console.log(`[MaiaWorker] Model size: ${sizeMB.toFixed(2)} MB`);
+        
+        // Verify reasonable size (should be ~3-4MB for Maia models)
+        if (parseInt(contentLength) < 1000000) {
+          throw new Error(`Model file seems too small (${sizeMB.toFixed(2)} MB) - may be corrupted or wrong file`);
+        }
+      }
+      
+      currentAbortController = null;
+      
+      // Try loading directly from URL (ONNX Runtime Web handles this better)
+      console.log(`[MaiaWorker] Creating inference session from URL...`);
+      session = await Promise.race([
+        ort.InferenceSession.create(modelPath, options),
+        timeoutPromise,
+      ]);
+      
+    } catch (urlError) {
+      console.warn(`[MaiaWorker] URL loading failed, trying ArrayBuffer approach:`, urlError);
+      
+      // Fallback: Try ArrayBuffer approach
+      try {
+        // Create abort controller for this fetch
+        currentAbortController = new AbortController();
+        
+        console.log(`[MaiaWorker] Fetching ${modelPath} as ArrayBuffer...`);
+        const response = await fetch(modelPath, {
+          signal: currentAbortController.signal,
+        });
+        
+        currentAbortController = null;
+        
+        if (!response.ok) {
+          throw new Error(`Model file not found (${response.status}): ${modelPath}`);
+        }
+        
+        // Check if we got HTML instead of a model file (CloudFront 404 page)
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+          // Read first few bytes to confirm it's HTML
+          const preview = await response.clone().text();
+          if (preview.includes('<html') || preview.includes('<!DOCTYPE')) {
+            throw new Error(`Model file not found - got HTML 404 page. Model ${rating} may not be uploaded to S3. Available models: 1100, 1300, 1500, 1700, 1900`);
+          }
+        }
+        
+        const modelData = await response.arrayBuffer();
+        console.log(`[MaiaWorker] Model fetched: ${(modelData.byteLength / (1024 * 1024)).toFixed(2)} MB`);
+        
+        // Verify ArrayBuffer is not empty and has reasonable size
+        if (modelData.byteLength === 0) {
+          throw new Error('Model file is empty');
+        }
+        
+        // Maia models should be ~3-4MB
+        if (modelData.byteLength < 1000000) {
+          throw new Error(`Model file seems too small (${(modelData.byteLength / 1024).toFixed(0)} KB) - may be corrupted or wrong file. Expected ~3-4MB.`);
+        }
+        
+        // Check if it looks like an ONNX file (starts with protobuf magic bytes)
+        const view = new Uint8Array(modelData.slice(0, 16));
+        const hasProtobufHeader = view[0] === 0x08 || view[0] === 0x0A; // Common protobuf start bytes
+        if (!hasProtobufHeader) {
+          console.warn(`[MaiaWorker] Warning: Model file may not be a valid ONNX file (unexpected header bytes)`);
+        }
+        
+        console.log(`[MaiaWorker] Creating inference session from ArrayBuffer...`);
+        session = await Promise.race([
+          ort.InferenceSession.create(modelData, options),
+          timeoutPromise,
+        ]);
+        
+      } catch (arrayBufferError) {
+        currentAbortController = null;
+        // Check if fetch was aborted
+        if (arrayBufferError instanceof Error && arrayBufferError.name === 'AbortError') {
+          throw new Error('Model load cancelled');
+        }
+        throw new Error(`Failed to load model (tried URL and ArrayBuffer): ${arrayBufferError instanceof Error ? arrayBufferError.message : 'Unknown error'}`);
+      }
+    }
     
     currentRating = rating;
     
@@ -130,11 +250,29 @@ async function loadModel(rating: MaiaRating): Promise<void> {
     console.log(`[MaiaWorker] Inputs: ${session.inputNames.join(', ')}`);
     console.log(`[MaiaWorker] Outputs: ${session.outputNames.join(', ')}`);
     
+    // Resolve any pending load request
+    if (pendingLoad && pendingLoad.rating === rating) {
+      pendingLoad.resolve();
+      pendingLoad = null;
+    }
+    
   } catch (error) {
     console.error(`[MaiaWorker] ❌ Failed to load model:`, error);
+    // Reset state on error
+    session = null;
+    currentRating = null;
+    currentAbortController = null;
+    
+    // Reject any pending load request
+    if (pendingLoad) {
+      pendingLoad.reject(error instanceof Error ? error : new Error('Model load failed'));
+      pendingLoad = null;
+    }
+    
     throw error;
   } finally {
     isLoading = false;
+    currentAbortController = null;
   }
 }
 

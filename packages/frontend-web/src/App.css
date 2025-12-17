@@ -553,3 +553,199 @@ body.effect-pixel-scale * {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
+
+/* Free Play Mode Indicator */
+.free-play-indicator {
+  background: var(--bg-card);
+  border: 2px solid var(--accent-primary);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  text-align: center;
+}
+
+.free-play-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.free-play-icon {
+  font-size: 36px;
+}
+
+.free-play-text h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.free-play-text p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.free-play-loading {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--accent-primary);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+
+/* Probability Breakdown in Prediction Results */
+.prediction-probability-breakdown {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.prob-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.prob-item:not(:last-child) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.prob-label {
+  color: var(--text-secondary);
+}
+
+.prob-value {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.prob-item.points .prob-value {
+  color: var(--accent-primary);
+}
+
+
+/* Game Mode Controls */
+.game-mode-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  margin-bottom: 12px;
+  border: 1px solid var(--border-subtle);
+}
+
+.mode-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mode-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--bg-tertiary);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.mode-btn.active {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  border-color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.mode-btn.color-mode.active {
+  background: var(--accent-secondary, #8b5cf6);
+  border-color: var(--accent-secondary, #8b5cf6);
+}
+
+@media (max-width: 480px) {
+  .game-mode-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .mode-toggle-group {
+    justify-content: center;
+  }
+  
+  .mode-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+
+/* Waiting for Opponent Indicator */
+.waiting-for-opponent {
+  background: var(--bg-card);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  text-align: center;
+  margin-top: 12px;
+}
+
+.waiting-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.waiting-icon {
+  font-size: 36px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.waiting-text h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.waiting-text p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+

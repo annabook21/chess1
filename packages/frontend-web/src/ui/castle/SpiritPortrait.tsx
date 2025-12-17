@@ -82,11 +82,11 @@ export const SpiritPortrait: React.FC<SpiritPortraitProps> = ({
       <div className="spirit-portrait__frame">
         {useEmoji ? (
           // Emoji fallback
-          <div 
-            className={`spirit-portrait__face ${animation ? `spirit-portrait__face--${animation}` : ''}`}
-          >
-            {expression}
-          </div>
+        <div 
+          className={`spirit-portrait__face ${animation ? `spirit-portrait__face--${animation}` : ''}`}
+        >
+          {expression}
+        </div>
         ) : (
           // CSS pixel art sprite
           <div 

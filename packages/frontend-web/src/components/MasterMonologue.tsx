@@ -3,6 +3,8 @@
  * Shows the master's inner thoughts when analyzing a position
  */
 
+import React from 'react';
+import { PixelIcon } from '../ui/castle/PixelIcon';
 import './MasterMonologue.css';
 
 interface MasterMonologueProps {
@@ -12,29 +14,29 @@ interface MasterMonologueProps {
   isThinking?: boolean;
 }
 
-const MASTER_DATA: Record<string, { name: string; nickname: string; emoji: string; color: string }> = {
+const MASTER_DATA: Record<string, { name: string; nickname: string; icon: React.ReactNode; color: string }> = {
   tal: {
     name: 'Tal',
     nickname: 'The Magician',
-    emoji: '⚔️',
+    icon: <PixelIcon name="sword" size="small" />,
     color: '#d13020',
   },
   fischer: {
     name: 'Fischer',
     nickname: 'The Perfectionist',
-    emoji: '🏆',
+    icon: <PixelIcon name="trophy" size="small" />,
     color: '#86b81b',
   },
   capablanca: {
     name: 'Capablanca',
     nickname: 'The Chess Machine',
-    emoji: '👑',
+    icon: <PixelIcon name="crown" size="small" />,
     color: '#e6b100',
   },
   karpov: {
     name: 'Karpov',
     nickname: 'The Constrictor',
-    emoji: '🎯',
+    icon: <PixelIcon name="target" size="small" />,
     color: '#4a9eff',
   },
 };
@@ -54,7 +56,7 @@ export const MasterMonologue: React.FC<MasterMonologueProps> = ({
     >
       <div className="monologue-header">
         <div className="master-avatar-lg">
-          <span className="master-emoji-lg">{master.emoji}</span>
+          <span className="master-emoji-lg">{master.icon}</span>
         </div>
         <div className="master-identity">
           <span className="master-name-lg">{master.name}</span>
@@ -80,7 +82,7 @@ export const MasterMonologue: React.FC<MasterMonologueProps> = ({
 
         {threats && !isThinking && (
           <div className="threats-section">
-            <span className="threats-label">💥 Creates:</span>
+            <span className="threats-label"><PixelIcon name="explosion" size="small" /> Creates:</span>
             <span className="threats-text">{threats}</span>
           </div>
         )}

@@ -24,10 +24,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       <button 
         className={`bottom-nav-item ${predictionEnabled ? 'active' : ''}`}
         onClick={onTogglePrediction}
+        title="Toggle human move prediction challenges"
       >
         <span className="bottom-nav-icon">🧠</span>
-        <span className="bottom-nav-label">Predict</span>
-        {predictionEnabled && <span className="bottom-nav-badge">ON</span>}
+        <span className="bottom-nav-label">{predictionEnabled ? 'Predicting' : 'Predict'}</span>
+        <span className={`bottom-nav-badge ${predictionEnabled ? 'on' : 'off'}`}>
+          {predictionEnabled ? 'ON' : 'OFF'}
+        </span>
       </button>
       
       <button 

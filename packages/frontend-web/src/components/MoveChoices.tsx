@@ -5,6 +5,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { MoveChoice } from '@master-academy/contracts';
+import { PixelIcon, PixelIconName } from '../ui/castle';
 import './MoveChoices.css';
 
 interface MoveChoicesProps {
@@ -16,35 +17,35 @@ interface MoveChoicesProps {
 
 const MASTER_INFO: Record<string, { 
   name: string; 
-  emoji: string; 
+  icon: PixelIconName; 
   color: string;
   gradient: string;
   title: string;
 }> = {
   capablanca: { 
     name: 'Capablanca', 
-    emoji: '👑', 
+    icon: 'crown', 
     color: '#f4d03f',
     gradient: 'linear-gradient(135deg, rgba(244, 208, 63, 0.15) 0%, rgba(244, 208, 63, 0.05) 100%)',
     title: 'The Chess Machine'
   },
   tal: { 
     name: 'Tal', 
-    emoji: '⚔️', 
+    icon: 'sword', 
     color: '#ef4444',
     gradient: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.05) 100%)',
     title: 'The Magician'
   },
   karpov: { 
     name: 'Karpov', 
-    emoji: '🎯', 
+    icon: 'target', 
     color: '#3b82f6',
     gradient: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%)',
     title: 'The Constrictor'
   },
   fischer: { 
     name: 'Fischer', 
-    emoji: '🏆', 
+    icon: 'trophy', 
     color: '#10b981',
     gradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)',
     title: 'The Perfectionist'
@@ -96,7 +97,7 @@ export const MoveChoices: React.FC<MoveChoicesProps> = ({
   const getMasterInfo = (styleId: string) => {
     return MASTER_INFO[styleId] || { 
       name: styleId, 
-      emoji: '♟️', 
+      icon: 'star' as PixelIconName, 
       color: '#888',
       gradient: 'linear-gradient(135deg, rgba(136, 136, 136, 0.15) 0%, rgba(136, 136, 136, 0.05) 100%)',
       title: 'Master'
@@ -127,8 +128,8 @@ export const MoveChoices: React.FC<MoveChoicesProps> = ({
             
             {/* Master header */}
             <div className="choice-header">
-              <div className="master-avatar">
-                <span className="master-emoji">{master.emoji}</span>
+              <div className="master-avatar" style={{ color: master.color }}>
+                <PixelIcon name={master.icon} size="medium" />
               </div>
               <div className="master-info">
                 <span className="master-name" style={{ color: master.color }}>

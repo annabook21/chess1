@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { PixelIcon } from '../ui/castle/PixelIcon';
 import './Celebration.css';
 
 interface CelebrationProps {
@@ -37,16 +38,16 @@ const COLORS = {
 
 const MESSAGES = {
   good: ['Nice!', 'Good move!', 'Well played!', 'Solid!'],
-  great: ['Brilliant!', 'Excellent!', '🔥 On fire!', 'Masterful!', 'Perfect!'],
+  great: ['Brilliant!', 'Excellent!', 'On fire!', 'Masterful!', 'Perfect!'],
   blunder: ['Oops!', 'Blunder!', 'Think again...', 'Mistake!'],
-  predict: ['🎯 Predicted!', 'Mind reader!', 'You saw it!', 'Great read!'],
+  predict: ['Predicted!', 'Mind reader!', 'You saw it!', 'Great read!'],
 };
 
 const ICONS = {
-  good: '✓',
-  great: '⭐',
-  blunder: '✗',
-  predict: '🧠',
+  good: <PixelIcon name="check" size="small" className="pixel-icon--green" />,
+  great: <PixelIcon name="star" size="small" className="pixel-icon--gold" />,
+  blunder: <PixelIcon name="cross" size="small" className="pixel-icon--red" />,
+  predict: <PixelIcon name="target" size="small" className="pixel-icon--purple" />,
 };
 
 export const Celebration: React.FC<CelebrationProps> = ({ type }) => {
@@ -104,7 +105,7 @@ export const Celebration: React.FC<CelebrationProps> = ({ type }) => {
       <div className={`celebration-message ${type}`}>
         <span className="celebration-icon">{ICONS[type]}</span>
         <span className="celebration-text">{message}</span>
-        {type === 'great' && <span className="celebration-sparkle">✨</span>}
+        {type === 'great' && <span className="celebration-sparkle"><PixelIcon name="sparkle" size="small" className="pixel-icon--gold" /></span>}
       </div>
 
       {/* Confetti particles */}
@@ -142,7 +143,7 @@ export const Celebration: React.FC<CelebrationProps> = ({ type }) => {
                 animationDelay: `${sparkle.delay}s`,
               }}
             >
-              ✦
+              <PixelIcon name="sparkle" size="small" className="pixel-icon--gold" />
             </div>
           ))}
         </div>

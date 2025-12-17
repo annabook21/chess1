@@ -3,6 +3,7 @@
  * Shows game title, player stats, and actions
  */
 
+import { PixelIcon, LogoMark } from '../ui/castle';
 import './Header.css';
 
 interface PlayerStats {
@@ -41,9 +42,9 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="header-content">
         {/* Logo & Title */}
         <div className="header-brand">
-          <div className="brand-logo">♔</div>
+          <LogoMark size={40} />
           <div className="brand-text">
-            <h1>Master Academy</h1>
+            <h1>Quest for Grandmaster</h1>
             <p>Learn from the Legends</p>
           </div>
         </div>
@@ -52,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="header-stats">
           {/* Skill Rating - Primary metric */}
           <div className="stat-item rating-badge">
-            <span className="stat-icon">📈</span>
+            <span className="stat-icon"><PixelIcon name="chart" size="small" /></span>
             <div className="stat-content">
               <span className="stat-value rating-value">{stats.skillRating}</span>
               <span className="stat-label">Skill Rating</span>
@@ -61,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Level */}
           <div className="stat-item level-badge">
-            <span className="stat-icon">⭐</span>
+            <span className="stat-icon"><PixelIcon name="star" size="small" /></span>
             <div className="stat-content">
               <span className="stat-value">Lvl {stats.level}</span>
               <div className="xp-bar-mini">
@@ -75,7 +76,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Accuracy */}
           <div className="stat-item accuracy-badge">
-            <span className="stat-icon">🎯</span>
+            <span className="stat-icon"><PixelIcon name="target" size="small" /></span>
             <span className="stat-value">
               {stats.totalMoves > 0 
                 ? Math.round((stats.accurateMoves / stats.totalMoves) * 100)
@@ -85,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Streak */}
           <div className="stat-item streak-item">
-            <span className="stat-icon">🔥</span>
+            <span className="stat-icon"><PixelIcon name="flame" size="small" /></span>
             <span className="stat-value">{stats.streak}</span>
           </div>
         </div>
@@ -94,25 +95,29 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="header-actions">
           {onTogglePrediction && (
             <button 
-              className={`btn btn-toggle ${predictionEnabled ? 'active' : ''}`}
+              className={`btn btn-toggle btn-predict ${predictionEnabled ? 'active' : ''}`}
               onClick={onTogglePrediction}
-              title={predictionEnabled ? 'Prediction Mode: ON' : 'Prediction Mode: OFF'}
+              title={predictionEnabled 
+                ? 'Human Prediction: ON - Guess opponent moves for bonus XP!' 
+                : 'Human Prediction: OFF - Click to enable move prediction challenges'}
             >
-              <span>🧠</span>
-              Predict
+              <span className="predict-icon">🧠</span>
+              <span className="predict-label">
+                {predictionEnabled ? 'Predicting' : 'Predict'}
+              </span>
               <span className={`toggle-indicator ${predictionEnabled ? 'on' : 'off'}`}>
-                {predictionEnabled ? '✓' : '○'}
+                {predictionEnabled ? 'ON' : 'OFF'}
               </span>
             </button>
           )}
           {onOpenWeaknessTracker && (
             <button className="btn btn-accent" onClick={onOpenWeaknessTracker}>
-              <span>🔍</span>
+              <PixelIcon name="eye" size="small" />
               Weaknesses
             </button>
           )}
           <button className="btn btn-secondary" onClick={onNewGame}>
-            <span>🔄</span>
+            <PixelIcon name="sparkle" size="small" />
             New Game
           </button>
         </div>

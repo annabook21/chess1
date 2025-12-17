@@ -1,0 +1,83 @@
+/**
+ * Pixel Icon Styles
+ * Sierra/Quest for Glory pixel art aesthetic
+ */
+
+.pixel-icon {
+  /* Ensure crisp pixel rendering */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  shape-rendering: crispEdges;
+  
+  /* Inherit color from parent by default */
+  color: currentColor;
+  
+  /* Smooth transitions for hover effects */
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.pixel-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Hover glow effect for interactive icons */
+.pixel-icon--interactive:hover {
+  filter: drop-shadow(0 0 2px currentColor);
+  transform: scale(1.1);
+}
+
+/* Animated variants */
+.pixel-icon--pulse {
+  animation: pixelPulse 2s ease-in-out infinite;
+}
+
+@keyframes pixelPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.pixel-icon--bounce {
+  animation: pixelBounce 1s ease-in-out infinite;
+}
+
+@keyframes pixelBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.pixel-icon--spin {
+  animation: pixelSpin 1s linear infinite;
+}
+
+@keyframes pixelSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Color variants matching castle theme */
+.pixel-icon--gold {
+  color: var(--castle-accent2, #c9a227);
+}
+
+.pixel-icon--red {
+  color: var(--castle-danger, #9c4a4a);
+}
+
+.pixel-icon--green {
+  color: var(--castle-success, #4a9c5a);
+}
+
+.pixel-icon--blue {
+  color: var(--castle-accent1, #5a7a9c);
+}
+
+.pixel-icon--purple {
+  color: #8b5cf6;
+}
+
+.pixel-icon--muted {
+  color: var(--castle-text-muted, #8a8a9a);
+}
+

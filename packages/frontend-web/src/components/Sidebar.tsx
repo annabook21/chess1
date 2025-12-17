@@ -3,6 +3,7 @@
  * Shows move history, evaluation, and achievements
  */
 
+import { PixelIcon, PixelIconName } from '../ui/castle';
 import './Sidebar.css';
 
 interface MoveHistoryEntry {
@@ -32,13 +33,20 @@ interface SidebarProps {
 }
 
 // Achievement definitions
-const ACHIEVEMENTS = [
-  { id: 'first_game', icon: '🎮', name: 'First Steps', desc: 'Complete your first game', threshold: 1, stat: 'gamesPlayed' },
-  { id: 'streak_3', icon: '🔥', name: 'On Fire', desc: '3 day streak', threshold: 3, stat: 'streak' },
-  { id: 'good_10', icon: '🎯', name: 'Sharp Eye', desc: '10 good moves', threshold: 10, stat: 'goodMoves' },
-  { id: 'games_5', icon: '🏆', name: 'Dedicated', desc: 'Play 5 games', threshold: 5, stat: 'gamesPlayed' },
-  { id: 'level_5', icon: '⭐', name: 'Rising Star', desc: 'Reach level 5', threshold: 5, stat: 'level' },
-  { id: 'good_50', icon: '💎', name: 'Master Mind', desc: '50 good moves', threshold: 50, stat: 'goodMoves' },
+const ACHIEVEMENTS: Array<{
+  id: string;
+  icon: PixelIconName;
+  name: string;
+  desc: string;
+  threshold: number;
+  stat: string;
+}> = [
+  { id: 'first_game', icon: 'castle', name: 'First Steps', desc: 'Complete your first game', threshold: 1, stat: 'gamesPlayed' },
+  { id: 'streak_3', icon: 'flame', name: 'On Fire', desc: '3 day streak', threshold: 3, stat: 'streak' },
+  { id: 'good_10', icon: 'target', name: 'Sharp Eye', desc: '10 good moves', threshold: 10, stat: 'goodMoves' },
+  { id: 'games_5', icon: 'trophy', name: 'Dedicated', desc: 'Play 5 games', threshold: 5, stat: 'gamesPlayed' },
+  { id: 'level_5', icon: 'star', name: 'Rising Star', desc: 'Reach level 5', threshold: 5, stat: 'level' },
+  { id: 'good_50', icon: 'gem', name: 'Master Mind', desc: '50 good moves', threshold: 50, stat: 'goodMoves' },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -59,7 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Evaluation Panel */}
       <div className="sidebar-section">
         <h3 className="sidebar-title">
-          <span className="title-icon">📊</span>
+          <span className="title-icon"><PixelIcon name="chart" size="small" /></span>
           Evaluation
         </h3>
         <div className="eval-display">
@@ -87,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Move History */}
       <div className="sidebar-section moves-section">
         <h3 className="sidebar-title">
-          <span className="title-icon">📜</span>
+          <span className="title-icon"><PixelIcon name="scroll" size="small" /></span>
           Move History
         </h3>
         <div className="move-history-container">
@@ -117,7 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Achievements */}
       <div className="sidebar-section">
         <h3 className="sidebar-title">
-          <span className="title-icon">🏅</span>
+          <span className="title-icon"><PixelIcon name="trophy" size="small" /></span>
           Achievements
         </h3>
         <div className="achievements-grid">
@@ -130,7 +138,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 title={`${achievement.name}: ${achievement.desc}`}
               >
                 <div className="achievement-icon">
-                  {unlocked ? achievement.icon : '🔒'}
+                  {unlocked 
+                    ? <PixelIcon name={achievement.icon} size="medium" />
+                    : <PixelIcon name="shield" size="medium" className="pixel-icon--muted" />
+                  }
                 </div>
                 <div className="achievement-info">
                   <span className="achievement-name">{achievement.name}</span>
@@ -145,7 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Skill Rating Panel */}
       <div className="sidebar-section rating-section">
         <h3 className="sidebar-title">
-          <span className="title-icon">📈</span>
+          <span className="title-icon"><PixelIcon name="chart" size="small" /></span>
           Skill Rating
         </h3>
         <div className="rating-display">

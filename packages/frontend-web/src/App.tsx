@@ -4,7 +4,8 @@
  * With Cursed Castle Spirit theme integration (Phase 3)
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { PixelIcon } from './ui/castle/PixelIcon';
 import { Chess } from 'chess.js';
 import { ChessBoard } from './components/ChessBoard';
 import { MoveChoices } from './components/MoveChoices';
@@ -44,10 +45,24 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useAudio } from './audio';
 import { TaggerInput } from './narration/types';
 import { useAchievementContext, Achievement, AchievementProgress } from './achievements';
+import { useMaiaContext, sampleMove, calculatePredictionReward, TEMPERATURE_PRESETS } from './maia';
+import type { MovePrediction } from './maia';
 import './App.css';
 
 // Game end state type
 type GameEndState = 'victory' | 'defeat' | 'draw' | null;
+
+// Opponent type - AI Master (Bedrock/Stockfish) or Human-like (Maia)
+type OpponentType = 'ai-master' | 'human-like';
+
+// Maia rating options
+type MaiaRating = 1100 | 1200 | 1300 | 1400 | 1500 | 1600 | 1700 | 1800 | 1900;
+
+// Play mode - guided (master suggestions) or free (manual moves)
+type PlayMode = 'guided' | 'free';
+
+// Player color
+type PlayerColor = 'white' | 'black';
 
 // Gamification state - improved system
 interface PlayerStats {
@@ -100,7 +115,29 @@ function App() {
   // Celebration state
   const [celebration, setCelebration] = useState<'good' | 'great' | 'blunder' | 'predict' | null>(null);
   
-  // Prediction mode state
+  // Opponent type state
+  const [opponentType, setOpponentType] = useState<OpponentType>(() => {
+    const saved = localStorage.getItem('qfg_opponentType');
+    return (saved as OpponentType) || 'ai-master';
+  });
+  const [maiaOpponentRating, setMaiaOpponentRating] = useState<MaiaRating>(() => {
+    const saved = localStorage.getItem('qfg_maiaRating');
+    return saved ? parseInt(saved) as MaiaRating : 1500;
+  });
+
+  // Play mode state (guided = master suggestions, free = manual moves)
+  const [playMode, setPlayMode] = useState<PlayMode>(() => {
+    const saved = localStorage.getItem('qfg_playMode');
+    return (saved as PlayMode) || 'guided';
+  });
+
+  // Player color state
+  const [playerColor, setPlayerColor] = useState<PlayerColor>(() => {
+    const saved = localStorage.getItem('qfg_playerColor');
+    return (saved as PlayerColor) || 'white';
+  });
+
+  // Prediction mode state - auto-enabled for human-like opponent
   const [predictionEnabled, setPredictionEnabled] = useState(() => {
     const saved = localStorage.getItem('masterAcademy_predictionEnabled');
     return saved ? JSON.parse(saved) : true; // Enabled by default
@@ -112,7 +149,16 @@ function App() {
     predicted: string;
     actual: string;
     correct: boolean;
+    // New: probability-based scoring
+    actualProbability?: number;
+    pickProbability?: number;
+    basePoints?: number;
+    probabilityBonus?: number;
+    totalPoints?: number;
   } | null>(null);
+
+  // Store Maia predictions for the current position (for proper scoring)
+  const [currentMaiaPredictions, setCurrentMaiaPredictions] = useState<MovePrediction[]>([]);
   
   // Prediction hover state (for board visualization)
   const [predictionHover, setPredictionHover] = useState<{ from: string | null; to: string | null }>({ from: null, to: null });
@@ -134,6 +180,27 @@ function App() {
   useEffect(() => {
     localStorage.setItem('masterAcademy_predictionEnabled', JSON.stringify(predictionEnabled));
   }, [predictionEnabled]);
+
+  // Save opponent settings
+  useEffect(() => {
+    localStorage.setItem('qfg_opponentType', opponentType);
+  }, [opponentType]);
+
+  useEffect(() => {
+    localStorage.setItem('qfg_maiaRating', maiaOpponentRating.toString());
+  }, [maiaOpponentRating]);
+
+  useEffect(() => {
+    localStorage.setItem('qfg_playMode', playMode);
+  }, [playMode]);
+
+  useEffect(() => {
+    localStorage.setItem('qfg_playerColor', playerColor);
+  }, [playerColor]);
+
+  // When player color is black and it's White's turn, the backend should handle AI's move
+  // For now, we just ensure the UI shows the waiting state correctly
+
 
   // Save prediction stats
   useEffect(() => {
@@ -164,6 +231,82 @@ function App() {
   
   // Audio system (Phase 3)
   const { playSound } = useAudio();
+
+  // Maia context for human-like opponent
+  const maiaContext = useMaiaContext();
+
+  // Load the correct Maia model when rating changes (for human-like opponent)
+  // Use a ref to prevent multiple simultaneous loads and debounce rapid changes
+  const maiaLoadRef = useRef<{ rating: MaiaRating | null; promise: Promise<void> | null; timeoutId: ReturnType<typeof setTimeout> | null }>({ 
+    rating: null, 
+    promise: null,
+    timeoutId: null,
+  });
+  
+  useEffect(() => {
+    if (opponentType === 'human-like') {
+      const targetRating = maiaOpponentRating as MaiaRating;
+      const availableRatings = maiaContext.availableRatings;
+      
+      // Check if the requested rating is available, fallback to closest if not
+      let ratingToLoad = targetRating;
+      if (!availableRatings.includes(targetRating)) {
+        // Find closest available rating
+        const closest = availableRatings.reduce((closest, rating) =>
+          Math.abs(rating - targetRating) < Math.abs(closest - targetRating) ? rating : closest
+        );
+        console.warn(`[Maia] Rating ${targetRating} not available, using closest: ${closest}`);
+        ratingToLoad = closest;
+        
+        // Update state to reflect the actual rating being used
+        if (closest !== targetRating) {
+          setMaiaOpponentRating(closest);
+        }
+      }
+      
+      // Clear any pending timeout
+      if (maiaLoadRef.current.timeoutId) {
+        clearTimeout(maiaLoadRef.current.timeoutId);
+        maiaLoadRef.current.timeoutId = null;
+      }
+      
+      // If already loading this exact model, don't trigger again
+      if (maiaLoadRef.current.rating === ratingToLoad && maiaLoadRef.current.promise) {
+        return;
+      }
+      
+      // Debounce rapid rating changes (wait 300ms before loading)
+      maiaLoadRef.current.timeoutId = setTimeout(() => {
+        // If Maia is ready and we need a different model, load it
+        if (maiaContext.state.isReady) {
+          const currentModel = maiaContext.state.currentModel;
+          if (currentModel !== ratingToLoad) {
+            console.log(`[Maia] Loading model for rating ${ratingToLoad}`);
+            const loadPromise = maiaContext.loadModel(ratingToLoad).catch(err => {
+              console.error('[Maia] Failed to load model:', err);
+              maiaLoadRef.current = { rating: null, promise: null, timeoutId: null };
+            });
+            maiaLoadRef.current = { rating: ratingToLoad, promise: loadPromise, timeoutId: null };
+          }
+        }
+        // If Maia is not ready yet and not loading, try to load the desired rating
+        else if (!maiaContext.state.isLoading && !maiaContext.state.error) {
+          console.log(`[Maia] Triggering initial load for rating ${ratingToLoad}`);
+          const loadPromise = maiaContext.loadModel(ratingToLoad).catch(err => {
+            console.error('[Maia] Failed to load model:', err);
+            maiaLoadRef.current = { rating: null, promise: null, timeoutId: null };
+          });
+          maiaLoadRef.current = { rating: ratingToLoad, promise: loadPromise, timeoutId: null };
+        }
+      }, 300);
+      
+      return () => {
+        if (maiaLoadRef.current.timeoutId) {
+          clearTimeout(maiaLoadRef.current.timeoutId);
+        }
+      };
+    }
+  }, [opponentType, maiaOpponentRating, maiaContext.state.isReady, maiaContext.state.isLoading, maiaContext.state.error, maiaContext.availableRatings, maiaContext]);
 
   // Narration hook
   const { 
@@ -236,6 +379,20 @@ function App() {
       'great'
     );
   }, [showAchievement, showNarration]);
+
+  // Handler for game end screen actions - use a flag approach
+  // IMPORTANT: Must be before any early returns to avoid React error #300
+  const [restartRequested, setRestartRequested] = useState(false);
+  
+  const handleGameEndTryAgain = useCallback(() => {
+    setGameEndState(null);
+    setRestartRequested(true);
+  }, []);
+  
+  const handleGameEndReturnToMap = useCallback(() => {
+    setGameEndState(null);
+    setShowCastleMap(true);
+  }, []);
 
   // Save rooms progress
   useEffect(() => {
@@ -345,12 +502,232 @@ function App() {
     initializeGame();
   }, [initializeGame]);
 
+  // Handle restart request from game end screen
+  useEffect(() => {
+    if (restartRequested) {
+      setRestartRequested(false);
+      initializeGame();
+    }
+  }, [restartRequested, initializeGame]);
+
   const handleChoiceSelect = (choiceId: string) => {
     setSelectedChoice(choiceId);
   };
 
+  // Handle free play move (drag and drop)
+  const handleFreeMove = (from: string, to: string, promotion?: string): boolean => {
+    if (!gameId || !turnPackage) return false;
+
+    // Check if it's the player's turn
+    const isPlayerTurn = playerColor === 'white' 
+      ? turnPackage.sideToMove === 'w'
+      : turnPackage.sideToMove === 'b';
+    
+    if (!isPlayerTurn) {
+      console.log(`Not your turn - you play ${playerColor}, but it's ${turnPackage.sideToMove === 'w' ? 'white' : 'black'}'s turn`);
+      return false;
+    }
+
+    // Validate the move using chess.js first (synchronous)
+    const chess = new Chess(turnPackage.fen);
+    try {
+      const moveResult = chess.move({
+        from,
+        to,
+        promotion: promotion as 'q' | 'r' | 'b' | 'n' | undefined,
+      });
+
+      if (!moveResult) return false;
+
+      const moveUci = `${from}${to}${promotion || ''}`;
+      const fenAfterUserMove = chess.fen();
+      const moveSan = moveResult.san; // Capture move notation before async
+
+      // OPTIMISTIC UPDATE: Update board position immediately before API call
+      // This prevents the board from resetting while waiting for the response
+      const optimisticTurnPackage: TurnPackage = {
+        ...turnPackage,
+        fen: fenAfterUserMove,
+        sideToMove: chess.turn() === 'w' ? 'w' : 'b',
+      };
+      setTurnPackage(optimisticTurnPackage);
+
+      // Move is valid - now process it asynchronously
+      (async () => {
+        setFenBeforeAiMove(fenAfterUserMove);
+
+        const shouldShowPrediction = predictionEnabled && opponentType === 'human-like';
+        console.log('[App] Free move prediction check:', { 
+          predictionEnabled, 
+          opponentType, 
+          shouldShowPrediction,
+          fenAfterUserMove: fenAfterUserMove.substring(0, 30) + '...'
+        });
+        if (shouldShowPrediction) {
+          setShowPrediction(true);
+          console.log('[App] ✅ Showing prediction UI (free move)');
+        } else {
+          console.log('[App] ❌ Not showing predictions (free move):', {
+            reason: !predictionEnabled ? 'predictions disabled' : opponentType !== 'human-like' ? 'not human-like opponent' : 'unknown'
+          });
+        }
+        setLoading(true);
+
+        try {
+          const moveRequest: MoveRequest = {
+            moveUci,
+            choiceId: 'free-move',
+          };
+
+          const response = await submitMove(gameId, moveRequest);
+
+          // If human-like opponent, override AI move with Maia
+          if (opponentType === 'human-like' && response.feedback.aiMove && response.nextTurn) {
+            const maiaMove = await generateMaiaOpponentMove(fenAfterUserMove);
+            
+            if (maiaMove) {
+              // Store predictions for proper scoring
+              setCurrentMaiaPredictions(maiaMove.allPredictions);
+              
+              const probPercent = (maiaMove.probability * 100).toFixed(0);
+              response.feedback.aiMove = {
+                moveSan: maiaMove.moveSan,
+                styleId: 'capablanca',
+                justification: `A ~${maiaOpponentRating} rated player played this move (${probPercent}% predicted).`,
+              };
+
+              const chessAfterMaia = new Chess(fenAfterUserMove);
+              const maiaFrom = maiaMove.moveUci.slice(0, 2);
+              const maiaTo = maiaMove.moveUci.slice(2, 4);
+              const maiaPromo = maiaMove.moveUci.length > 4 ? maiaMove.moveUci[4] : undefined;
+
+              chessAfterMaia.move({
+                from: maiaFrom,
+                to: maiaTo,
+                promotion: maiaPromo as 'q' | 'r' | 'b' | 'n' | undefined,
+              });
+
+              if (response.nextTurn) {
+                response.nextTurn.fen = chessAfterMaia.fen();
+              }
+            }
+          }
+
+          setLoading(false);
+
+          // Always update turn package if we have a next turn
+          if (response.nextTurn) {
+            if (response.feedback.aiMove) {
+              // Game continues with AI move
+              if (shouldShowPrediction) {
+                setPendingResponse(response);
+                // Keep showing prediction UI - user will submit or timeout
+              } else {
+                // No predictions - process move immediately
+                setTurnPackage(response.nextTurn);
+                setFeedback(response.feedback);
+                setSelectedChoice(null);
+                
+                const newMoveNum = Math.ceil(moveHistory.length / 2) + 1;
+                setMoveHistory(prev => {
+                  const updated = [...prev];
+                  if (updated.length === 0 || updated[updated.length - 1].black) {
+                    updated.push({ moveNumber: newMoveNum, white: moveSan, black: response.feedback.aiMove?.moveSan });
+                  } else {
+                    updated[updated.length - 1].black = moveSan;
+                    if (response.feedback.aiMove) {
+                      updated.push({ moveNumber: newMoveNum, white: response.feedback.aiMove.moveSan });
+                    }
+                  }
+                  return updated;
+                });
+              }
+            } else {
+              // No AI move (user's move ended the game or it's their turn again)
+              setShowPrediction(false);
+              setTurnPackage(response.nextTurn);
+              setFeedback(response.feedback);
+            }
+          } else {
+            // Game is over
+            setShowPrediction(false);
+            setTurnPackage(null);
+            setFeedback(response.feedback);
+            console.log('[App] Game ended after free move');
+          }
+        } catch (err) {
+          console.error('Free move API error:', err);
+          setLoading(false);
+          setError('Failed to process move');
+          // Don't reset the board on error - keep optimistic update
+          // The board already shows the user's move, which is valid
+        }
+      })();
+
+      return true; // Synchronously return true since the move is valid
+    } catch {
+      return false;
+    }
+  };
+
+  // Generate Maia opponent move using probability-based sampling
+  // This uses temperature-based sampling to pick moves according to their
+  // probability distribution, making predictions a true challenge.
+  // 
+  // Research basis:
+  // - Maia achieves 46-52% move-matching accuracy on human moves
+  // - Using temperature=1.0 samples from the true predicted distribution
+  // - This means the "correct" answer isn't always the top prediction
+  const generateMaiaOpponentMove = async (fen: string): Promise<{ 
+    moveUci: string; 
+    moveSan: string;
+    probability: number;
+    allPredictions: MovePrediction[];
+  } | null> => {
+    if (!maiaContext.state.isReady) {
+      console.warn('[Maia Opponent] Engine not ready');
+      return null;
+    }
+
+    try {
+      const result = await maiaContext.predict(fen);
+      
+      if (result.predictions.length > 0) {
+        // Sample from distribution instead of always picking top-1
+        // temperature=1.0 gives realistic human-like variation
+        const sampledMove = sampleMove(result.predictions, TEMPERATURE_PRESETS.realistic);
+        
+        if (sampledMove) {
+          console.log('[Maia Opponent] Sampled move:', sampledMove.san, 
+            `(${(sampledMove.probability * 100).toFixed(1)}%)`,
+            'from', result.predictions.length, 'candidates');
+          
+          return {
+            moveUci: sampledMove.uci,
+            moveSan: sampledMove.san,
+            probability: sampledMove.probability,
+            allPredictions: result.predictions,
+          };
+        }
+      }
+    } catch (err) {
+      console.error('[Maia Opponent] Prediction failed:', err);
+    }
+    return null;
+  };
+
   const handleMoveSubmit = async () => {
     if (!gameId || !selectedChoice || !turnPackage) return;
+
+    // Check if it's the player's turn
+    const isPlayerTurn = playerColor === 'white' 
+      ? turnPackage.sideToMove === 'w'
+      : turnPackage.sideToMove === 'b';
+    
+    if (!isPlayerTurn) {
+      setError(`Not your turn - you play ${playerColor}, but it's ${turnPackage.sideToMove === 'w' ? 'white' : 'black'}'s turn`);
+      return;
+    }
 
     const choice = turnPackage.choices.find(c => c.id === selectedChoice);
     if (!choice) return;
@@ -381,9 +758,21 @@ function App() {
       const fenAfterUserMove = chess.fen();
       setFenBeforeAiMove(fenAfterUserMove);
       
-      // STEP 2: Show prediction mode if enabled
-      if (predictionEnabled) {
+      // STEP 2: Show prediction mode if enabled AND using human-like opponent
+      const shouldShowPrediction = predictionEnabled && opponentType === 'human-like';
+      console.log('[App] Prediction check:', { 
+        predictionEnabled, 
+        opponentType, 
+        shouldShowPrediction,
+        fenAfterUserMove: fenAfterUserMove.substring(0, 30) + '...'
+      });
+      if (shouldShowPrediction) {
         setShowPrediction(true);
+        console.log('[App] ✅ Showing prediction UI');
+      } else {
+        console.log('[App] ❌ Not showing predictions:', {
+          reason: !predictionEnabled ? 'predictions disabled' : opponentType !== 'human-like' ? 'not human-like opponent' : 'unknown'
+        });
       }
       setLoading(true);
       
@@ -394,16 +783,52 @@ function App() {
       };
 
       const response = await submitMove(gameId, moveRequest);
+      
+      // STEP 4: If using human-like opponent, override AI move with Maia
+      if (opponentType === 'human-like' && response.feedback.aiMove && response.nextTurn) {
+        const maiaMove = await generateMaiaOpponentMove(fenAfterUserMove);
+        
+        if (maiaMove) {
+          // Store predictions for proper scoring
+          setCurrentMaiaPredictions(maiaMove.allPredictions);
+          
+          // Override the AI move with Maia's sampled prediction
+          const probPercent = (maiaMove.probability * 100).toFixed(0);
+          response.feedback.aiMove = {
+            moveSan: maiaMove.moveSan,
+            styleId: 'capablanca', // Use a neutral style for human-like
+            justification: `A ~${maiaOpponentRating} rated player played this move (${probPercent}% predicted).`,
+          };
+
+          // Update the next turn FEN to reflect Maia's move
+          const chessAfterMaia = new Chess(fenAfterUserMove);
+          const maiaFrom = maiaMove.moveUci.slice(0, 2);
+          const maiaTo = maiaMove.moveUci.slice(2, 4);
+          const maiaPromo = maiaMove.moveUci.length > 4 ? maiaMove.moveUci[4] : undefined;
+          
+          chessAfterMaia.move({
+            from: maiaFrom,
+            to: maiaTo,
+            promotion: maiaPromo as 'q' | 'r' | 'b' | 'n' | undefined,
+          });
+          
+          // Update the next turn with the new FEN
+          if (response.nextTurn) {
+            response.nextTurn.fen = chessAfterMaia.fen();
+          }
+        }
+      }
+      
       setLoading(false);
       
-      // STEP 4: Handle response based on prediction mode
+      // STEP 5: Handle response based on prediction mode
       if (response.feedback.aiMove && response.nextTurn) {
-        if (predictionEnabled) {
+        if (shouldShowPrediction) {
           setPendingResponse(response);
           // Keep showing prediction - user will submit or timeout
-          return;
+          // Don't return - let the code below handle turn package update
         } else {
-          // Prediction disabled - process directly
+          // Prediction disabled or AI master - process directly
           processMoveResponse(response, choice, turnPackage);
           return;
         }
@@ -424,33 +849,77 @@ function App() {
   // Store user's prediction while waiting for API
   const [userPrediction, setUserPrediction] = useState<string | null>(null);
 
-  const handlePredictionSubmit = (predictedMoveUci: string) => {
+  const handlePredictionSubmit = async (predictedMoveUci: string) => {
     // If API hasn't returned yet, store the prediction and wait
     if (!pendingResponse?.feedback.aiMove) {
       setUserPrediction(predictedMoveUci);
       return;
     }
-    
+
+    // Use scoring utilities (already imported at top)
+
     // Get actual AI move in UCI format (convert from SAN)
     const aiMoveSan = pendingResponse.feedback.aiMove.moveSan;
-    
+
     // Check if prediction matches - compare destination squares
     const predictedTo = predictedMoveUci.slice(2, 4);
-    
+
     // Extract destination from SAN (e.g., "Nf6" -> "f6", "e5" -> "e5")
     const sanClean = aiMoveSan.replace(/[+#x=]/g, '');
-    const actualTo = sanClean.length === 2 
-      ? sanClean.toLowerCase() 
+    const actualTo = sanClean.length === 2
+      ? sanClean.toLowerCase()
       : sanClean.slice(-2).toLowerCase();
-    
+
     const isCorrect = predictedTo === actualTo;
-    
+
+    // Use proper probability-based scoring if we have Maia predictions
+    let reward = {
+      basePoints: isCorrect ? 50 : 0,
+      probabilityBonus: 0,
+      totalPoints: isCorrect ? 50 : 0,
+      actualProbability: 0,
+      pickProbability: 0,
+      isCorrect,
+    };
+
+    if (currentMaiaPredictions.length > 0 && opponentType === 'human-like') {
+      // Find the actual move in predictions by matching destination square
+      const actualPred = currentMaiaPredictions.find(p => 
+        p.to.toLowerCase() === actualTo
+      );
+      const pickPred = currentMaiaPredictions.find(p => 
+        p.to.toLowerCase() === predictedTo
+      );
+
+      // Use proper scoring based on probabilities
+      const actualMoveUci = actualPred?.uci || '';
+      reward = calculatePredictionReward(
+        currentMaiaPredictions,
+        predictedMoveUci,
+        actualMoveUci
+      );
+
+      console.log('[Prediction Scoring]', {
+        predicted: predictedMoveUci,
+        actual: actualMoveUci,
+        isCorrect: reward.isCorrect,
+        actualProb: `${(reward.actualProbability * 100).toFixed(1)}%`,
+        pickProb: `${(reward.pickProbability * 100).toFixed(1)}%`,
+        points: reward.totalPoints,
+      });
+    }
+
     setPredictionResult({
       predicted: predictedMoveUci,
       actual: aiMoveSan,
       correct: isCorrect,
+      actualProbability: reward.actualProbability,
+      pickProbability: reward.pickProbability,
+      basePoints: reward.basePoints,
+      probabilityBonus: reward.probabilityBonus,
+      totalPoints: reward.totalPoints,
     });
-    
+
     // Update prediction stats
     const newStreak = isCorrect ? predictionStats.streak + 1 : 0;
     setPredictionStats((prev: { total: number; correct: number; streak: number }) => ({
@@ -458,14 +927,14 @@ function App() {
       correct: isCorrect ? prev.correct + 1 : prev.correct,
       streak: newStreak,
     }));
-    
+
     // Track prediction achievement
     const newlyCompleted = achievementCtx.trackEvent({
       type: 'PREDICTION_MADE',
       correct: isCorrect,
       streak: newStreak,
     });
-    
+
     // Show achievement toasts
     for (const progress of newlyCompleted) {
       const achievement = achievementCtx.getAchievement(progress.achievementId);
@@ -473,19 +942,24 @@ function App() {
         handleAchievementUnlock(achievement, progress);
       }
     }
-    
-    // Award bonus XP for correct prediction
-    if (isCorrect) {
-      setCelebration('predict');
+
+    // Award XP based on proper scoring (not just binary correct/incorrect)
+    const xpReward = reward.totalPoints;
+    if (xpReward > 0) {
+      if (isCorrect) {
+        setCelebration('predict');
+      }
       setPlayerStats(prev => ({
         ...prev,
-        xp: prev.xp + 50,
-        skillRating: prev.skillRating + 5,
-        highestRating: Math.max(prev.highestRating, prev.skillRating + 5),
+        xp: prev.xp + xpReward,
+        skillRating: prev.skillRating + Math.floor(xpReward / 10),
+        highestRating: Math.max(prev.highestRating, prev.skillRating + Math.floor(xpReward / 10)),
       }));
-      setTimeout(() => setCelebration(null), 2000);
+      if (isCorrect) {
+        setTimeout(() => setCelebration(null), 2000);
+      }
     }
-    
+
     // Continue with move processing
     finishPredictionFlow();
   };
@@ -507,13 +981,40 @@ function App() {
     finishPredictionFlow();
   };
 
+  // Memoize prediction hover handler to prevent infinite re-renders
+  const handlePredictionHover = useCallback((from: string | null, to: string | null) => {
+    setPredictionHover({ from, to });
+  }, []);
+
   const finishPredictionFlow = () => {
     setShowPrediction(false);
     
-    if (pendingResponse && turnPackage) {
-      const choice = turnPackage.choices.find(c => c.id === selectedChoice);
-      if (choice) {
-        processMoveResponse(pendingResponse, choice, turnPackage);
+    if (pendingResponse) {
+      // For guided mode, we have a choice from turnPackage
+      if (turnPackage && selectedChoice) {
+        const choice = turnPackage.choices.find(c => c.id === selectedChoice);
+        if (choice) {
+          processMoveResponse(pendingResponse, choice, turnPackage);
+        }
+      } else if (pendingResponse.nextTurn) {
+        // For free play mode or when no choice available, just update turn package
+        // This ensures the opponent's move is shown even if user skipped prediction
+        setTurnPackage(pendingResponse.nextTurn);
+        setFeedback(pendingResponse.feedback);
+        
+        // Update move history
+        if (pendingResponse.feedback.aiMove) {
+          const newMoveNum = Math.ceil(moveHistory.length / 2) + 1;
+          setMoveHistory(prev => {
+            const updated = [...prev];
+            if (updated.length === 0 || updated[updated.length - 1].black) {
+              updated.push({ moveNumber: newMoveNum, white: pendingResponse.feedback.aiMove?.moveSan });
+            } else {
+              updated[updated.length - 1].black = pendingResponse.feedback.aiMove?.moveSan;
+            }
+            return updated;
+          });
+        }
       }
     }
     
@@ -782,8 +1283,16 @@ function App() {
     );
   }
 
-  // Get master info for prediction
-  const getAiMasterInfo = () => {
+  // Get opponent info for prediction
+  const getOpponentInfo = () => {
+    if (opponentType === 'human-like') {
+      return { 
+        styleId: 'capablanca' as const, 
+        name: `~${maiaOpponentRating} Player`,
+        isHuman: true,
+      };
+    }
+    
     const styleId = pendingResponse?.feedback?.aiMove?.styleId || 'fischer';
     const names: Record<string, string> = {
       tal: 'Tal',
@@ -791,19 +1300,11 @@ function App() {
       capablanca: 'Capablanca',
       karpov: 'Karpov',
     };
-    return { styleId, name: names[styleId] || 'The Master' };
+    return { styleId, name: names[styleId] || 'The Master', isHuman: false };
   };
 
-  // Handler for game end screen actions
-  const handleGameEndTryAgain = useCallback(() => {
-    setGameEndState(null);
-    initializeGame();
-  }, [initializeGame]);
-  
-  const handleGameEndReturnToMap = useCallback(() => {
-    setGameEndState(null);
-    setShowCastleMap(true);
-  }, []);
+  // NOTE: These handlers moved to top-level hooks section to avoid
+  // being called after early returns (which causes React error #300)
 
   return (
     <div className="app castle-theme">
@@ -856,6 +1357,14 @@ function App() {
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         onSettingsChange={(settings) => setTone(settings.tone)}
+        opponentType={opponentType}
+        onOpponentTypeChange={setOpponentType}
+        maiaRating={maiaOpponentRating}
+        onMaiaRatingChange={setMaiaOpponentRating}
+        playMode={playMode}
+        onPlayModeChange={setPlayMode}
+        playerColor={playerColor}
+        onPlayerColorChange={setPlayerColor}
       />
       
       {/* Castle Map Modal */}
@@ -892,24 +1401,66 @@ function App() {
         {/* Left: Game area */}
         <div className="game-area">
           {/* Chess board with evaluation bar and BoardFrame */}
-          <div className="board-container">
-            <div className="eval-bar-container">
-              <div 
-                className="eval-bar-white" 
-                style={{ 
-                  height: `${50 + (feedback?.evalAfter || 0) / 10}%` 
-                }} 
-              />
+          {/* Game Mode Controls - Always Visible */}
+          <div className="game-mode-controls">
+            <div className="mode-toggle-group">
+              <span className="mode-label">Play:</span>
+              <button
+                className={`mode-btn ${playMode === 'guided' ? 'active' : ''}`}
+                onClick={() => setPlayMode('guided')}
+                title="Choose from master suggestions"
+              >
+                📚 Guided
+              </button>
+              <button
+                className={`mode-btn ${playMode === 'free' ? 'active' : ''}`}
+                onClick={() => setPlayMode('free')}
+                title="Drag pieces manually"
+              >
+                ♟️ Free
+              </button>
             </div>
             
+            <div className="mode-toggle-group">
+              <span className="mode-label">Color:</span>
+              <button
+                className={`mode-btn color-mode ${playerColor === 'white' ? 'active' : ''}`}
+                onClick={() => setPlayerColor('white')}
+                title="Play as White"
+              >
+                ♔ White
+              </button>
+              <button
+                className={`mode-btn color-mode ${playerColor === 'black' ? 'active' : ''}`}
+                onClick={() => setPlayerColor('black')}
+                title="Play as Black"
+              >
+                ♚ Black
+              </button>
+            </div>
+          </div>
+
+          <div className="board-container">
+            <div className="eval-bar-container">
+              <div
+                className="eval-bar-white"
+                style={{
+                  height: `${50 + (feedback?.evalAfter || 0) / 10}%`
+                }}
+              />
+            </div>
+
             <ChessBoard
-              fen={showPrediction && fenBeforeAiMove 
-                ? fenBeforeAiMove 
+              fen={showPrediction && fenBeforeAiMove
+                ? fenBeforeAiMove
                 : (turnPackage?.fen || 'start')}
-              choices={showPrediction ? undefined : turnPackage?.choices}
+              choices={showPrediction ? undefined : (playMode === 'guided' ? turnPackage?.choices : undefined)}
               selectedChoice={showPrediction ? null : selectedChoice}
               hoveredChoice={showPrediction ? null : hoveredChoice}
               predictionHover={showPrediction ? predictionHover : undefined}
+              freePlayMode={playMode === 'free'}
+              onMove={handleFreeMove}
+              orientation={playerColor}
             />
           </div>
 
@@ -921,9 +1472,11 @@ function App() {
                 onPredictionSubmit={handlePredictionSubmit}
                 onSkip={handlePredictionSkip}
                 timeLimit={15}
-                masterStyle={getAiMasterInfo().styleId}
-                masterName={getAiMasterInfo().name}
-                onHoverMove={(from, to) => setPredictionHover({ from, to })}
+                masterStyle={getOpponentInfo().styleId}
+                masterName={getOpponentInfo().name}
+                onHoverMove={handlePredictionHover}
+                isHumanLike={opponentType === 'human-like'}
+                targetRating={maiaOpponentRating}
               />
               {loading && (
                 <div className="prediction-loading">
@@ -934,26 +1487,112 @@ function App() {
             </div>
           )}
 
-          {/* Prediction Result */}
+          {/* Prediction Result with Probability-Based Scoring */}
           {predictionResult && !showPrediction && (
             <div className={`prediction-result animate-fade-in ${predictionResult.correct ? 'correct' : 'incorrect'}`}>
               <div className="prediction-result-header">
-                <span className="result-icon">{predictionResult.correct ? '🎯' : '❌'}</span>
+                <span className="result-icon">
+                  {predictionResult.correct ? (
+                    <PixelIcon name="target" size="small" className="pixel-icon--green" />
+                  ) : (
+                    <PixelIcon name="cross" size="small" className="pixel-icon--red" />
+                  )}
+                </span>
                 <span className="result-text">
-                  {predictionResult.correct 
-                    ? 'Perfect prediction! +50 XP' 
-                    : `You predicted ${predictionResult.predicted.slice(2,4)}, but ${getAiMasterInfo().name} played ${predictionResult.actual}`}
+                  {predictionResult.correct
+                    ? `Correct! +${predictionResult.totalPoints || 50} XP`
+                    : `${getOpponentInfo().name} played ${predictionResult.actual}`}
                 </span>
               </div>
+              
+              {/* Show probability breakdown for human-like opponent */}
+              {opponentType === 'human-like' && predictionResult.actualProbability !== undefined && (
+                <div className="prediction-probability-breakdown">
+                  <div className="prob-item">
+                    <span className="prob-label">Actual move:</span>
+                    <span className="prob-value">{(predictionResult.actualProbability * 100).toFixed(0)}% likely</span>
+                  </div>
+                  {!predictionResult.correct && predictionResult.pickProbability !== undefined && (
+                    <div className="prob-item">
+                      <span className="prob-label">Your pick:</span>
+                      <span className="prob-value">{(predictionResult.pickProbability * 100).toFixed(0)}% likely</span>
+                    </div>
+                  )}
+                  {predictionResult.totalPoints !== undefined && predictionResult.totalPoints > 0 && (
+                    <div className="prob-item points">
+                      <span className="prob-label">Points:</span>
+                      <span className="prob-value">
+                        {predictionResult.basePoints || 0} base 
+                        {(predictionResult.probabilityBonus || 0) > 0 && 
+                          ` + ${predictionResult.probabilityBonus} bonus`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
               <div className="prediction-stats-mini">
-                <span>Prediction streak: {predictionStats.streak} 🔥</span>
+                <span>Streak: {predictionStats.streak} 🔥</span>
                 <span>Accuracy: {predictionStats.total > 0 ? Math.round((predictionStats.correct / predictionStats.total) * 100) : 0}%</span>
               </div>
             </div>
           )}
 
-          {/* Move choices - hide during prediction */}
-          {turnPackage && !showPrediction && (
+          {/* Free play mode indicator */}
+          {turnPackage && !showPrediction && playMode === 'free' && (() => {
+            const isPlayerTurn = playerColor === 'white' 
+              ? turnPackage.sideToMove === 'w'
+              : turnPackage.sideToMove === 'b';
+            return isPlayerTurn;
+          })() && (
+            <div className="free-play-indicator animate-fade-in-up">
+              <div className="free-play-content">
+                <span className="free-play-icon">🖱️</span>
+                <div className="free-play-text">
+                  <h3>Free Play Active</h3>
+                  <p>
+                    <strong>Click and drag</strong> any of your pieces to move.
+                    {playerColor === 'white' ? ' You play White (bottom).' : ' You play Black (top).'}
+                  </p>
+                </div>
+              </div>
+              {loading && (
+                <div className="free-play-loading">
+                  <span className="loading-dot">●</span>
+                  Opponent is thinking...
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Waiting for opponent indicator */}
+          {turnPackage && !showPrediction && (() => {
+            const isPlayerTurn = playerColor === 'white' 
+              ? turnPackage.sideToMove === 'w'
+              : turnPackage.sideToMove === 'b';
+            return !isPlayerTurn;
+          })() && (
+            <div className="waiting-for-opponent animate-fade-in-up">
+              <div className="waiting-content">
+                <span className="waiting-icon">⏳</span>
+                <div className="waiting-text">
+                  <h3>Waiting for Opponent</h3>
+                  <p>
+                    {turnPackage.sideToMove === 'w' ? 'White' : 'Black'} is thinking...
+                    {loading && ' (Processing move...)'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Move choices - only show in guided mode, hide during prediction, and only when it's player's turn */}
+          {turnPackage && !showPrediction && playMode === 'guided' && (() => {
+            const isPlayerTurn = playerColor === 'white' 
+              ? turnPackage.sideToMove === 'w'
+              : turnPackage.sideToMove === 'b';
+            return isPlayerTurn;
+          })() && (
             <div className="choices-section animate-fade-in-up">
               <h2 className="section-title">
                 <span className="title-icon">♟️</span>
@@ -1018,8 +1657,8 @@ function App() {
                 typewriterSpeed={tone === 'ruthless' ? 20 : tone === 'whimsical' ? 40 : 30}
                 showPortrait={true}
                 onComplete={() => {
-                  // Auto-hide after 5 seconds
-                  setTimeout(hideNarration, 5000);
+                  // Auto-hide after 15 seconds (increased for readability)
+                  setTimeout(hideNarration, 15000);
                 }}
               />
             </div>
@@ -1041,7 +1680,7 @@ function App() {
           onClick={() => setShowCastleMap(true)}
           title="Castle Map"
         >
-          🏰
+          <PixelIcon name="castle" size="small" />
         </button>
         <button 
           className="castle-action-btn"

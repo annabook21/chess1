@@ -12,6 +12,7 @@ import {
   MoveQuality,
   GamePhase,
 } from '@master-academy/contracts';
+import { PixelIcon } from '../ui/castle/PixelIcon';
 import './WeaknessTracker.css';
 
 // Define tags locally to avoid ESM/CJS compatibility issues
@@ -164,7 +165,7 @@ function analyzeWeaknesses(moves: MoveRecord[]): WeaknessProfile {
       weaknesses.push({
         id: tactic,
         name: formatConceptName(tactic),
-        emoji: getTacticEmoji(tactic),
+        emoji: getTacticIcon(tactic) as any, // Type assertion: emoji can be ReactNode in UI
         description: getTacticDescription(tactic),
         occurrences: conceptData.total,
         missRate: conceptData.total > 0 
@@ -194,7 +195,7 @@ function analyzeWeaknesses(moves: MoveRecord[]): WeaknessProfile {
         weaknesses.push({
           id: strategy,
           name: formatConceptName(strategy),
-          emoji: getStrategyEmoji(strategy),
+          emoji: getStrategyIcon(strategy) as any, // Type assertion: emoji can be ReactNode in UI
           description: getStrategyDescription(strategy),
           occurrences: conceptData.total,
           missRate: 100 - accuracy,
@@ -226,35 +227,35 @@ function formatConceptName(concept: string): string {
     .join(' ');
 }
 
-function getTacticEmoji(tactic: string): string {
-  const emojis: Record<string, string> = {
-    fork: '🍴',
-    pin: '📌',
-    skewer: '🗡️',
-    deflection: '↩️',
-    discovered_attack: '👁️',
-    double_attack: '⚔️',
-    removing_defender: '🎯',
-    back_rank: '🏰',
-    windmill: '🌀',
+function getTacticIcon(tactic: string): React.ReactNode {
+  const icons: Record<string, React.ReactNode> = {
+    fork: <PixelIcon name="sword" size="small" />,
+    pin: <PixelIcon name="target" size="small" />,
+    skewer: <PixelIcon name="sword" size="small" />,
+    deflection: <PixelIcon name="bolt" size="small" />,
+    discovered_attack: <PixelIcon name="eye" size="small" />,
+    double_attack: <PixelIcon name="sword" size="small" />,
+    removing_defender: <PixelIcon name="target" size="small" />,
+    back_rank: <PixelIcon name="castle" size="small" />,
+    windmill: <PixelIcon name="sparkle" size="small" />,
   };
-  return emojis[tactic] || '♟️';
+  return icons[tactic] || <PixelIcon name="ghost" size="small" />;
 }
 
-function getStrategyEmoji(strategy: string): string {
-  const emojis: Record<string, string> = {
-    development: '🚀',
-    center_control: '🎯',
-    open_file: '📂',
-    outpost: '🏔️',
-    pawn_break: '💥',
-    king_safety: '🛡️',
-    piece_activity: '⚡',
-    weak_square: '🕳️',
-    pawn_structure: '🧱',
-    improve_worst_piece: '📈',
+function getStrategyIcon(strategy: string): React.ReactNode {
+  const icons: Record<string, React.ReactNode> = {
+    development: <PixelIcon name="arrow-up" size="small" />,
+    center_control: <PixelIcon name="target" size="small" />,
+    open_file: <PixelIcon name="file" size="small" />,
+    outpost: <PixelIcon name="mountain" size="small" />,
+    pawn_break: <PixelIcon name="explosion" size="small" />,
+    king_safety: <PixelIcon name="shield" size="small" />,
+    piece_activity: <PixelIcon name="bolt" size="small" />,
+    weak_square: <PixelIcon name="hole" size="small" />,
+    pawn_structure: <PixelIcon name="brick" size="small" />,
+    improve_worst_piece: <PixelIcon name="arrow-up" size="small" />,
   };
-  return emojis[strategy] || '📊';
+  return icons[strategy] || <PixelIcon name="chart" size="small" />;
 }
 
 function getTacticDescription(tactic: string): string {
@@ -397,7 +398,7 @@ export const WeaknessTracker: React.FC<WeaknessTrackerProps> = ({ isOpen, onClos
             className={`wt-tab ${activeTab === 'phases' ? 'active' : ''}`}
             onClick={() => setActiveTab('phases')}
           >
-            📈 By Phase
+            <PixelIcon name="chart" size="small" /> By Phase
           </button>
           <button 
             className={`wt-tab ${activeTab === 'history' ? 'active' : ''}`}
@@ -516,7 +517,17 @@ export const WeaknessTracker: React.FC<WeaknessTrackerProps> = ({ isOpen, onClos
                           <span className="wt-weakness-emoji">{weakness.emoji}</span>
                           <span className="wt-weakness-name">{weakness.name}</span>
                           <span className={`wt-weakness-trend ${weakness.trend}`}>
-                            {weakness.trend === 'improving' ? '📈' : weakness.trend === 'declining' ? '📉' : '➡️'}
+                            {weakness.trend === 'improving' ? (
+                              <PixelIcon name="arrow-up" size="small" className="pixel-icon--green" />
+                            ) : weakness.trend === 'declining' ? (
+                              <span style={{ transform: 'rotate(180deg)', display: 'inline-block' }}>
+                                <PixelIcon name="arrow-up" size="small" className="pixel-icon--red" />
+                              </span>
+                            ) : (
+                              <span style={{ transform: 'rotate(90deg)', display: 'inline-block' }}>
+                                <PixelIcon name="bolt" size="small" className="pixel-icon--muted" />
+                              </span>
+                            )}
                           </span>
                         </div>
                         <p className="wt-weakness-desc">{weakness.description}</p>
@@ -547,7 +558,7 @@ export const WeaknessTracker: React.FC<WeaknessTrackerProps> = ({ isOpen, onClos
           
           {activeTab === 'phases' && (
             <div className="wt-phases">
-              <h3>📈 Accuracy by Game Phase</h3>
+              <h3><PixelIcon name="chart" size="small" /> Accuracy by Game Phase</h3>
               <div className="wt-phase-cards">
                 {(['opening', 'middlegame', 'endgame'] as GamePhase[]).map(phase => {
                   const data = profile.phaseAccuracy[phase];

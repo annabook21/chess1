@@ -74,6 +74,10 @@ export const SpiritWhisper: React.FC<SpiritWhisperProps> = ({
     >
       {/* Stone frame border */}
       <div className="spirit-whisper__frame">
+        {/* Corner decorations */}
+        <div className="spirit-whisper__corner-bl" />
+        <div className="spirit-whisper__corner-br" />
+        
         {/* Spirit portrait with mood expressions */}
         {showPortrait && (
           <SpiritPortrait 

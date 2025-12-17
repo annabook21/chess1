@@ -4,9 +4,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { PixelIcon } from './PixelIcon';
 import './SettingsPanel.css';
 
 export type NarrationTone = 'whimsical' | 'gothic' | 'ruthless';
+export type OpponentType = 'ai-master' | 'human-like';
+export type MaiaRating = 1100 | 1200 | 1300 | 1400 | 1500 | 1600 | 1700 | 1800 | 1900;
+export type PlayMode = 'guided' | 'free';
+export type PlayerColor = 'white' | 'black';
 
 export interface CastleSettings {
   tone: NarrationTone;
@@ -38,12 +43,30 @@ interface SettingsPanelProps {
   isOpen: boolean;
   onClose: () => void;
   onSettingsChange?: (settings: CastleSettings) => void;
+  // Opponent settings
+  opponentType?: OpponentType;
+  onOpponentTypeChange?: (type: OpponentType) => void;
+  maiaRating?: MaiaRating;
+  onMaiaRatingChange?: (rating: MaiaRating) => void;
+  // Play mode settings
+  playMode?: PlayMode;
+  onPlayModeChange?: (mode: PlayMode) => void;
+  playerColor?: PlayerColor;
+  onPlayerColorChange?: (color: PlayerColor) => void;
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   isOpen,
   onClose,
   onSettingsChange,
+  opponentType = 'ai-master',
+  onOpponentTypeChange,
+  maiaRating = 1500,
+  onMaiaRatingChange,
+  playMode = 'guided',
+  onPlayModeChange,
+  playerColor = 'white',
+  onPlayerColorChange,
 }) => {
   const [settings, setSettings] = useState<CastleSettings>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -87,8 +110,114 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       <div className="settings-panel" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="settings-header">
-          <h2 className="settings-title">⚙️ Castle Settings</h2>
+          <h2 className="settings-title"><PixelIcon name="gear" size="medium" /> Castle Settings</h2>
           <button className="settings-close" onClick={onClose}>✕</button>
+        </div>
+
+        {/* Play Mode */}
+        <div className="settings-section">
+          <h3 className="settings-section-title">🎯 Play Mode</h3>
+          <p className="settings-section-desc">
+            How do you want to play?
+          </p>
+          
+          <div className="play-mode-selector">
+            <button
+              className={`play-mode-btn ${playMode === 'guided' ? 'active' : ''}`}
+              onClick={() => onPlayModeChange?.('guided')}
+            >
+              <span className="play-mode-icon">📚</span>
+              <span className="play-mode-label">Guided</span>
+              <span className="play-mode-desc">Choose from master suggestions</span>
+            </button>
+            
+            <button
+              className={`play-mode-btn ${playMode === 'free' ? 'active' : ''}`}
+              onClick={() => onPlayModeChange?.('free')}
+            >
+              <span className="play-mode-icon">♟️</span>
+              <span className="play-mode-label">Free Play</span>
+              <span className="play-mode-desc">Move pieces manually</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Player Color */}
+        <div className="settings-section">
+          <h3 className="settings-section-title">⚫⚪ Your Color</h3>
+          <p className="settings-section-desc">
+            Play as White or Black
+          </p>
+          
+          <div className="color-selector">
+            <button
+              className={`color-btn white ${playerColor === 'white' ? 'active' : ''}`}
+              onClick={() => onPlayerColorChange?.('white')}
+            >
+              <span className="color-piece">♔</span>
+              <span className="color-label">White</span>
+              <span className="color-desc">Move first</span>
+            </button>
+            
+            <button
+              className={`color-btn black ${playerColor === 'black' ? 'active' : ''}`}
+              onClick={() => onPlayerColorChange?.('black')}
+            >
+              <span className="color-piece">♚</span>
+              <span className="color-label">Black</span>
+              <span className="color-desc">Respond to opponent</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Opponent Type */}
+        <div className="settings-section">
+          <h3 className="settings-section-title">🎮 Opponent Type</h3>
+          <p className="settings-section-desc">
+            Choose your adversary
+          </p>
+          
+          <div className="opponent-selector">
+            <button
+              className={`opponent-btn ${opponentType === 'ai-master' ? 'active' : ''}`}
+              onClick={() => onOpponentTypeChange?.('ai-master')}
+            >
+              <span className="opponent-icon">🤖</span>
+              <span className="opponent-label">AI Master</span>
+              <span className="opponent-desc">Grandmaster-style moves</span>
+            </button>
+            
+            <button
+              className={`opponent-btn ${opponentType === 'human-like' ? 'active' : ''}`}
+              onClick={() => onOpponentTypeChange?.('human-like')}
+            >
+              <span className="opponent-icon">🧠</span>
+              <span className="opponent-label">Human-like</span>
+              <span className="opponent-desc">Realistic player moves</span>
+            </button>
+          </div>
+
+          {opponentType === 'human-like' && (
+            <div className="maia-rating-selector">
+              <label className="maia-rating-label">
+                Opponent Rating: <strong>~{maiaRating}</strong>
+              </label>
+              <select
+                value={maiaRating}
+                onChange={e => onMaiaRatingChange?.(Number(e.target.value) as MaiaRating)}
+                className="maia-rating-select"
+              >
+                <option value={1100}>1100 (Beginner)</option>
+                <option value={1300}>1300 (Intermediate)</option>
+                <option value={1500}>1500 (Advanced)</option>
+                <option value={1700}>1700 (Expert)</option>
+                <option value={1900}>1900 (Master)</option>
+              </select>
+              <p className="maia-info">
+                Predictions unlock when facing human-like opponents!
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Tone Slider */}
@@ -101,13 +230,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <div className="tone-slider">
             <div className="tone-labels">
               <span className={settings.tone === 'whimsical' ? 'active' : ''}>
-                ✨ Whimsical
+                <PixelIcon name="sparkle" size="small" /> Whimsical
               </span>
               <span className={settings.tone === 'gothic' ? 'active' : ''}>
-                🏰 Gothic
+                <PixelIcon name="castle" size="small" /> Gothic
               </span>
               <span className={settings.tone === 'ruthless' ? 'active' : ''}>
-                💀 Ruthless
+                <PixelIcon name="skull" size="small" /> Ruthless
               </span>
             </div>
             
@@ -118,9 +247,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   className={`tone-btn ${settings.tone === tone ? 'active' : ''}`}
                   onClick={() => updateTone(tone)}
                 >
-                  {tone === 'whimsical' && '✨'}
-                  {tone === 'gothic' && '🏰'}
-                  {tone === 'ruthless' && '💀'}
+                  {tone === 'whimsical' && <PixelIcon name="sparkle" size="small" />}
+                  {tone === 'gothic' && <PixelIcon name="castle" size="small" />}
+                  {tone === 'ruthless' && <PixelIcon name="skull" size="small" />}
                 </button>
               ))}
             </div>
@@ -187,7 +316,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 onChange={() => toggleEffect('pixelScale')}
               />
               <span className="toggle-label">
-                <span className="toggle-icon">🎮</span>
+                <span className="toggle-icon"><PixelIcon name="castle" size="small" /></span>
                 Pixel Scaling
               </span>
             </label>

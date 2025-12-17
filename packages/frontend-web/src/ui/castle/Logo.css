@@ -1,0 +1,81 @@
+/**
+ * Quest for Grandmaster Logo Styles
+ */
+
+.qfg-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.qfg-logo__dragon {
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.qfg-logo__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.qfg-logo__title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  font-weight: normal;
+  color: var(--castle-text, #e8e8e8);
+  margin: 0;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
+  letter-spacing: 1px;
+  line-height: 1.4;
+}
+
+.qfg-logo__subtitle {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--castle-text-muted, #8a8a9a);
+  margin: 0;
+  margin-top: 4px;
+}
+
+/* Size variants */
+.qfg-logo--small .qfg-logo__title {
+  font-size: 9px;
+}
+
+.qfg-logo--small .qfg-logo__subtitle {
+  font-size: 6px;
+}
+
+.qfg-logo--large .qfg-logo__title {
+  font-size: 16px;
+}
+
+.qfg-logo--large .qfg-logo__subtitle {
+  font-size: 8px;
+}
+
+/* Logomark (icon only) */
+.qfg-logomark {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  transition: transform 0.2s ease;
+}
+
+.qfg-logomark:hover {
+  transform: scale(1.1);
+}
+
+/* Animation for special occasions */
+@keyframes logoShimmer {
+  0%, 100% {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 2px 8px rgba(201, 162, 39, 0.5));
+  }
+}
+
+.qfg-logo--animated .qfg-logo__dragon {
+  animation: logoShimmer 3s ease-in-out infinite;
+}
+

@@ -8,6 +8,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Chess, Square } from 'chess.js';
 import { useMaiaPredictions, MovePrediction } from '../maia';
+import { PixelIcon } from '../ui/castle/PixelIcon';
 import './PredictOpponent.css';
 
 interface PredictOpponentProps {
@@ -20,6 +21,8 @@ interface PredictOpponentProps {
   onHoverMove?: (from: string | null, to: string | null) => void;
   /** Target rating for Maia predictions (1100-1900) */
   targetRating?: number;
+  /** Whether opponent is human-like (Maia) or AI Master */
+  isHumanLike?: boolean;
 }
 
 interface CandidateMove {
@@ -40,6 +43,7 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
   masterName,
   onHoverMove,
   targetRating = 1500,
+  isHumanLike = false,
 }) => {
   const [selectedMove, setSelectedMove] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(timeLimit);
@@ -106,23 +110,23 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
   }, [timeRemaining, onSkip]);
 
   // Notify parent of hovered move for board visualization
+  // Use useMemo to avoid unnecessary effect runs when candidateMoves array reference changes
+  const currentHoverMove = useMemo(() => {
+    if (hoveredMove) {
+      const move = candidateMoves.find(m => m.uci === hoveredMove);
+      return move ? { from: move.from, to: move.to } : null;
+    } else if (selectedMove) {
+      const move = candidateMoves.find(m => m.uci === selectedMove);
+      return move ? { from: move.from, to: move.to } : null;
+    }
+    return null;
+  }, [hoveredMove, selectedMove, candidateMoves]);
+
   useEffect(() => {
     if (onHoverMove) {
-      if (hoveredMove) {
-        const move = candidateMoves.find(m => m.uci === hoveredMove);
-        if (move) {
-          onHoverMove(move.from, move.to);
-        }
-      } else if (selectedMove) {
-        const move = candidateMoves.find(m => m.uci === selectedMove);
-        if (move) {
-          onHoverMove(move.from, move.to);
-        }
-      } else {
-        onHoverMove(null, null);
-      }
+      onHoverMove(currentHoverMove?.from || null, currentHoverMove?.to || null);
     }
-  }, [hoveredMove, selectedMove, candidateMoves, onHoverMove]);
+  }, [currentHoverMove, onHoverMove]);
 
   // Reset selection when FEN changes
   useEffect(() => {
@@ -140,13 +144,13 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
     onSkip();
   };
 
-  const getMasterEmoji = () => {
+  const getMasterIcon = () => {
     switch (masterStyle) {
-      case 'tal': return '⚔️';
-      case 'fischer': return '🏆';
-      case 'capablanca': return '👑';
-      case 'karpov': return '🎯';
-      default: return '♟️';
+      case 'tal': return <PixelIcon name="sword" size="small" />;
+      case 'fischer': return <PixelIcon name="trophy" size="small" />;
+      case 'capablanca': return <PixelIcon name="crown" size="small" />;
+      case 'karpov': return <PixelIcon name="target" size="small" />;
+      default: return <PixelIcon name="ghost" size="small" />;
     }
   };
 
@@ -202,18 +206,31 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
       </div>
 
       <div className="master-hint-v2">
-        <span className="master-emoji-v2">{getMasterEmoji()}</span>
+        <span className="master-emoji-v2">{getMasterIcon()}</span>
         <span className="hint-text">{getStyleHint()}</span>
       </div>
 
       {/* Maia status indicator */}
-      {maiaReady && (
+      {isHumanLike && (
         <div className="maia-status">
-          <span className="maia-badge">
-            🤖 Maia-{modelRating}
-          </span>
-          {inferenceTime > 0 && (
-            <span className="inference-time">{inferenceTime.toFixed(0)}ms</span>
+          {maiaReady ? (
+            <>
+              <span className="maia-badge" title="Neural network trained on millions of human games">
+                🧠 Maia Active
+              </span>
+              <span className="maia-rating-badge" title={`Predicting moves a ${modelRating}-rated player would make`}>
+                ~{modelRating} ELO
+              </span>
+              {maiaPredictions.length > 0 && (
+                <span className="maia-predictions-badge">
+                  {maiaPredictions.length} moves analyzed
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="maia-badge maia-loading-badge">
+              🧠 Loading Maia...
+            </span>
           )}
         </div>
       )}
@@ -228,14 +245,14 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
           color: '#ef4444',
           marginBottom: '12px'
         }}>
-          ⚠️ Neural network unavailable - using chess heuristics
+          ⚠️ Maia failed to load: {maiaError}. Check browser console for details.
         </div>
       )}
 
       {shouldShowLoading ? (
         <div className="maia-loading">
           <div className="loading-spinner"></div>
-          <span>Loading human-like predictions...</span>
+          <span>Analyzing human move patterns...</span>
         </div>
       ) : (
         <div className="move-options-v2">
@@ -260,8 +277,8 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
                 <div className="move-meta">
                   <span className="move-purpose">{move.explanation}</span>
                   {maiaReady && (
-                    <span className="move-probability">
-                      {formatProbability(move.probability)}
+                    <span className="move-probability" title="% of humans at this rating who play this move">
+                      {formatProbability(move.probability)} likely
                     </span>
                   )}
                 </div>

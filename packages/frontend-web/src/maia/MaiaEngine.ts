@@ -123,7 +123,30 @@ export class MaiaEngine {
         graphOptimizationLevel: 'all',
       };
 
-      this.session = await ort.InferenceSession.create(modelPath, options);
+      // Try loading directly from URL first (more reliable)
+      console.log(`[MaiaEngine] Attempting to load model from URL: ${modelPath}...`);
+      try {
+        this.session = await ort.InferenceSession.create(modelPath, options);
+      } catch (urlError) {
+        console.warn(`[MaiaEngine] URL loading failed, trying ArrayBuffer approach:`, urlError);
+        
+        // Fallback: Try ArrayBuffer approach
+        const response = await fetch(modelPath);
+        if (!response.ok) {
+          throw new Error(`Model file not found (${response.status}): ${modelPath}`);
+        }
+        
+        const modelData = await response.arrayBuffer();
+        console.log(`[MaiaEngine] Model fetched: ${(modelData.byteLength / (1024 * 1024)).toFixed(2)} MB`);
+        
+        // Verify ArrayBuffer is not empty
+        if (modelData.byteLength === 0) {
+          throw new Error('Model file is empty');
+        }
+        
+        console.log(`[MaiaEngine] Creating inference session from ArrayBuffer...`);
+        this.session = await ort.InferenceSession.create(modelData, options);
+      }
       this.currentRating = rating;
 
       const elapsed = performance.now() - startTime;
@@ -258,7 +281,10 @@ export class MaiaEngine {
    * Get available rating levels
    */
   static getAvailableRatings(): MaiaRating[] {
-    return [1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900];
+    // Only return ratings for models that are actually uploaded to S3
+    // Currently available: 1100, 1300, 1500, 1700, 1900
+    // Missing: 1200, 1400, 1600, 1800 (not uploaded yet)
+    return [1100, 1300, 1500, 1700, 1900];
   }
 
   /**

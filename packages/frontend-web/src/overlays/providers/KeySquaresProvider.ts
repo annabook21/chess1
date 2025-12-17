@@ -61,7 +61,7 @@ export const KeySquaresProvider: OverlayProvider = {
             if (isOutpost) {
               badges.push({
                 square,
-                text: '🏰',
+                text: 'CASTLE',
                 severity: 'success',
                 tooltip: 'Knight outpost - cannot be attacked by pawns',
               });

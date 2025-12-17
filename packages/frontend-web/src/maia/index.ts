@@ -101,5 +101,19 @@ export {
 export { inspectModel } from './debugModel';
 export { testEncoder } from './testEncoder';
 
+// ═══════════════════════════════════════════════════════════════════════════
+// SAMPLING & SCORING UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+
+export {
+  sampleMove,
+  brierScore,
+  logScore,
+  brierToPoints,
+  calculatePredictionReward,
+  getPredictionDifficulty,
+  TEMPERATURE_PRESETS,
+} from './sampling';
+
 
 

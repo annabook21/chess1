@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { PixelIcon, PixelIconName } from './PixelIcon';
 import './AchievementToast.css';
 
 interface Achievement {
@@ -22,21 +23,21 @@ interface AchievementToastProps {
   autoHideDuration?: number;
 }
 
-// Icon mapping
-const ICON_MAP: Record<string, string> = {
-  shield: '🛡️',
-  sword: '⚔️',
-  crown: '👑',
-  eye: '👁️',
-  flame: '🔥',
-  star: '⭐',
-  trophy: '🏆',
-  book: '📖',
-  key: '🗝️',
-  gem: '💎',
-  skull: '💀',
-  phoenix: '🔥',
-  default: '🎖️',
+// Map iconKey to PixelIcon names
+const ICON_MAP: Record<string, PixelIconName> = {
+  shield: 'shield',
+  sword: 'sword',
+  crown: 'crown',
+  eye: 'eye',
+  flame: 'flame',
+  star: 'star',
+  trophy: 'trophy',
+  gem: 'gem',
+  skull: 'skull',
+  phoenix: 'flame',
+  book: 'scroll',
+  key: 'star', // No key icon, use star
+  default: 'trophy',
 };
 
 // Rarity colors
@@ -90,7 +91,7 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({
       <div className="toast-content">
         {/* Icon */}
         <div className="toast-icon" style={{ color: rarityColor }}>
-          {icon}
+          <PixelIcon name={icon} size="large" />
         </div>
 
         {/* Text */}
@@ -109,7 +110,7 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({
           <p className="toast-flavor">{achievement.flavorText}</p>
           
           <div className="toast-reward">
-            <span className="xp-icon">✨</span>
+            <span className="xp-icon"><PixelIcon name="sparkle" size="small" /></span>
             <span className="xp-value">+{achievement.xpReward} XP</span>
           </div>
         </div>

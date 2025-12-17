@@ -5,6 +5,7 @@
 
 import type { OverlayProvider, OverlayFrame, OverlayContext, OverlayArrow, GhostPiece, SquareHighlight, SquareBadge } from '../types';
 import type { MoveChoiceWithPreview } from '@master-academy/contracts';
+import { Chess } from 'chess.js';
 
 export const HoverPreviewProvider: OverlayProvider = {
   id: 'hoverPreview',
@@ -33,6 +34,20 @@ export const HoverPreviewProvider: OverlayProvider = {
     
     const preview = hoveredChoice.pvPreview;
     
+    // Convert your move UCI to readable format
+    const yourMoveLabel = (() => {
+      try {
+        const chess = new Chess(context.fen);
+        const move = chess.move({
+          from: preview.yourMove.from,
+          to: preview.yourMove.to,
+        });
+        return move ? move.san : `${preview.yourMove.from}→${preview.yourMove.to}`;
+      } catch {
+        return `${preview.yourMove.from}→${preview.yourMove.to}`;
+      }
+    })();
+    
     // 1. Your move (green arrow)
     arrows.push({
       from: preview.yourMove.from,
@@ -40,7 +55,7 @@ export const HoverPreviewProvider: OverlayProvider = {
       color: 'rgba(34, 197, 94, 0.9)', // Green
       opacity: 0.9,
       style: 'solid',
-      label: 'You',
+      label: `You: ${yourMoveLabel}`,
     });
     
     // 2. Opponent's likely reply (red dashed arrow)
@@ -51,7 +66,7 @@ export const HoverPreviewProvider: OverlayProvider = {
         color: 'rgba(239, 68, 68, 0.7)', // Red
         opacity: 0.7,
         style: 'dashed',
-        label: preview.opponentReply.san,
+        label: `Opponent: ${preview.opponentReply.san}`,
       });
     }
     
@@ -63,7 +78,7 @@ export const HoverPreviewProvider: OverlayProvider = {
         color: 'rgba(59, 130, 246, 0.6)', // Blue
         opacity: 0.6,
         style: 'dashed',
-        label: preview.yourFollowUp.san,
+        label: `You: ${preview.yourFollowUp.san}`,
       });
     }
     

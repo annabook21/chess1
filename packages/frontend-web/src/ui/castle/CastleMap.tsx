@@ -5,6 +5,7 @@
  */
 
 import React, { useMemo } from 'react';
+import { PixelIcon } from './PixelIcon';
 import './CastleMap.css';
 import './PixelSprites.css';
 
@@ -13,7 +14,7 @@ interface Room {
   id: string;
   name: string;
   description: string;
-  icon: string;
+  icon: string | React.ReactNode;
   order: number;
   unlocked: boolean;
   completed?: boolean;
@@ -168,7 +169,7 @@ export const CastleMap: React.FC<CastleMapProps> = ({
   return (
     <div className="castle-map-container">
       <div className="castle-map-header">
-        <h2 className="castle-map-title">🏰 The Cursed Castle</h2>
+        <h2 className="castle-map-title"><PixelIcon name="castle" size="small" /> The Cursed Castle</h2>
         <span className="castle-map-rating">Guild Rank: {playerRating}</span>
       </div>
 
@@ -245,7 +246,7 @@ export const DEFAULT_ROOMS: Room[] = [
     id: 'courtyard',
     name: 'The Courtyard',
     description: 'Where all journeys begin. Learn the basics of piece movement and simple tactics.',
-    icon: '🏛️',
+    icon: <PixelIcon name="temple" size="small" />,
     order: 1,
     unlocked: true,
   },

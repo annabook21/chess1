@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { SpiritPortrait, SpiritMood } from './SpiritPortrait';
+import { PixelIcon } from './PixelIcon';
 import './GameEndScreens.css';
 
 interface GameEndScreenProps {
@@ -169,7 +170,7 @@ export const VictoryScreen: React.FC<GameEndScreenProps> = ({
             className="game-end-btn game-end-btn--secondary"
             onClick={onReturnToMap}
           >
-            🏰 Return to Castle
+            <PixelIcon name="castle" size="small" /> Return to Castle
           </button>
         </div>
       </div>
@@ -237,7 +238,7 @@ export const DrawScreen: React.FC<GameEndScreenProps> = ({
             className="game-end-btn game-end-btn--secondary"
             onClick={onReturnToMap}
           >
-            🏰 Return to Castle
+            <PixelIcon name="castle" size="small" /> Return to Castle
           </button>
         </div>
       </div>
