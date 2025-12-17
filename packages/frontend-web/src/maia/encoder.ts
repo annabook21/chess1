@@ -226,8 +226,18 @@ function fillPlane(result: Float32Array, offset: number, value: number): void {
 let _policyToUci: string[] | null = null;
 let _uciToPolicy: Map<string, number> | null = null;
 
+const FILES = 'abcdefgh';
+const RANKS = '12345678';
+
 /**
- * Generate the move mapping tables
+ * Generate the LC0 1858-format move mapping tables.
+ * 
+ * LC0 policy format (1858 indices):
+ * - 73 "move types" per square: 56 queen-like + 8 knight + 9 underpromotion
+ * - Only valid (on-board) moves are included, giving ~1858 total
+ * - Moves are from the perspective of the player to move
+ * 
+ * This encoding matches the standard Leela Chess Zero format.
  */
 function initMoveMappings(): void {
   if (_policyToUci !== null) return;
@@ -235,110 +245,83 @@ function initMoveMappings(): void {
   _policyToUci = [];
   _uciToPolicy = new Map();
   
-  const FILES = 'abcdefgh';
-  const RANKS = '12345678';
-  
-  // Queen-like moves: 8 directions × 7 distances
+  // Queen-like moves: 8 directions × 7 distances = 56 move types
+  // Order: N, NE, E, SE, S, SW, W, NW (standard LC0 order)
   const QUEEN_DIRS: [number, number][] = [
-    [0, 1], [0, -1], [1, 0], [-1, 0],   // Rook directions
-    [1, 1], [1, -1], [-1, 1], [-1, -1], // Bishop directions
+    [0, 1],   // N
+    [1, 1],   // NE
+    [1, 0],   // E
+    [1, -1],  // SE
+    [0, -1],  // S
+    [-1, -1], // SW
+    [-1, 0],  // W
+    [-1, 1],  // NW
   ];
   
-  // Knight moves
+  // Knight moves: 8 directions
   const KNIGHT_DIRS: [number, number][] = [
-    [-2, -1], [-2, 1], [-1, -2], [-1, 2],
-    [1, -2], [1, 2], [2, -1], [2, 1],
+    [1, 2], [2, 1], [2, -1], [1, -2],
+    [-1, -2], [-2, -1], [-2, 1], [-1, 2],
   ];
   
-  let idx = 0;
+  // Underpromotion directions (relative file change)
+  const PROMO_DIRS = [-1, 0, 1]; // Capture left, push, capture right
+  const PROMO_PIECES = ['n', 'b', 'r']; // Knight, bishop, rook (no queen - that's default)
   
-  // For each source square (a1 to h8)
-  for (let fromFile = 0; fromFile < 8; fromFile++) {
-    for (let fromRank = 0; fromRank < 8; fromRank++) {
+  // Build the mapping: iterate through all 64 squares and 73 move types
+  // This matches the LC0 policy vector layout
+  for (let fromRank = 0; fromRank < 8; fromRank++) {
+    for (let fromFile = 0; fromFile < 8; fromFile++) {
       const from = FILES[fromFile] + RANKS[fromRank];
       
-      // Queen-type moves (ordered by direction, then distance)
+      // Move types 0-55: Queen-like moves (8 directions × 7 distances)
       for (const [df, dr] of QUEEN_DIRS) {
         for (let dist = 1; dist <= 7; dist++) {
           const toFile = fromFile + df * dist;
           const toRank = fromRank + dr * dist;
           
+          // Only add if on board
           if (toFile >= 0 && toFile < 8 && toRank >= 0 && toRank < 8) {
             const uci = from + FILES[toFile] + RANKS[toRank];
+            const idx = _policyToUci.length;
             _policyToUci.push(uci);
             _uciToPolicy.set(uci, idx);
           }
-          idx++;
         }
       }
       
-      // Knight moves
+      // Move types 56-63: Knight moves
       for (const [df, dr] of KNIGHT_DIRS) {
         const toFile = fromFile + df;
         const toRank = fromRank + dr;
         
         if (toFile >= 0 && toFile < 8 && toRank >= 0 && toRank < 8) {
           const uci = from + FILES[toFile] + RANKS[toRank];
+          const idx = _policyToUci.length;
           _policyToUci.push(uci);
           _uciToPolicy.set(uci, idx);
         }
-        idx++;
+      }
+      
+      // Move types 64-72: Underpromotions (only from 7th rank for white perspective)
+      // In LC0, promotions are encoded from mover's perspective (always 7th rank)
+      if (fromRank === 6) { // 7th rank (0-indexed: rank 6 is "7" in notation)
+        for (const dFile of PROMO_DIRS) {
+          const toFile = fromFile + dFile;
+          if (toFile >= 0 && toFile < 8) {
+            for (const promo of PROMO_PIECES) {
+              const uci = from + FILES[toFile] + '8' + promo;
+              const idx = _policyToUci.length;
+              _policyToUci.push(uci);
+              _uciToPolicy.set(uci, idx);
+            }
+          }
+        }
       }
     }
   }
   
-  // Underpromotions (pawn reaches 8th/1st rank, promotes to n/b/r)
-  // Queen promotions are implicit in the queen-type moves
-  const PROMO_PIECES = ['n', 'b', 'r'];
-  
-  for (let file = 0; file < 8; file++) {
-    // White promotions: rank 7 → 8
-    for (const promo of PROMO_PIECES) {
-      // Straight push
-      const uci = FILES[file] + '7' + FILES[file] + '8' + promo;
-      _policyToUci.push(uci);
-      _uciToPolicy.set(uci, idx++);
-    }
-    // Capture left
-    if (file > 0) {
-      for (const promo of PROMO_PIECES) {
-        const uci = FILES[file] + '7' + FILES[file - 1] + '8' + promo;
-        _policyToUci.push(uci);
-        _uciToPolicy.set(uci, idx++);
-      }
-    }
-    // Capture right
-    if (file < 7) {
-      for (const promo of PROMO_PIECES) {
-        const uci = FILES[file] + '7' + FILES[file + 1] + '8' + promo;
-        _policyToUci.push(uci);
-        _uciToPolicy.set(uci, idx++);
-      }
-    }
-    
-    // Black promotions: rank 2 → 1
-    for (const promo of PROMO_PIECES) {
-      const uci = FILES[file] + '2' + FILES[file] + '1' + promo;
-      _policyToUci.push(uci);
-      _uciToPolicy.set(uci, idx++);
-    }
-    if (file > 0) {
-      for (const promo of PROMO_PIECES) {
-        const uci = FILES[file] + '2' + FILES[file - 1] + '1' + promo;
-        _policyToUci.push(uci);
-        _uciToPolicy.set(uci, idx++);
-      }
-    }
-    if (file < 7) {
-      for (const promo of PROMO_PIECES) {
-        const uci = FILES[file] + '2' + FILES[file + 1] + '1' + promo;
-        _policyToUci.push(uci);
-        _uciToPolicy.set(uci, idx++);
-      }
-    }
-  }
-  
-  console.log(`[Maia] Initialized ${_policyToUci.length} move mappings`);
+  console.log(`[Maia] Initialized ${_policyToUci.length} move mappings (expected ~1858)`);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
