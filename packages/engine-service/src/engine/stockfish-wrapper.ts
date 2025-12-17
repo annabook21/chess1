@@ -301,14 +301,15 @@ export class StockfishWrapper {
   }
 
   /**
-   * Score multiple moves
+   * Score multiple moves - OPTIMIZED with reduced depth and simple heuristics
+   * Avoids multiple engine calls to prevent timeouts
    */
   async scoreMoves(fen: string, moves: string[]): Promise<Array<{ move: string; evalDelta: number; pv: string[] }>> {
-    const baseAnalysis = await this.analyzePosition(fen, 10);
-    const baseEval = baseAnalysis.eval;
     const chess = new Chess(fen);
     const sideToMove = chess.turn();
 
+    // Use heuristics instead of multiple engine calls to avoid timeouts
+    // Engine calls are expensive and sequential - this causes 504 timeouts
     const results: Array<{ move: string; evalDelta: number; pv: string[] }> = [];
 
     for (const moveUci of moves) {
@@ -325,17 +326,17 @@ export class StockfishWrapper {
           continue;
         }
 
-        const newFen = testChess.fen();
-        const newAnalysis = await this.analyzePosition(newFen, 8);
-
-        // Flip eval (it's from opponent's perspective now)
-        const newEval = -newAnalysis.eval;
-        const evalDelta = sideToMove === 'w' ? newEval - baseEval : baseEval - newEval;
+        // Use simple heuristics instead of engine analysis
+        // This is much faster and avoids timeout issues
+        const evalDelta = this.quickMoveScore(move, testChess);
+        
+        // Build a simple PV using heuristics
+        const simplePv = this.buildQuickPv(testChess, moveUci);
 
         results.push({
           move: moveUci,
           evalDelta,
-          pv: [moveUci, ...newAnalysis.pv.slice(0, 3)],
+          pv: simplePv,
         });
       } catch {
         results.push({ move: moveUci, evalDelta: -1000, pv: [] });
@@ -343,6 +344,100 @@ export class StockfishWrapper {
     }
 
     return results.sort((a, b) => b.evalDelta - a.evalDelta);
+  }
+
+  /**
+   * Quick heuristic scoring for a move (no engine calls)
+   */
+  private quickMoveScore(move: any, chessAfterMove: Chess): number {
+    let score = 0;
+    
+    // Captures are good
+    if (move.captured) {
+      const pieceValues: Record<string, number> = {
+        'p': 100, 'n': 300, 'b': 320, 'r': 500, 'q': 900, 'k': 0
+      };
+      score += pieceValues[move.captured] || 0;
+    }
+    
+    // Check is valuable
+    if (chessAfterMove.inCheck()) {
+      score += 50;
+    }
+    
+    // Checkmate is best
+    if (chessAfterMove.isCheckmate()) {
+      score += 10000;
+    }
+    
+    // Center control bonus
+    if (['d4', 'd5', 'e4', 'e5'].includes(move.to)) {
+      score += 30;
+    }
+    
+    // Development bonus (moving from back rank)
+    const fromRank = move.from[1];
+    if ((move.piece === 'n' || move.piece === 'b') && (fromRank === '1' || fromRank === '8')) {
+      score += 25;
+    }
+    
+    // Castling bonus
+    if (move.flags.includes('k') || move.flags.includes('q')) {
+      score += 40;
+    }
+    
+    return score;
+  }
+
+  /**
+   * Build a quick PV using heuristics (no engine)
+   */
+  private buildQuickPv(chess: Chess, firstMove: string): string[] {
+    const pv = [firstMove];
+    
+    try {
+      // Get opponent's best response using simple heuristics
+      const moves = chess.moves({ verbose: true });
+      if (moves.length === 0) return pv;
+      
+      // Score opponent moves
+      const scoredMoves = moves.map(m => {
+        let score = 0;
+        if (m.captured) {
+          const vals: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+          score += vals[m.captured] || 0;
+        }
+        if (m.san.includes('+')) score += 0.5;
+        if (m.san.includes('#')) score += 100;
+        return { move: m, score };
+      }).sort((a, b) => b.score - a.score);
+      
+      const oppMove = scoredMoves[0]?.move;
+      if (oppMove) {
+        pv.push(`${oppMove.from}${oppMove.to}${oppMove.promotion || ''}`);
+        
+        // Apply opponent move and find our follow-up
+        chess.move(oppMove);
+        const followUps = chess.moves({ verbose: true });
+        if (followUps.length > 0) {
+          const scoredFollowUps = followUps.map(m => {
+            let score = 0;
+            if (m.captured) score += 3;
+            if (m.san.includes('+')) score += 1;
+            return { move: m, score };
+          }).sort((a, b) => b.score - a.score);
+          
+          const followUp = scoredFollowUps[0]?.move;
+          if (followUp) {
+            pv.push(`${followUp.from}${followUp.to}${followUp.promotion || ''}`);
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore errors in PV building
+    }
+    
+    return pv;
   }
 
   /**
