@@ -94,6 +94,8 @@ function App() {
   const [feedback, setFeedback] = useState<MoveResponse['feedback'] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Illegal move notification
+  const [illegalMoveMessage, setIllegalMoveMessage] = useState<string | null>(null);
   
   // Move history
   const [moveHistory, setMoveHistory] = useState<Array<{
@@ -522,6 +524,13 @@ function App() {
     setSelectedChoice(choiceId);
   };
 
+  // Helper to show illegal move notification
+  const showIllegalMoveNotification = (message: string) => {
+    setIllegalMoveMessage(message);
+    // Auto-dismiss after 2.5 seconds
+    setTimeout(() => setIllegalMoveMessage(null), 2500);
+  };
+
   // Handle free play move (drag and drop)
   const handleFreeMove = (from: string, to: string, promotion?: string): boolean => {
     if (!gameId || !turnPackage) return false;
@@ -532,6 +541,8 @@ function App() {
       : turnPackage.sideToMove === 'b';
     
     if (!isPlayerTurn) {
+      const currentTurn = turnPackage.sideToMove === 'w' ? 'White' : 'Black';
+      showIllegalMoveNotification(`It's ${currentTurn}'s turn to move`);
       console.log(`Not your turn - you play ${playerColor}, but it's ${turnPackage.sideToMove === 'w' ? 'white' : 'black'}'s turn`);
       return false;
     }
@@ -545,7 +556,10 @@ function App() {
         promotion: promotion as 'q' | 'r' | 'b' | 'n' | undefined,
       });
 
-      if (!moveResult) return false;
+      if (!moveResult) {
+        showIllegalMoveNotification(`Illegal move: ${from} → ${to}`);
+        return false;
+      }
 
       const moveUci = `${from}${to}${promotion || ''}`;
       const fenAfterUserMove = chess.fen();
@@ -743,7 +757,10 @@ function App() {
       })();
 
       return true; // Synchronously return true since the move is valid
-    } catch {
+    } catch (err) {
+      // chess.js throws an error for illegal moves
+      console.log('Move validation error:', err);
+      showIllegalMoveNotification(`Illegal move: ${from} → ${to}`);
       return false;
     }
   };
@@ -1491,6 +1508,14 @@ function App() {
         achievement={currentAchievement}
         onDismiss={dismissAchievement}
       />
+      
+      {/* Illegal Move Toast */}
+      {illegalMoveMessage && (
+        <div className="illegal-move-toast">
+          <span className="illegal-move-icon">⚠️</span>
+          <span className="illegal-move-text">{illegalMoveMessage}</span>
+        </div>
+      )}
       
       {/* Weakness Tracker Modal */}
       <WeaknessTracker 
