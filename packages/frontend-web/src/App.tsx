@@ -524,11 +524,28 @@ function App() {
     setSelectedChoice(choiceId);
   };
 
-  // Helper to show illegal move notification
-  const showIllegalMoveNotification = (message: string) => {
-    setIllegalMoveMessage(message);
-    // Auto-dismiss after 2.5 seconds
-    setTimeout(() => setIllegalMoveMessage(null), 2500);
+  // Narrator-style illegal move messages (Quest for Glory / Sierra Games style)
+  const ILLEGAL_MOVE_MESSAGES = {
+    notYourTurn: [
+      "*The spirit shakes its head* Patience, adventurer. 'Tis not thy turn to move.",
+      "*A ghostly hand blocks your path* The enemy has yet to make their play.",
+      "*The castle walls echo* Wait thy turn, young one. Patience is a virtue.",
+    ],
+    illegalMove: [
+      "*The spirit raises an eyebrow* That path is forbidden by the ancient rules.",
+      "*A cold wind whispers* The laws of chess forbid such movement.",
+      "*The castle groans* Alas, that move violates the sacred code of battle.",
+      "*Thunder rumbles softly* The pieces refuse to obey that command.",
+    ],
+  };
+
+  // Helper to show illegal move notification with narrator voice
+  const showIllegalMoveNotification = (type: 'notYourTurn' | 'illegalMove') => {
+    const messages = ILLEGAL_MOVE_MESSAGES[type];
+    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+    setIllegalMoveMessage(randomMessage);
+    // Auto-dismiss after 3 seconds (longer for reading)
+    setTimeout(() => setIllegalMoveMessage(null), 3000);
   };
 
   // Handle free play move (drag and drop)
@@ -541,8 +558,7 @@ function App() {
       : turnPackage.sideToMove === 'b';
     
     if (!isPlayerTurn) {
-      const currentTurn = turnPackage.sideToMove === 'w' ? 'White' : 'Black';
-      showIllegalMoveNotification(`It's ${currentTurn}'s turn to move`);
+      showIllegalMoveNotification('notYourTurn');
       console.log(`Not your turn - you play ${playerColor}, but it's ${turnPackage.sideToMove === 'w' ? 'white' : 'black'}'s turn`);
       return false;
     }
@@ -557,7 +573,7 @@ function App() {
       });
 
       if (!moveResult) {
-        showIllegalMoveNotification(`Illegal move: ${from} → ${to}`);
+        showIllegalMoveNotification('illegalMove');
         return false;
       }
 
@@ -760,7 +776,7 @@ function App() {
     } catch (err) {
       // chess.js throws an error for illegal moves
       console.log('Move validation error:', err);
-      showIllegalMoveNotification(`Illegal move: ${from} → ${to}`);
+      showIllegalMoveNotification('illegalMove');
       return false;
     }
   };
@@ -1509,10 +1525,10 @@ function App() {
         onDismiss={dismissAchievement}
       />
       
-      {/* Illegal Move Toast */}
+      {/* Illegal Move Toast - Narrator Style */}
       {illegalMoveMessage && (
         <div className="illegal-move-toast">
-          <span className="illegal-move-icon">⚠️</span>
+          <PixelIcon name="warning" size="medium" className="illegal-move-icon" />
           <span className="illegal-move-text">{illegalMoveMessage}</span>
         </div>
       )}

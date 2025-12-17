@@ -761,7 +761,7 @@ body.effect-pixel-scale * {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ILLEGAL MOVE TOAST
+   ILLEGAL MOVE TOAST - Narrator Style (Quest for Glory / Sierra Games)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .illegal-move-toast {
@@ -770,53 +770,73 @@ body.effect-pixel-scale * {
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 20px;
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  max-width: 420px;
+  background: linear-gradient(180deg, 
+    rgba(45, 27, 15, 0.98) 0%, 
+    rgba(30, 18, 10, 0.98) 100%
+  );
+  border: 2px solid #8b6914;
+  border-radius: 4px;
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 215, 0, 0.1),
+    0 0 20px rgba(139, 105, 20, 0.3);
   z-index: 9999;
-  animation: slideUpFadeIn 0.3s ease-out, fadeOut 0.3s ease-in 2.2s forwards;
+  animation: spiritAppear 0.4s ease-out, spiritFadeOut 0.4s ease-in 2.6s forwards;
 }
 
-.illegal-move-icon {
-  font-size: 20px;
-  animation: shake 0.5s ease-in-out;
+/* Pixel warning icon styling */
+.illegal-move-toast .illegal-move-icon {
+  flex-shrink: 0;
+  color: #fbbf24;
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5));
+  animation: iconPulse 1s ease-in-out infinite;
 }
 
 .illegal-move-text {
-  color: white;
+  color: #e8d5a3;
   font-size: 14px;
-  font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  font-family: 'Crimson Text', 'Georgia', serif;
+  font-style: italic;
+  line-height: 1.5;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-@keyframes slideUpFadeIn {
+/* Spirit appear animation */
+@keyframes spiritAppear {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(20px);
+    transform: translateX(-50%) translateY(20px) scale(0.95);
   }
   to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes spiritFadeOut {
+  from {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
-}
-
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
   to {
     opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
   }
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-5px); }
-  40% { transform: translateX(5px); }
-  60% { transform: translateX(-3px); }
-  80% { transform: translateX(3px); }
+/* Subtle icon pulse */
+@keyframes iconPulse {
+  0%, 100% { 
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
 }
 
