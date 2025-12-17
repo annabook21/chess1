@@ -58,6 +58,8 @@ export {
   LC0_BOARD_SIZE,
   LC0_INPUT_SIZE,
   LC0_POLICY_SIZE,
+  formatProbability,
+  formatProbabilityValue,
 } from './types';
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -64,5 +64,53 @@ export const LC0_INPUT_SIZE = LC0_INPUT_PLANES * LC0_BOARD_SIZE * LC0_BOARD_SIZE
  */
 export const LC0_POLICY_SIZE = 1858;
 
+/**
+ * Format a probability (0.0 - 1.0) for display.
+ * 
+ * Uses adaptive precision based on value:
+ * - >= 10%: "45%" (no decimals)
+ * - >= 1%: "4.5%" (1 decimal)
+ * - >= 0.1%: "0.45%" (2 decimals)
+ * - < 0.1%: "<0.1%" (threshold display)
+ * 
+ * Based on research from chess UIs like Lichess and Maia Chess platform
+ * which use similar adaptive formatting for move probabilities.
+ */
+export function formatProbability(probability: number): string {
+  const percent = probability * 100;
+  
+  if (percent >= 10) {
+    return `${Math.round(percent)}%`;
+  } else if (percent >= 1) {
+    return `${percent.toFixed(1)}%`;
+  } else if (percent >= 0.1) {
+    return `${percent.toFixed(2)}%`;
+  } else if (percent > 0) {
+    return '<0.1%';
+  } else {
+    return '0%';
+  }
+}
+
+/**
+ * Format probability for compact display (e.g., in lists)
+ * Returns just the number without % sign for flexibility
+ */
+export function formatProbabilityValue(probability: number): string {
+  const percent = probability * 100;
+  
+  if (percent >= 10) {
+    return Math.round(percent).toString();
+  } else if (percent >= 1) {
+    return percent.toFixed(1);
+  } else if (percent >= 0.1) {
+    return percent.toFixed(2);
+  } else if (percent > 0) {
+    return '<0.1';
+  } else {
+    return '0';
+  }
+}
+
 
 

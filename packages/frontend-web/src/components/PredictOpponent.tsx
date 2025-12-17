@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Chess, Square } from 'chess.js';
-import { useMaiaPredictions, MovePrediction } from '../maia';
+import { useMaiaPredictions, MovePrediction, formatProbabilityValue } from '../maia';
 import { PixelIcon } from '../ui/castle/PixelIcon';
 import { MoveChoices } from './MoveChoices';
 import { MoveChoice } from '@master-academy/contracts';
@@ -90,16 +90,17 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
       // Show up to 4 predictions (or all available if less)
       return maiaPredictions.slice(0, Math.min(4, maiaPredictions.length)).map((p, index) => {
         const explanation = getMovePurpose(p, fen);
-        const probPercent = (p.probability * 100).toFixed(0);
+        // Use adaptive formatting for probabilities (handles very small values properly)
+        const probDisplay = formatProbabilityValue(p.probability);
         
         return {
           id: `prediction-${p.uci}-${index}`,
           moveUci: p.uci,
-          planOneLiner: `${probPercent}% of ${targetRating}-rated players play this move. ${explanation}`,
+          planOneLiner: `${probDisplay}% of ${targetRating}-rated players play this move. ${explanation}`,
           styleId: 'human-like', // Use special human-like style for Maia predictions
           pv: [p.uci], // Principal variation - just the move itself for predictions
           eval: Math.round(p.probability * 1000), // Convert probability to eval-like score
-          conceptTags: ['human-like', `~${probPercent}%`],
+          conceptTags: ['human-like', `~${probDisplay}%`],
         };
       });
     }

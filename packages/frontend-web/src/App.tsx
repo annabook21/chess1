@@ -941,8 +941,12 @@ function App() {
         const sampledMove = sampleMove(result.predictions, TEMPERATURE_PRESETS.realistic);
         
         if (sampledMove) {
-          console.log('[Maia Opponent] Sampled move:', sampledMove.san, 
-            `(${(sampledMove.probability * 100).toFixed(1)}%)`,
+          // Use adaptive formatting for very small probabilities
+          const probDisplay = sampledMove.probability >= 0.001 
+            ? `${(sampledMove.probability * 100).toFixed(1)}%`
+            : `${(sampledMove.probability * 100).toFixed(3)}%`;
+          console.log('[Maia Opponent] Sampled move:', sampledMove.san,
+            `(${probDisplay})`,
             'from', result.predictions.length, 'candidates');
           
           return {
