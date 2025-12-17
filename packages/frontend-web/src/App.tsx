@@ -802,12 +802,39 @@ function App() {
     probability: number;
     allPredictions: MovePrediction[];
   } | null> => {
-    if (!maiaContext.state.isReady) {
-      console.warn('[Maia Opponent] Engine not ready');
+    const targetRating = (maiaOpponentRating || 1500) as MaiaRating;
+    
+    console.log('[Maia Opponent] generateMaiaOpponentMove called', {
+      targetRating,
+      hasPendingLoad: !!maiaLoadRef.current.promise,
+      pendingRating: maiaLoadRef.current.rating,
+    });
+
+    // Ensure model is loaded - either wait for pending load or trigger new one
+    try {
+      if (maiaLoadRef.current.promise) {
+        // Wait for existing load to complete
+        console.log('[Maia Opponent] Waiting for pending model load...');
+        await maiaLoadRef.current.promise;
+        console.log('[Maia Opponent] Pending load completed');
+      }
+      
+      // If we still need to load (no pending load was in progress), trigger load now
+      // This can happen if the debounce timeout (300ms) hasn't fired yet
+      if (!maiaLoadRef.current.promise || maiaLoadRef.current.rating !== targetRating) {
+        console.log('[Maia Opponent] Loading model now for rating', targetRating);
+        const loadPromise = maiaContext.loadModel(targetRating);
+        maiaLoadRef.current = { rating: targetRating, promise: loadPromise, timeoutId: null };
+        await loadPromise;
+        console.log('[Maia Opponent] Model loaded successfully');
+      }
+    } catch (err) {
+      console.error('[Maia Opponent] Failed to load model:', err);
       return null;
     }
 
     try {
+      // Attempt prediction
       const result = await maiaContext.predict(fen);
       
       if (result.predictions.length > 0) {
@@ -828,6 +855,7 @@ function App() {
           };
         }
       }
+      console.warn('[Maia Opponent] No predictions returned');
     } catch (err) {
       console.error('[Maia Opponent] Prediction failed:', err);
     }
