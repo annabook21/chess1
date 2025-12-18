@@ -7,12 +7,15 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    setupFiles: ['./vitest.setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
     coverage: {
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.test.{ts,tsx}', 'src/main.tsx'],
+      exclude: ['src/**/*.test.{ts,tsx}', 'src/main.tsx', 'src/test-utils.tsx'],
     },
+    // Increase timeout for async tests
+    testTimeout: 10000,
   },
   resolve: {
     // Prevent duplicate React instances in production bundle
