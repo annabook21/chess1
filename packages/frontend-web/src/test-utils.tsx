@@ -172,17 +172,17 @@ export const waitForAsync = () => new Promise(resolve => setTimeout(resolve, 0))
 /**
  * Create a mock API response
  */
-export const mockApiResponse = <T>(data: T, delay = 0): Promise<T> => {
+export function mockApiResponse<T>(data: T, delay = 0): Promise<T> {
   return new Promise(resolve => {
     setTimeout(() => resolve(data), delay);
   });
-};
+}
 
 /**
  * Create a rejected API response
  */
-export const mockApiError = (message: string, delay = 0): Promise<never> => {
+export function mockApiError(message: string, delay = 0): Promise<never> {
   return new Promise((_, reject) => {
     setTimeout(() => reject(new Error(message)), delay);
   });
-};
+}
