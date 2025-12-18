@@ -783,7 +783,13 @@ function App() {
               });
 
               response.nextTurn.fen = chessAfterMaia.fen();
-              console.log('[App] Maia opponent move applied:', maiaMove.moveSan);
+              console.log('[App] Maia opponent move applied:', {
+                move: maiaMove.moveSan,
+                uci: maiaMove.moveUci,
+                probability: maiaMove.probability,
+                fenBefore: fenAfterUserMove.substring(0, 40) + '...',
+                fenAfter: chessAfterMaia.fen().substring(0, 40) + '...',
+              });
             } else {
               console.warn('[App] Maia failed to generate move, game may be stuck');
             }
@@ -1066,7 +1072,13 @@ function App() {
           
           // Update the next turn with the new FEN
           response.nextTurn.fen = chessAfterMaia.fen();
-          console.log('[App] Maia opponent move applied (guided):', maiaMove.moveSan);
+          console.log('[App] Maia opponent move applied (guided):', {
+            move: maiaMove.moveSan,
+            uci: maiaMove.moveUci,
+            probability: maiaMove.probability,
+            fenBefore: fenAfterUserMove.substring(0, 40) + '...',
+            fenAfter: chessAfterMaia.fen().substring(0, 40) + '...',
+          });
         } else {
           console.warn('[App] Maia failed to generate move (guided), game may be stuck');
         }
@@ -1790,7 +1802,7 @@ function App() {
               fen={
                 showPrediction && fenBeforeAiMove
                   ? fenBeforeAiMove
-                  : (optimisticFen || turnPackage?.fen || 'start')
+                  : (turnPackage?.fen || optimisticFen || 'start')
               }
               choices={showPrediction ? undefined : (playMode === 'guided' ? turnPackage?.choices : undefined)}
               selectedChoice={showPrediction ? null : selectedChoice}
