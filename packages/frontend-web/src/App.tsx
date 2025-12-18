@@ -791,7 +791,33 @@ function App() {
                 fenAfter: chessAfterMaia.fen().substring(0, 40) + '...',
               });
             } else {
-              console.warn('[App] Maia failed to generate move, game may be stuck');
+              // Maia failed - use fallback: pick a random legal move
+              // This follows Lichess/Chess.com pattern of never letting the game get stuck
+              console.warn('[App] Maia failed to generate move, using random legal move fallback');
+              const chessForFallback = new Chess(fenAfterUserMove);
+              const legalMoves = chessForFallback.moves({ verbose: true });
+              
+              if (legalMoves.length > 0) {
+                const randomMove = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+                const fallbackUci = randomMove.from + randomMove.to + (randomMove.promotion || '');
+                
+                response.feedback.aiMove = {
+                  moveSan: randomMove.san,
+                  styleId: 'capablanca',
+                  justification: 'The opponent contemplates briefly before making a move.',
+                };
+                
+                chessForFallback.move(randomMove);
+                response.nextTurn.fen = chessForFallback.fen();
+                
+                // Set empty predictions for scoring (fallback case)
+                setCurrentMaiaPredictions([]);
+                
+                console.log('[App] Fallback move applied:', randomMove.san);
+              } else {
+                // No legal moves = game over (checkmate or stalemate)
+                console.log('[App] No legal moves available - game may be over');
+              }
             }
           }
 
@@ -852,8 +878,15 @@ function App() {
               }
             } else {
               // No AI move (user's move ended the game or it's their turn again)
+              // Still update board state and clear optimistic FEN
+              console.log('[App] No AI move in response - updating turnPackage directly');
               setShowPrediction(false);
               setTurnPackage(response.nextTurn);
+              // Clear optimistic FEN when turnPackage is the source of truth
+              if (thisRequestFen === pendingMoveFenRef.current) {
+                setOptimisticFen(null);
+                pendingMoveFenRef.current = null;
+              }
               setFeedback(response.feedback);
             }
           } else {
@@ -1080,7 +1113,26 @@ function App() {
             fenAfter: chessAfterMaia.fen().substring(0, 40) + '...',
           });
         } else {
-          console.warn('[App] Maia failed to generate move (guided), game may be stuck');
+          // Maia failed - use fallback: pick a random legal move (same as free play)
+          console.warn('[App] Maia failed to generate move (guided), using random legal move fallback');
+          const chessForFallback = new Chess(fenAfterUserMove);
+          const legalMoves = chessForFallback.moves({ verbose: true });
+          
+          if (legalMoves.length > 0) {
+            const randomMove = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+            
+            response.feedback.aiMove = {
+              moveSan: randomMove.san,
+              styleId: 'capablanca',
+              justification: 'The opponent contemplates briefly before making a move.',
+            };
+            
+            chessForFallback.move(randomMove);
+            response.nextTurn.fen = chessForFallback.fen();
+            setCurrentMaiaPredictions([]);
+            
+            console.log('[App] Fallback move applied (guided):', randomMove.san);
+          }
         }
       }
       
@@ -1273,18 +1325,13 @@ function App() {
         });
         
         setTurnPackage(pendingResponse.nextTurn);
-        // Only clear if user hasn't made another move while prediction was shown
-        // Use optimisticFenRef.current to avoid potential stale closure issues
-        console.log('[App] finishPredictionFlow clearing check:', {
-          optimisticFenRef: optimisticFenRef.current?.substring(0, 40) + '...',
-          pendingMoveFenRef: pendingMoveFenRef.current?.substring(0, 40) + '...',
-          match: optimisticFenRef.current === pendingMoveFenRef.current,
-        });
-        if (optimisticFenRef.current === pendingMoveFenRef.current) {
-          console.log('[App] Clearing optimisticFen after prediction flow');
-          setOptimisticFen(null);
-          pendingMoveFenRef.current = null;
-        }
+        // Per Lichess/Chessground pattern: Always clear optimistic state when we have
+        // authoritative server state. The turnPackage.fen IS the source of truth.
+        // This prevents the board from showing stale user-only positions.
+        console.log('[App] finishPredictionFlow - clearing optimistic state, applying turnPackage');
+        setOptimisticFen(null);
+        optimisticFenRef.current = null;
+        pendingMoveFenRef.current = null;
         setFeedback(pendingResponse.feedback);
         setSelectedChoice(null);
         
@@ -1802,7 +1849,7 @@ function App() {
               fen={
                 showPrediction && fenBeforeAiMove
                   ? fenBeforeAiMove
-                  : (turnPackage?.fen || optimisticFen || 'start')
+                  : (optimisticFen || turnPackage?.fen || 'start')
               }
               choices={showPrediction ? undefined : (playMode === 'guided' ? turnPackage?.choices : undefined)}
               selectedChoice={showPrediction ? null : selectedChoice}
