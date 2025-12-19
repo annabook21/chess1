@@ -107,70 +107,123 @@ Object.defineProperty(window, 'Audio', {
 
 /**
  * Mock ONNX Runtime (for Maia)
- * This is a simplified mock - tests that need real ONNX should be integration tests
+ * This is a simplified mock - tests that need real ONNX should be integration tests.
+ * The policy output uses LC0 move encoding - we populate known move indices with higher values.
  */
-vi.mock('onnxruntime-web', () => ({
-  InferenceSession: {
-    create: vi.fn().mockResolvedValue({
-      inputNames: ['/input/planes'],
-      outputNames: ['/output/policy', '/output/wdl'],
-      run: vi.fn().mockResolvedValue({
-        '/output/policy': {
-          data: new Float32Array(1858).fill(1 / 1858),
-          dims: [1, 1858],
-        },
-        '/output/wdl': {
-          data: new Float32Array([0.3, 0.4, 0.3]),
-          dims: [1, 3],
-        },
+vi.mock('onnxruntime-web', () => {
+  // Create realistic policy with some moves having higher probabilities
+  // LC0 indices for common opening moves (approximate):
+  // e2e4 ≈ index 52, d2d4 ≈ index 36, g1f3 ≈ index 97, etc.
+  const createPolicyOutput = () => {
+    const policy = new Float32Array(1858).fill(0.001);
+    // Set higher values for common move indices (these are approximations)
+    policy[52] = 0.35;  // e2e4-ish
+    policy[36] = 0.25;  // d2d4-ish
+    policy[97] = 0.15;  // g1f3-ish
+    policy[44] = 0.10;  // c2c4-ish
+    policy[88] = 0.08;  // b1c3-ish
+    return policy;
+  };
+
+  return {
+    InferenceSession: {
+      create: vi.fn().mockResolvedValue({
+        inputNames: ['/input/planes'],
+        outputNames: ['/output/policy', '/output/wdl'],
+        run: vi.fn().mockResolvedValue({
+          '/output/policy': {
+            data: createPolicyOutput(),
+            dims: [1, 1858],
+          },
+          '/output/wdl': {
+            data: new Float32Array([0.3, 0.4, 0.3]),
+            dims: [1, 3],
+          },
+        }),
+        release: vi.fn(),
       }),
-      release: vi.fn(),
-    }),
-  },
-  Tensor: vi.fn().mockImplementation((type, data, dims) => ({
-    type,
-    data,
-    dims,
-  })),
-  env: {
-    wasm: {
-      wasmPaths: '',
-      numThreads: 1,
-      simd: true,
-      proxy: false,
     },
-  },
-}));
+    Tensor: vi.fn().mockImplementation((type, data, dims) => ({
+      type,
+      data,
+      dims,
+    })),
+    env: {
+      wasm: {
+        wasmPaths: '',
+        numThreads: 1,
+        simd: true,
+        proxy: false,
+      },
+    },
+  };
+});
 
 /**
- * Mock Web Worker
+ * Mock Web Worker - Simulates Maia worker behavior
  */
 class WorkerMock {
   onmessage: ((e: MessageEvent) => void) | null = null;
   onerror: ((e: ErrorEvent) => void) | null = null;
+  private messageListeners: Array<(e: MessageEvent) => void> = [];
+
+  constructor() {
+    // Simulate worker becoming ready after construction
+    setTimeout(() => {
+      this.sendMessage({ type: 'ready' });
+    }, 5);
+  }
+
+  private sendMessage(data: any) {
+    if (this.onmessage) {
+      this.onmessage(new MessageEvent('message', { data }));
+    }
+    this.messageListeners.forEach(listener => {
+      listener(new MessageEvent('message', { data }));
+    });
+  }
 
   postMessage = vi.fn((message) => {
-    // Simulate async response
+    // Simulate async response based on message type
     setTimeout(() => {
-      if (this.onmessage && message.type === 'predict') {
-        this.onmessage(new MessageEvent('message', {
-          data: {
-            type: 'prediction',
-            requestId: message.requestId,
+      if (message.type === 'load') {
+        this.sendMessage({ 
+          type: 'loaded', 
+          rating: message.rating 
+        });
+      } else if (message.type === 'predict') {
+        this.sendMessage({
+          type: 'prediction',
+          requestId: message.requestId,
+          result: {
             predictions: [
               { uci: 'e2e4', san: 'e4', probability: 0.4, from: 'e2', to: 'e4' },
               { uci: 'd2d4', san: 'd4', probability: 0.3, from: 'd2', to: 'd4' },
             ],
-            wdl: { win: 0.3, draw: 0.4, loss: 0.3 },
+            modelRating: 1500,
+            inferenceTimeMs: 50,
           },
-        }));
+        });
+      } else if (message.type === 'dispose') {
+        // No response needed
       }
     }, 10);
   });
 
   terminate = vi.fn();
-  addEventListener = vi.fn();
-  removeEventListener = vi.fn();
+  
+  addEventListener = vi.fn((event: string, handler: any) => {
+    if (event === 'message') {
+      this.messageListeners.push(handler);
+    }
+  });
+  
+  removeEventListener = vi.fn((event: string, handler: any) => {
+    if (event === 'message') {
+      this.messageListeners = this.messageListeners.filter(h => h !== handler);
+    }
+  });
+  
   dispatchEvent = vi.fn();
 }
 
@@ -216,3 +269,4 @@ afterAll(() => {
 //     };
 //   },
 // });
+

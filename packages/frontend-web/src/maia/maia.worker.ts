@@ -39,6 +39,10 @@ ort.env.wasm.simd = true;
 // Disable proxy since we're already in a worker
 ort.env.wasm.proxy = false;
 
+// Suppress benign ONNX warnings (e.g., "Unknown CPU vendor" in browser WASM)
+// Per ONNX Runtime docs: set before creating inference sessions
+ort.env.logLevel = 'error';
+
 console.log('[MaiaWorker] ONNX Runtime configured:', {
   wasmPaths: ort.env.wasm.wasmPaths,
   numThreads: ort.env.wasm.numThreads,

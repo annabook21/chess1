@@ -403,3 +403,4 @@ describe('getMasterInfo fallback', () => {
     expect(screen.getByText('Master')).toBeInTheDocument();
   });
 });
+

@@ -295,9 +295,11 @@ describe('PredictOpponent', () => {
     it('should show fallback after timeout if Maia fails', async () => {
       renderWithProviders(<PredictOpponent {...humanLikeProps} />);
       
-      // Advance past the 5 second fallback timeout
-      act(() => {
+      // Advance past the 5 second fallback timeout using async act
+      await act(async () => {
         vi.advanceTimersByTime(6000);
+        // Allow any pending promises to resolve
+        await Promise.resolve();
       });
       
       // Should still render choices (fallback)
@@ -339,3 +341,4 @@ describe('getFallbackMoves', () => {
     expect(document.querySelector('.predict-opponent-v2')).toBeInTheDocument();
   });
 });
+

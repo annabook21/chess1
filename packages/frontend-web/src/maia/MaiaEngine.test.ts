@@ -286,11 +286,9 @@ describe('MaiaEngine', () => {
 
 // ============================================================================
 // MaiaWorkerEngine Tests
-// Note: These tests are skipped because Web Worker testing requires
-// special setup that's better handled in integration tests.
 // ============================================================================
 
-describe.skip('MaiaWorkerEngine', () => {
+describe('MaiaWorkerEngine', () => {
   let engine: MaiaWorkerEngine;
 
   beforeEach(() => {
@@ -307,6 +305,69 @@ describe.skip('MaiaWorkerEngine', () => {
       
       expect(state.isReady).toBe(false);
       expect(state.currentModel).toBeNull();
+    });
+  });
+
+  describe('init', () => {
+    it('should initialize worker and become ready', async () => {
+      await engine.init();
+      
+      // After init, worker should be created
+      // The getState will still show not ready until model is loaded
+      expect(engine.getState().isReady).toBe(false);
+    });
+
+    it('should be idempotent - safe to call multiple times', async () => {
+      await engine.init();
+      await engine.init();
+      
+      // Should not throw
+      expect(engine.getState().currentModel).toBeNull();
+    });
+  });
+
+  describe('loadModel', () => {
+    it('should load model and update state', async () => {
+      await engine.loadModel(1500);
+      
+      const state = engine.getState();
+      expect(state.currentModel).toBe(1500);
+      expect(state.isReady).toBe(true);
+    });
+
+    it('should not reload same model', async () => {
+      await engine.loadModel(1500);
+      const firstState = engine.getState();
+      
+      await engine.loadModel(1500);
+      const secondState = engine.getState();
+      
+      expect(firstState.currentModel).toBe(secondState.currentModel);
+    });
+
+    it('should switch to different model', async () => {
+      await engine.loadModel(1500);
+      expect(engine.getState().currentModel).toBe(1500);
+      
+      await engine.loadModel(1100);
+      expect(engine.getState().currentModel).toBe(1100);
+    });
+  });
+
+  describe('predict', () => {
+    it('should throw when not initialized', async () => {
+      await expect(engine.predict(STARTING_FEN)).rejects.toThrow();
+    });
+
+    it('should return predictions after loading model', async () => {
+      await engine.loadModel(1500);
+      
+      const result = await engine.predict(STARTING_FEN);
+      
+      expect(result).toHaveProperty('predictions');
+      expect(result.predictions.length).toBeGreaterThan(0);
+      expect(result).toHaveProperty('modelRating');
+      expect(result).toHaveProperty('inferenceTimeMs');
     });
   });
 
@@ -370,3 +431,4 @@ describe('Singleton instances', () => {
     });
   });
 });
+

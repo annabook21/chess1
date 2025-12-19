@@ -37,6 +37,10 @@ ort.env.wasm.numThreads = 1;
 // Enable SIMD for performance (widely supported in modern browsers)
 ort.env.wasm.simd = true;
 
+// Suppress benign ONNX warnings (e.g., "Unknown CPU vendor" in browser WASM)
+// Per ONNX Runtime docs: set before creating inference sessions
+ort.env.logLevel = 'error';
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════

@@ -107,15 +107,15 @@ export const useAchievements = (
     let newlyCompleted: AchievementProgress[] = [];
     
     setStore(currentStore => {
+      // ALWAYS update stats first - stats track all events, not just achievement progress
+      const newStats = updateStats(currentStore.stats, event);
+      
+      // Then check for achievement progress
       const result = evaluateEvent(event, achievements, currentStore);
       newlyCompleted = result.newlyCompleted;
       
-      if (result.updatedProgress.length > 0) {
-        const newStats = updateStats(currentStore.stats, event);
-        return applyUpdates(currentStore, result, newStats);
-      }
-      
-      return currentStore;
+      // Apply updates with the new stats
+      return applyUpdates(currentStore, result, newStats);
     });
     
     return newlyCompleted;

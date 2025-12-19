@@ -102,3 +102,4 @@ export function getStreakData(): { streak: number; lastActivity: string | null }
     lastActivity,
   };
 }
+

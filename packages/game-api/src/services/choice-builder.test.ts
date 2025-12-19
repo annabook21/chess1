@@ -28,6 +28,14 @@ const createMockEngineClient = (overrides: Partial<any> = {}) => ({
     evalDelta: 30,
     pv: ['e7e5', 'g1f3'],
   }),
+  // scoreMoves - used by getPvsForMoves for batch scoring
+  scoreMoves: vi.fn().mockResolvedValue({
+    scores: [
+      { move: 'e2e4', evalDelta: 30, pv: ['e2e4', 'e7e5'] },
+      { move: 'd2d4', evalDelta: 25, pv: ['d2d4', 'd7d5'] },
+      { move: 'g1f3', evalDelta: 20, pv: ['g1f3', 'g8f6'] },
+    ],
+  }),
   ...overrides,
 });
 
@@ -452,3 +460,4 @@ describe('ChoiceBuilder', () => {
  * - Test with longer timeouts
  * - Verify actual chess position analysis
  */
+

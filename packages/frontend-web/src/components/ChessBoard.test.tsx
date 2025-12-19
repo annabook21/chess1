@@ -333,3 +333,4 @@ describe('Responsive board size', () => {
     expect(container).toBeInTheDocument();
   });
 });
+

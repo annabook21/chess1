@@ -488,3 +488,4 @@ describe('applyUpdates', () => {
     expect(store.completedIds.size).toBe(originalCompletedSize);
   });
 });
+

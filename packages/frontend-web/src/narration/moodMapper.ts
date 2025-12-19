@@ -166,3 +166,4 @@ export const getMoodAnimation = (mood: SpiritMood): string => {
   }
 };
 
+

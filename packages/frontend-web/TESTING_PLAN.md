@@ -733,3 +733,4 @@ npm run test -- --watch
 # Run E2E tests (after Playwright setup)
 npm run test:e2e
 ```
+
