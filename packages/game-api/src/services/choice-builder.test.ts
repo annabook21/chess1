@@ -16,9 +16,8 @@ const STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const AFTER_E4 = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1';
 const RUY_LOPEZ = 'r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3';
 
-// Mock engine client
-const createMockEngineClient = (overrides: Partial<any> = {}) => ({
-  client: {}, // Mock axios client (not used in tests)
+// Mock engine client - cast as any to avoid private property issues
+const createMockEngineClient = (overrides: Partial<any> = {}): any => ({
   analyzePosition: vi.fn().mockResolvedValue({
     eval: 30,
     pv: ['e2e4', 'e7e5', 'g1f3'],
@@ -42,9 +41,8 @@ const createMockEngineClient = (overrides: Partial<any> = {}) => ({
   ...overrides,
 });
 
-// Mock style client
-const createMockStyleClient = (overrides: Partial<any> = {}) => ({
-  client: {}, // Mock axios client (not used in tests)
+// Mock style client - cast as any to avoid private property issues
+const createMockStyleClient = (overrides: Partial<any> = {}): any => ({
   suggestMoves: vi.fn().mockImplementation((_fen: string, styleId: string) => {
     const moveSets: Record<string, string[]> = {
       fischer: ['e2e4', 'd2d4', 'g1f3', 'c2c4', 'b1c3'],
