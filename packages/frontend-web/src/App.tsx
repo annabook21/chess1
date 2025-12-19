@@ -752,6 +752,25 @@ function App() {
 
           const response = await submitMove(gameId, moveRequest);
 
+          // CRITICAL: Check if server rejected the move
+          // This can happen if client/server state diverged (e.g., race condition)
+          if (!response.accepted) {
+            console.error('[App] Server rejected move:', response.feedback?.coachText);
+            setLoading(false);
+            setError(response.feedback?.coachText || 'Move was not accepted by the server');
+            // Revert optimistic update by restoring original FEN
+            setTurnPackage({
+              ...turnPackage,
+              fen: originalFen,
+              sideToMove: turnPackage.sideToMove,
+            });
+            setOptimisticFen(null);
+            pendingMoveFenRef.current = null;
+            setShowPrediction(false);
+            showIllegalMoveNotification('illegalMove');
+            return;
+          }
+
           // If human-like opponent, generate AI move with Maia (frontend)
           // Note: With skipAiMove=true, response.feedback.aiMove will be undefined
           // so we need to generate the move ourselves
@@ -1077,6 +1096,16 @@ function App() {
       };
 
       const response = await submitMove(gameId, moveRequest);
+
+      // CRITICAL: Check if server rejected the move
+      if (!response.accepted) {
+        console.error('[App] Server rejected move (guided):', response.feedback?.coachText);
+        setLoading(false);
+        setError(response.feedback?.coachText || 'Move was not accepted by the server');
+        setSelectedChoice(null);
+        // Don't clear turnPackage - just show error and let user try again
+        return;
+      }
 
       // STEP 4: If using human-like opponent, generate AI move with Maia (frontend)
       // Note: With skipAiMove=true, response.feedback.aiMove will be undefined
