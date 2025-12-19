@@ -182,12 +182,11 @@ describe('EngineClient', () => {
       const result = await engineClient.scoreMoves({
         fen: STARTING_FEN,
         moves: ['e2e4', 'd2d4'],
-        depth: 10,
       });
 
       expect(result.scores).toHaveLength(2);
       expect(result.scores[0].move).toBe('e2e4');
-      expect(result.scores[0].score).toBe(0.3);
+      expect(result.scores[0].evalDelta).toBe(0.3);
     });
   });
 

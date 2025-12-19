@@ -18,6 +18,7 @@ const RUY_LOPEZ = 'r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq -
 
 // Mock engine client
 const createMockEngineClient = (overrides: Partial<any> = {}) => ({
+  client: {}, // Mock axios client (not used in tests)
   analyzePosition: vi.fn().mockResolvedValue({
     eval: 30,
     pv: ['e2e4', 'e7e5', 'g1f3'],
@@ -36,11 +37,14 @@ const createMockEngineClient = (overrides: Partial<any> = {}) => ({
       { move: 'g1f3', evalDelta: 20, pv: ['g1f3', 'g8f6'] },
     ],
   }),
+  isLegalMove: vi.fn().mockResolvedValue(true),
+  setStrength: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 // Mock style client
 const createMockStyleClient = (overrides: Partial<any> = {}) => ({
+  client: {}, // Mock axios client (not used in tests)
   suggestMoves: vi.fn().mockImplementation((_fen: string, styleId: string) => {
     const moveSets: Record<string, string[]> = {
       fischer: ['e2e4', 'd2d4', 'g1f3', 'c2c4', 'b1c3'],
