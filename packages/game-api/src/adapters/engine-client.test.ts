@@ -173,8 +173,8 @@ describe('EngineClient', () => {
     it('should return scores for each move', async () => {
       const mockScores = {
         scores: [
-          { move: 'e2e4', score: 0.3 },
-          { move: 'd2d4', score: 0.25 },
+          { move: 'e2e4', evalDelta: 0.3, pv: ['e2e4', 'e7e5'] },
+          { move: 'd2d4', evalDelta: 0.25, pv: ['d2d4', 'd7d5'] },
         ],
       };
       mockAxiosInstance.post.mockResolvedValue({ data: mockScores });
