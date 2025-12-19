@@ -337,3 +337,4 @@ describe('StockfishWrapper Singleton', () => {
     instance1.destroy();
   });
 });
+

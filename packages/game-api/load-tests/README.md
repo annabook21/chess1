@@ -45,3 +45,4 @@ k6 run -e API_URL=https://api.yourdomain.com game-api.js
 - `iterations` - Requests per second
 - `vus` - Concurrent virtual users
 
+

@@ -140,6 +140,27 @@ export class MoveController {
       throw new Error(`Game ${gameId} not found`);
     }
 
+    // CRITICAL: Handle Maia opponent moves generated client-side
+    // When skipAiMove=true was used, the client may have applied an opponent move
+    // that the server doesn't know about. We need to sync before validating.
+    if (request.opponentMoveUci) {
+      console.log(`[SYNC] Applying client-side opponent move: ${request.opponentMoveUci}`);
+      const opponentMoveSuccess = this.makeLocalMove(game.chess, request.opponentMoveUci);
+      if (opponentMoveSuccess) {
+        // Persist the synced position
+        await this.deps.gameStore.updateGame(gameId, { fen: game.chess.fen() });
+        console.log(`[SYNC] Opponent move applied, new FEN: ${game.chess.fen().substring(0, 40)}...`);
+      } else {
+        console.warn(`[SYNC] Failed to apply opponent move: ${request.opponentMoveUci}`);
+      }
+    } else if (request.currentFen && request.currentFen !== game.chess.fen()) {
+      // Client provided a FEN that differs from server - use client's FEN
+      // This handles edge cases where state might have diverged
+      console.log(`[SYNC] Using client-provided FEN (was: ${game.chess.fen().substring(0, 40)}... now: ${request.currentFen.substring(0, 40)}...)`);
+      game.chess.load(request.currentFen);
+      await this.deps.gameStore.updateGame(gameId, { fen: request.currentFen });
+    }
+
     const fen = game.chess.fen();
     
     // Get current turn - from cache, game state, or build on demand

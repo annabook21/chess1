@@ -58,6 +58,17 @@ export interface MoveRequest {
   choiceId: string;
   /** Skip backend AI move generation (for when frontend handles opponent moves, e.g., Maia) */
   skipAiMove?: boolean;
+  /** 
+   * Current FEN on the client (used when skipAiMove=true to sync state).
+   * When Maia generates moves client-side, the server FEN may be out of sync.
+   * This field allows the server to validate moves against the correct position.
+   */
+  currentFen?: string;
+  /** 
+   * The opponent's move UCI (when generated client-side, e.g., by Maia).
+   * Server will apply this move before validating the user's move.
+   */
+  opponentMoveUci?: string;
 }
 
 export interface AIMoveInfo {
