@@ -783,12 +783,15 @@ function App() {
               });
 
               response.nextTurn.fen = chessAfterMaia.fen();
+              // CRITICAL: Update sideToMove to reflect whose turn it is after the AI move
+              response.nextTurn.sideToMove = chessAfterMaia.turn();
               console.log('[App] Maia opponent move applied:', {
                 move: maiaMove.moveSan,
                 uci: maiaMove.moveUci,
                 probability: maiaMove.probability,
                 fenBefore: fenAfterUserMove.substring(0, 40) + '...',
                 fenAfter: chessAfterMaia.fen().substring(0, 40) + '...',
+                newSideToMove: chessAfterMaia.turn(),
               });
             } else {
               // Maia failed - use fallback: pick a random legal move
@@ -809,11 +812,13 @@ function App() {
                 
                 chessForFallback.move(randomMove);
                 response.nextTurn.fen = chessForFallback.fen();
+                // CRITICAL: Update sideToMove to reflect whose turn it is after the AI move
+                response.nextTurn.sideToMove = chessForFallback.turn();
                 
                 // Set empty predictions for scoring (fallback case)
                 setCurrentMaiaPredictions([]);
                 
-                console.log('[App] Fallback move applied:', randomMove.san);
+                console.log('[App] Fallback move applied:', randomMove.san, 'sideToMove:', chessForFallback.turn());
               } else {
                 // No legal moves = game over (checkmate or stalemate)
                 console.log('[App] No legal moves available - game may be over');
@@ -1105,12 +1110,15 @@ function App() {
           
           // Update the next turn with the new FEN
           response.nextTurn.fen = chessAfterMaia.fen();
+          // CRITICAL: Update sideToMove to reflect whose turn it is after the AI move
+          response.nextTurn.sideToMove = chessAfterMaia.turn();
           console.log('[App] Maia opponent move applied (guided):', {
             move: maiaMove.moveSan,
             uci: maiaMove.moveUci,
             probability: maiaMove.probability,
             fenBefore: fenAfterUserMove.substring(0, 40) + '...',
             fenAfter: chessAfterMaia.fen().substring(0, 40) + '...',
+            newSideToMove: chessAfterMaia.turn(),
           });
         } else {
           // Maia failed - use fallback: pick a random legal move (same as free play)
@@ -1129,9 +1137,11 @@ function App() {
             
             chessForFallback.move(randomMove);
             response.nextTurn.fen = chessForFallback.fen();
+            // CRITICAL: Update sideToMove to reflect whose turn it is after the AI move
+            response.nextTurn.sideToMove = chessForFallback.turn();
             setCurrentMaiaPredictions([]);
             
-            console.log('[App] Fallback move applied (guided):', randomMove.san);
+            console.log('[App] Fallback move applied (guided):', randomMove.san, 'sideToMove:', chessForFallback.turn());
           }
         }
       }
