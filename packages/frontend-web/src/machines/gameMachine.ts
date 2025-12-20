@@ -24,6 +24,14 @@ import {
   CelebrationType,
 } from './types';
 import {
+  trackMove,
+  getGamePhase,
+  getMoveQuality,
+  detectMissedTactics,
+  getPositionConcepts,
+  uciToSan,
+} from '../utils/moveTracker';
+import {
   createGameActor,
   submitMoveActor,
   fetchTurnActor,
@@ -246,6 +254,71 @@ export const gameMachine = setup({
           if (lastEntry.white && !lastEntry.black) {
             lastEntry.black = playerMoveSan;
           }
+        }
+      }
+      
+      // ====================================================================
+      // TRACK MOVE FOR WEAKNESS ANALYSIS
+      // ====================================================================
+      if (context.gameId && context.pendingMove && response.feedback) {
+        const { choice, turnPackage } = context.pendingMove;
+        const feedback = response.feedback;
+        const currentFen = context.fen;
+        
+        // Best move is the choice with highest eval (or first choice as fallback)
+        const sortedChoices = [...turnPackage.choices].sort((a, b) => (b.eval ?? 0) - (a.eval ?? 0));
+        const bestMoveUci = sortedChoices[0]?.moveUci || choice.moveUci;
+        const bestMoveEval = sortedChoices[0]?.eval ?? 0;
+        
+        // Get the eval of the played choice
+        const playedChoice = turnPackage.choices.find(c => c.moveUci === choice.moveUci);
+        const playedChoiceEval = playedChoice?.eval ?? 0;
+        
+        // Calculate delta as difference between played choice and best choice
+        // This measures how close to optimal the player's choice was
+        // (negative means worse than best, 0 means played best)
+        const choiceDelta = playedChoiceEval - bestMoveEval;
+        
+        // Store the actual eval values for tracking
+        const evalBefore = feedback.evalBefore ?? 0;
+        const evalAfter = feedback.evalAfter ?? 0;
+        // Use choice delta for quality, but store feedback delta for reference
+        const delta = choiceDelta;
+        
+        // Get move quality based on how close to best choice
+        const wasBestMove = choice.moveUci === bestMoveUci;
+        const quality = getMoveQuality(delta, wasBestMove);
+        
+        // Get game phase and concepts
+        const phase = getGamePhase(currentFen);
+        const positionConcepts = getPositionConcepts(currentFen);
+        const feedbackConcepts = feedback.conceptTags || [];
+        
+        // Detect missed tactics (only if not best move)
+        const missedTactics = !wasBestMove
+          ? detectMissedTactics(currentFen, choice.moveUci, bestMoveUci, delta)
+          : [];
+        
+        // Track the move for weakness analysis
+        try {
+          trackMove({
+            gameId: context.gameId,
+            moveNumber: newHistory.length,
+            fen: currentFen,
+            moveUci: choice.moveUci,
+            moveSan: uciToSan(currentFen, choice.moveUci),
+            bestMoveUci,
+            evalBefore,
+            evalAfter,
+            delta,
+            quality,
+            phase,
+            conceptTags: [...new Set([...positionConcepts, ...feedbackConcepts])],
+            missedTactics,
+          });
+          console.log(`[handleMoveSubmitted] Tracked move: ${choice.moveUci}, quality: ${quality}, delta: ${delta}, evalBefore: ${evalBefore}, evalAfter: ${evalAfter}, feedbackDelta: ${feedback.delta}, wasBestMove: ${wasBestMove}`);
+        } catch (e) {
+          console.warn('[handleMoveSubmitted] Failed to track move:', e);
         }
       }
       
