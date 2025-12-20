@@ -1403,7 +1403,348 @@ if (daysSince === 1) {
 
 ---
 
-## Closing (1 minute)
+## Part 8: Chess Application Development Challenges (5 minutes)
+
+*[This section covers real debugging scenarios we encountered. Great for technical audiences.]*
+
+> "Building a chess application with AI integration presents unique challenges. Let me walk you through some of the trickiest bugs we've encountered — and why chess logic is deceptively complex."
+
+---
+
+### Challenge 1: State Synchronization — The "Invalid Move" Bug
+
+**The Symptom:**
+```
+Error: Invalid move: {"from":"b8","to":"a6"}
+```
+
+User sees "WHITE TO MOVE" but clicks on a Black knight move. Impossible, right?
+
+**Root Cause:** A state desynchronization where `turnPackage.choices` didn't match `turnPackage.sideToMove`.
+
+**The Bug Path (Server-Side):**
+
+```typescript
+// move-controller.ts - THE SILENT FAILURE
+if (aiMoveResult && !isGameOverAfterUser) {
+  const aiMoveSuccess = this.makeLocalMove(game.chess, aiMoveResult.moveUci);
+  if (aiMoveSuccess) {
+    // ... apply move
+  }
+  // ⚠️ NO ELSE CLAUSE! If AI move fails, silently continues!
+}
+
+// Then later...
+nextTurn = await this.buildTurnPackage(game.chess);  // Built for WRONG side!
+```
+
+**What Happened:**
+1. User (White) makes a move
+2. `game.chess` = position after White moved (Black to move)
+3. Claude (Bedrock) suggests an AI move, but it's **invalid** (hallucination!)
+4. `makeLocalMove` returns `false`, silently ignored
+5. `game.chess` still says Black to move
+6. `buildTurnPackage(game.chess)` builds choices for **BLACK**
+7. Server returns `sideToMove: 'w'` but `choices` contain Black's moves
+8. User sees Black's choices → clicks one → ERROR
+
+**The Fix:**
+
+```typescript
+// move-controller.ts - FIXED
+if (!aiMoveSuccess) {
+  // CRITICAL: Fall back to random legal move
+  console.error(`[CRITICAL] AI move ${aiMoveResult.moveUci} was invalid!`);
+  
+  const legalMoves = game.chess.moves({ verbose: true });
+  if (legalMoves.length > 0) {
+    const fallback = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+    this.makeLocalMove(game.chess, fallbackUci);
+    // ... continue with valid state
+  }
+}
+```
+
+**Lesson:** In chess engines, **never silently ignore move failures**. Always have a fallback path that maintains valid state.
+
+---
+
+### Challenge 2: Client-Side AI State — The "Stale Choices" Bug
+
+**The Scenario:** Player is Black, AI makes the first move (as White).
+
+**The Bug (Frontend):**
+
+```typescript
+// App.tsx - THE STALE STATE BUG
+const chess = new Chess(turnPackage.fen);
+chess.move({ from: 'e2', to: 'e4' });  // AI moves
+
+const newTurn: TurnPackage = {
+  ...turnPackage,            // ← Spreading old package
+  fen: chess.fen(),          // ✅ Updated
+  sideToMove: 'b',           // ✅ Updated
+  // ⚠️ choices is NOT updated! Still has White's moves!
+};
+setTurnPackage(newTurn);
+```
+
+**What Happened:**
+1. Game starts (White's turn)
+2. Server returns `turnPackage` with White's choices
+3. AI (White) moves client-side
+4. Code updates `fen` and `sideToMove`
+5. But `choices` still contains White's moves!
+6. Player (Black) sees White's choices as selectable options
+
+**The Fix:**
+
+```typescript
+// App.tsx - FIXED: Fetch fresh choices from server
+try {
+  const freshTurn = await getTurn(gameId);  // Server builds correct choices
+  freshTurn.fen = chess.fen();
+  freshTurn.sideToMove = 'b';
+  setTurnPackage(freshTurn);
+} catch (fetchErr) {
+  // Fallback: Clear choices entirely
+  setTurnPackage({ ...turnPackage, fen: chess.fen(), sideToMove: 'b', choices: [] });
+}
+```
+
+**Lesson:** When mutating game state client-side, **choices must be rebuilt** — they're derived from position, not independent.
+
+---
+
+### Challenge 3: Claude Hallucinations — The LLM Move Validation Problem
+
+**The Problem:** Claude (Bedrock) sometimes suggests moves that look valid but aren't.
+
+**Examples of Claude Hallucinations:**
+- Returns `e4e5` when the pawn is on `e2` (skipping a square)
+- Returns `Nf6` in UCI format instead of `g8f6` 
+- Returns moves for the wrong color
+- Returns moves that were legal 2 moves ago (stale context)
+
+**Our 4-Layer Defense:**
+
+```
+Layer 1: Prompt Engineering
+├── "Return moves in UCI format (e2e4), NOT SAN (e4)"
+├── "Moves must be from legal options"
+└── "Best move first, alternatives after"
+
+Layer 2: Server-Side Filtering (style-service)
+├── Parse Claude's JSON response
+├── Filter against legal moves set
+└── Return only valid moves
+
+Layer 3: AI Opponent Retry Loop (ai-opponent.ts)
+├── Try Bedrock move
+├── Validate locally with chess.js
+├── If invalid → retry (up to 2 times)
+└── If still invalid → fall back to engine
+
+Layer 4: Move Controller Fallback (move-controller.ts)
+├── If AI move fails to apply
+├── Pick random legal move
+└── Never leave state inconsistent
+```
+
+**Code: Layer 2 Filtering:**
+
+```typescript
+// style-service/anthropic.ts
+const suggestedMoves = parseClaudeResponse(response);
+const legalSet = new Set(chess.moves().map(m => toUCI(m)));
+
+// Filter hallucinations
+const validMoves = suggestedMoves.filter(m => legalSet.has(m));
+
+if (validMoves.length === 0) {
+  console.warn('Claude returned no valid moves, using engine fallback');
+  return getEngineBestMove(fen);
+}
+```
+
+**Lesson:** LLMs are creative but unreliable for structured output. **Always validate LLM output** against ground truth before using it.
+
+---
+
+### Challenge 4: FEN Synchronization Across Systems
+
+**The Architecture:**
+```
+Frontend (chess.js) ←→ game-api (chess.js) ←→ DynamoDB (FEN string)
+                    ↑
+                    Maia (client-side, separate chess.js instance)
+```
+
+**The Problem:** Each system maintains its own `chess.js` instance. If they diverge, chaos ensues.
+
+**Divergence Scenarios:**
+1. Client-side Maia move not synced to server
+2. Server applies move, but response lost due to network error
+3. User refreshes mid-move, gets stale FEN from server
+
+**Our Sync Mechanism:**
+
+```typescript
+// Frontend sends sync data with every move
+const moveRequest: MoveRequest = {
+  moveUci: choice.moveUci,
+  choiceId: selectedChoice,
+  // Sync helpers:
+  opponentMoveUci: pendingOpponentMoveRef.current,  // Client-side Maia move
+  currentFen: turnPackage.fen,                       // Fallback state
+};
+
+// Server applies sync if needed
+if (request.opponentMoveUci) {
+  console.log(`[SYNC] Applying client-side opponent move: ${request.opponentMoveUci}`);
+  this.makeLocalMove(game.chess, request.opponentMoveUci);
+} else if (request.currentFen !== game.chess.fen()) {
+  console.log(`[SYNC] Using client-provided FEN`);
+  game.chess.load(request.currentFen);
+}
+```
+
+**Lesson:** In distributed chess systems, **include FEN in every request** as a sync checkpoint.
+
+---
+
+### Challenge 5: Move Format Confusion — UCI vs SAN vs Object
+
+**The Formats:**
+
+| Format | Example | Use Case |
+|--------|---------|----------|
+| **UCI** | `e2e4` | API transport, Stockfish, Maia |
+| **SAN** | `e4` | Display, PGN, human reading |
+| **Object** | `{ from: 'e2', to: 'e4' }` | chess.js internal |
+
+**Common Bugs:**
+- Passing SAN to a UCI endpoint → `Invalid move: e4`
+- Promotion without suffix → `e7e8` instead of `e7e8q`
+- Castling inconsistency → `e1g1` (UCI) vs `O-O` (SAN)
+
+**Our Convention:**
+
+```typescript
+// All internal APIs use UCI
+interface MoveRequest {
+  moveUci: string;  // Always e2e4 format
+}
+
+// Convert at the boundaries
+function toUCI(move: Move): string {
+  return `${move.from}${move.to}${move.promotion || ''}`;
+}
+
+function toSAN(fen: string, uci: string): string {
+  const chess = new Chess(fen);
+  const from = uci.slice(0, 2);
+  const to = uci.slice(2, 4);
+  const promo = uci.length > 4 ? uci[4] : undefined;
+  const move = chess.move({ from, to, promotion: promo });
+  return move?.san || uci;  // Fallback to UCI if conversion fails
+}
+```
+
+**Lesson:** Pick one format for internal transport (UCI), convert at display boundaries.
+
+---
+
+### Challenge 6: Turn Order Validation — Whose Move Is It?
+
+**The Problem:** Chess is a two-player turn-based game. Many bugs stem from acting out of turn.
+
+**Examples:**
+- Server builds choices for White when it's Black's turn
+- Frontend allows drag-drop when waiting for opponent
+- AI opponent generates a move when game is over
+
+**Our Guards:**
+
+```typescript
+// Frontend: Guard all move operations
+const isPlayerTurn = playerColor === 'white' 
+  ? turnPackage.sideToMove === 'w'
+  : turnPackage.sideToMove === 'b';
+
+if (!isPlayerTurn) {
+  showIllegalMoveNotification('notYourTurn');
+  return;
+}
+
+// Server: Validate before processing
+if (game.chess.turn() !== request.expectedTurn) {
+  return { accepted: false, error: 'Turn mismatch' };
+}
+
+// AI Opponent: Check game state
+if (chess.isGameOver()) {
+  throw new Error('Cannot generate move - game is over');
+}
+```
+
+**Lesson:** Turn validation should happen at **every layer** — frontend, API, and business logic.
+
+---
+
+### Challenge 7: Performance — The Maia Inference Bottleneck
+
+**The Problem:** Maia ONNX inference takes 50-200ms. On slow devices, this creates lag.
+
+**Our Optimizations:**
+
+| Optimization | Impact |
+|--------------|--------|
+| Model caching (365-day TTL) | Zero download after first load |
+| Single-threaded WASM | Avoids SharedArrayBuffer complexity |
+| SIMD enabled | 2-3x speedup on supported browsers |
+| Top-K filtering | Only decode top 20 moves, not all 1,858 |
+| Lazy loading | Model loads on first use, not page load |
+
+**Code: Lazy Model Loading:**
+
+```typescript
+// MaiaEngine.ts
+async loadModel(rating: MaiaRating): Promise<void> {
+  if (this.currentRating === rating && this.session) {
+    return;  // Already loaded
+  }
+  
+  const modelPath = MODEL_PATHS[rating];
+  console.log(`Loading Maia model for ${rating}...`);
+  
+  this.session = await ort.InferenceSession.create(modelPath, {
+    executionProviders: ['wasm'],
+    graphOptimizationLevel: 'all',
+  });
+  
+  this.currentRating = rating;
+}
+```
+
+**Lesson:** ML inference is expensive. Cache aggressively and load lazily.
+
+---
+
+### Summary: Chess Development is Deceptively Hard
+
+| Category | Why It's Hard |
+|----------|---------------|
+| **State Management** | Multiple systems must agree on position |
+| **Move Validation** | Many move formats, edge cases (castling, en passant, promotion) |
+| **AI Integration** | LLMs hallucinate, engines have async responses |
+| **Turn Logic** | Two-player turns create race conditions |
+| **Performance** | ML inference, engine analysis, real-time UI |
+| **UX** | Must feel instant despite complex backend |
+
+> "Chess seems simple — 64 squares, 32 pieces, clear rules. But implementing it correctly across distributed systems with AI integration is one of the most challenging UI/backend coordination problems you can tackle."
+
+---
 
 ### Key Technical Achievements
 
@@ -1416,6 +1757,7 @@ if (daysSince === 1) {
 | **Serverless** | ECS Fargate + CloudFront | Zero ops overhead |
 | **Async Decoupling** | SQS + drill-worker | Blunder processing off critical path |
 | **Gamification** | Emotional arc + achievements | Higher user engagement |
+| **Robust Error Handling** | 4-layer defense against AI hallucinations | System never reaches invalid state |
 
 ### Cost Profile (Estimated)
 
