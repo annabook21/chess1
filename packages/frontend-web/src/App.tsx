@@ -811,26 +811,60 @@ function App() {
               const maiaTo = maiaMove.moveUci.slice(2, 4);
               const maiaPromo = maiaMove.moveUci.length > 4 ? maiaMove.moveUci[4] : undefined;
 
-              chessAfterMaia.move({
-                from: maiaFrom,
-                to: maiaTo,
-                promotion: maiaPromo as 'q' | 'r' | 'b' | 'n' | undefined,
-              });
+              // CRITICAL: Validate Maia's move before applying
+              // The model might suggest moves that aren't legal for the current position
+              try {
+                const moveResult = chessAfterMaia.move({
+                  from: maiaFrom,
+                  to: maiaTo,
+                  promotion: maiaPromo as 'q' | 'r' | 'b' | 'n' | undefined,
+                });
+                
+                if (!moveResult) {
+                  throw new Error(`Move validation failed: ${maiaMove.moveUci}`);
+                }
 
-              response.nextTurn.fen = chessAfterMaia.fen();
-              // CRITICAL: Update sideToMove to reflect whose turn it is after the AI move
-              response.nextTurn.sideToMove = chessAfterMaia.turn();
-              // Track this opponent move for syncing with server on next user move
-              pendingOpponentMoveRef.current = maiaMove.moveUci;
-              console.log('[App] Maia opponent move applied:', {
-                move: maiaMove.moveSan,
-                uci: maiaMove.moveUci,
-                probability: maiaMove.probability,
-                fenBefore: fenAfterUserMove.substring(0, 40) + '...',
-                fenAfter: chessAfterMaia.fen().substring(0, 40) + '...',
-                newSideToMove: chessAfterMaia.turn(),
-                pendingOpponentMove: maiaMove.moveUci,
-              });
+                response.nextTurn.fen = chessAfterMaia.fen();
+                // CRITICAL: Update sideToMove to reflect whose turn it is after the AI move
+                response.nextTurn.sideToMove = chessAfterMaia.turn();
+                // Track this opponent move for syncing with server on next user move
+                pendingOpponentMoveRef.current = maiaMove.moveUci;
+                console.log('[App] Maia opponent move applied:', {
+                  move: maiaMove.moveSan,
+                  uci: maiaMove.moveUci,
+                  probability: maiaMove.probability,
+                  fenBefore: fenAfterUserMove.substring(0, 40) + '...',
+                  fenAfter: chessAfterMaia.fen().substring(0, 40) + '...',
+                  newSideToMove: chessAfterMaia.turn(),
+                  pendingOpponentMove: maiaMove.moveUci,
+                });
+              } catch (maiaError) {
+                // Maia suggested an invalid move - fall back to random legal move
+                console.error('[App] Maia move invalid, using fallback:', maiaError, {
+                  suggestedMove: maiaMove.moveUci,
+                  fen: fenAfterUserMove,
+                  turn: chessAfterMaia.turn(),
+                });
+                
+                const legalMoves = chessAfterMaia.moves({ verbose: true });
+                if (legalMoves.length > 0) {
+                  const randomMove = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+                  chessAfterMaia.load(fenAfterUserMove); // Reset to apply fallback
+                  chessAfterMaia.move(randomMove);
+                  
+                  const fallbackUci = randomMove.from + randomMove.to + (randomMove.promotion || '');
+                  response.feedback.aiMove = {
+                    moveSan: randomMove.san,
+                    styleId: 'capablanca',
+                    justification: 'The opponent plays a sensible move.',
+                  };
+                  response.nextTurn.fen = chessAfterMaia.fen();
+                  response.nextTurn.sideToMove = chessAfterMaia.turn();
+                  pendingOpponentMoveRef.current = fallbackUci;
+                  setCurrentMaiaPredictions([]);
+                  console.log('[App] Fallback move applied after Maia error:', randomMove.san);
+                }
+              }
             } else {
               // Maia failed - use fallback: pick a random legal move
               // This follows Lichess/Chess.com pattern of never letting the game get stuck
@@ -1165,28 +1199,61 @@ function App() {
           const maiaFrom = maiaMove.moveUci.slice(0, 2);
           const maiaTo = maiaMove.moveUci.slice(2, 4);
           const maiaPromo = maiaMove.moveUci.length > 4 ? maiaMove.moveUci[4] : undefined;
-          
-          chessAfterMaia.move({
-            from: maiaFrom,
-            to: maiaTo,
-            promotion: maiaPromo as 'q' | 'r' | 'b' | 'n' | undefined,
-          });
-          
-          // Update the next turn with the new FEN
-          response.nextTurn.fen = chessAfterMaia.fen();
-          // CRITICAL: Update sideToMove to reflect whose turn it is after the AI move
-          response.nextTurn.sideToMove = chessAfterMaia.turn();
-          // Track this opponent move for syncing with server on next user move
-          pendingOpponentMoveRef.current = maiaMove.moveUci;
-          console.log('[App] Maia opponent move applied (guided):', {
-            move: maiaMove.moveSan,
-            uci: maiaMove.moveUci,
-            probability: maiaMove.probability,
-            fenBefore: fenAfterUserMove.substring(0, 40) + '...',
-            fenAfter: chessAfterMaia.fen().substring(0, 40) + '...',
-            pendingOpponentMove: maiaMove.moveUci,
-            newSideToMove: chessAfterMaia.turn(),
-          });
+
+          // CRITICAL: Validate Maia's move before applying
+          try {
+            const moveResult = chessAfterMaia.move({
+              from: maiaFrom,
+              to: maiaTo,
+              promotion: maiaPromo as 'q' | 'r' | 'b' | 'n' | undefined,
+            });
+            
+            if (!moveResult) {
+              throw new Error(`Move validation failed: ${maiaMove.moveUci}`);
+            }
+
+            // Update the next turn with the new FEN
+            response.nextTurn.fen = chessAfterMaia.fen();
+            // CRITICAL: Update sideToMove to reflect whose turn it is after the AI move
+            response.nextTurn.sideToMove = chessAfterMaia.turn();
+            // Track this opponent move for syncing with server on next user move
+            pendingOpponentMoveRef.current = maiaMove.moveUci;
+            console.log('[App] Maia opponent move applied (guided):', {
+              move: maiaMove.moveSan,
+              uci: maiaMove.moveUci,
+              probability: maiaMove.probability,
+              fenBefore: fenAfterUserMove.substring(0, 40) + '...',
+              fenAfter: chessAfterMaia.fen().substring(0, 40) + '...',
+              pendingOpponentMove: maiaMove.moveUci,
+              newSideToMove: chessAfterMaia.turn(),
+            });
+          } catch (maiaError) {
+            // Maia suggested an invalid move - fall back to random legal move
+            console.error('[App] Maia move invalid (guided), using fallback:', maiaError, {
+              suggestedMove: maiaMove.moveUci,
+              fen: fenAfterUserMove,
+              turn: chessAfterMaia.turn(),
+            });
+            
+            const legalMoves = chessAfterMaia.moves({ verbose: true });
+            if (legalMoves.length > 0) {
+              const randomMove = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+              chessAfterMaia.load(fenAfterUserMove); // Reset to apply fallback
+              chessAfterMaia.move(randomMove);
+              
+              const fallbackUci = randomMove.from + randomMove.to + (randomMove.promotion || '');
+              response.feedback.aiMove = {
+                moveSan: randomMove.san,
+                styleId: 'capablanca',
+                justification: 'The opponent plays a sensible move.',
+              };
+              response.nextTurn.fen = chessAfterMaia.fen();
+              response.nextTurn.sideToMove = chessAfterMaia.turn();
+              pendingOpponentMoveRef.current = fallbackUci;
+              setCurrentMaiaPredictions([]);
+              console.log('[App] Fallback move applied after Maia error (guided):', randomMove.san);
+            }
+          }
         } else {
           // Maia failed - use fallback: pick a random legal move (same as free play)
           console.warn('[App] Maia failed to generate move (guided), using random legal move fallback');
