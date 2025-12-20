@@ -591,23 +591,32 @@ function App() {
               const promo = sampledMove.uci.length > 4 ? sampledMove.uci[4] : undefined;
               chess.move({ from, to, promotion: promo as any });
               
-              // Update turn package with new FEN
-              const newTurn: TurnPackage = {
-                ...turnPackage,
-                fen: chess.fen(),
-                sideToMove: 'b', // Now it's black's (player's) turn
-              };
-              setTurnPackage(newTurn);
-              
               // Add to move history
               setMoveHistory([{ moveNumber: 1, white: sampledMove.san }]);
-              
               console.log('[App] AI first move (Maia):', sampledMove.san);
+              
+              // CRITICAL FIX: Fetch new choices for Black's turn from the server
+              try {
+                const freshTurn = await getTurn(gameId);
+                freshTurn.fen = chess.fen();
+                freshTurn.sideToMove = 'b';
+                setTurnPackage(freshTurn);
+                console.log('[App] Fetched fresh choices for Black turn (Maia)');
+              } catch (fetchErr) {
+                console.error('[App] Failed to fetch fresh choices:', fetchErr);
+                // Fallback: Clear choices
+                const newTurn: TurnPackage = {
+                  ...turnPackage,
+                  fen: chess.fen(),
+                  sideToMove: 'b',
+                  choices: [],
+                };
+                setTurnPackage(newTurn);
+              }
             }
           }
         } else {
-          // For AI master, use a simple engine move or call backend
-          // For simplicity, let's just pick a good opening move
+          // For AI master, use a simple engine move then fetch new choices from server
           const chess = new Chess(turnPackage.fen);
           const openingMoves = ['e2e4', 'd2d4', 'c2c4', 'g1f3'];
           const randomOpening = openingMoves[Math.floor(Math.random() * openingMoves.length)];
@@ -617,14 +626,32 @@ function App() {
           const moveResult = chess.move({ from, to });
           
           if (moveResult) {
-            const newTurn: TurnPackage = {
-              ...turnPackage,
-              fen: chess.fen(),
-              sideToMove: 'b',
-            };
-            setTurnPackage(newTurn);
             setMoveHistory([{ moveNumber: 1, white: moveResult.san }]);
             console.log('[App] AI first move (Master):', moveResult.san);
+            
+            // CRITICAL FIX: Fetch new choices for Black's turn from the server
+            // This ensures choices match the new position, not stale White's choices
+            try {
+              const freshTurn = await getTurn(gameId);
+              // Server may still be at old position, so update FEN if needed
+              if (!freshTurn.fen.includes(chess.fen().split(' ')[0])) {
+                // Server position doesn't match, use our local FEN but server's choices
+                freshTurn.fen = chess.fen();
+              }
+              freshTurn.sideToMove = 'b';
+              setTurnPackage(freshTurn);
+              console.log('[App] Fetched fresh choices for Black turn');
+            } catch (fetchErr) {
+              console.error('[App] Failed to fetch fresh choices, using optimistic update:', fetchErr);
+              // Fallback: Clear choices to prevent showing stale White moves
+              const newTurn: TurnPackage = {
+                ...turnPackage,
+                fen: chess.fen(),
+                sideToMove: 'b',
+                choices: [], // Clear stale choices
+              };
+              setTurnPackage(newTurn);
+            }
           }
         }
       } catch (err) {
@@ -1276,6 +1303,21 @@ function App() {
             response.nextTurn.fen = chessAfterMaia.fen();
             // CRITICAL: Update sideToMove to reflect whose turn it is after the AI move
             response.nextTurn.sideToMove = chessAfterMaia.turn();
+            
+            // CRITICAL FIX: Rebuild choices for the player's turn
+            // Server returned choices for opponent's turn, we need choices for player
+            const playerLegalMoves = chessAfterMaia.moves({ verbose: true });
+            const newChoices = playerLegalMoves.slice(0, 3).map((move, idx) => ({
+              id: String.fromCharCode(65 + idx), // A, B, C
+              moveUci: `${move.from}${move.to}${move.promotion || ''}`,
+              styleId: (['fischer', 'tal', 'capablanca'] as const)[idx],
+              planOneLiner: 'Analyzing position...',
+              pv: [`${move.from}${move.to}`],
+              eval: 0,
+              conceptTags: ['development'] as string[],
+            }));
+            response.nextTurn.choices = newChoices;
+            
             // Track this opponent move for syncing with server on next user move
             pendingOpponentMoveRef.current = maiaMove.moveUci;
             console.log('[App] Maia opponent move applied (guided):', {
@@ -1286,6 +1328,7 @@ function App() {
               fenAfter: chessAfterMaia.fen().substring(0, 40) + '...',
               pendingOpponentMove: maiaMove.moveUci,
               newSideToMove: chessAfterMaia.turn(),
+              newChoicesCount: newChoices.length,
             });
           } catch (maiaError) {
             // Maia suggested an invalid move - fall back to random legal move
@@ -1309,6 +1352,19 @@ function App() {
               };
               response.nextTurn.fen = chessAfterMaia.fen();
               response.nextTurn.sideToMove = chessAfterMaia.turn();
+              
+              // CRITICAL FIX: Rebuild choices for the player's turn
+              const playerLegalMoves = chessAfterMaia.moves({ verbose: true });
+              response.nextTurn.choices = playerLegalMoves.slice(0, 3).map((m, idx) => ({
+                id: String.fromCharCode(65 + idx),
+                moveUci: `${m.from}${m.to}${m.promotion || ''}`,
+                styleId: (['fischer', 'tal', 'capablanca'] as const)[idx],
+                planOneLiner: 'Analyzing position...',
+                pv: [`${m.from}${m.to}`],
+                eval: 0,
+                conceptTags: ['development'] as string[],
+              }));
+              
               pendingOpponentMoveRef.current = fallbackUci;
               setCurrentMaiaPredictions([]);
               console.log('[App] Fallback move applied after Maia error (guided):', randomMove.san);
@@ -1333,6 +1389,19 @@ function App() {
             response.nextTurn.fen = chessForFallback.fen();
             // CRITICAL: Update sideToMove to reflect whose turn it is after the AI move
             response.nextTurn.sideToMove = chessForFallback.turn();
+            
+            // CRITICAL FIX: Rebuild choices for the player's turn
+            const playerLegalMoves = chessForFallback.moves({ verbose: true });
+            response.nextTurn.choices = playerLegalMoves.slice(0, 3).map((m, idx) => ({
+              id: String.fromCharCode(65 + idx),
+              moveUci: `${m.from}${m.to}${m.promotion || ''}`,
+              styleId: (['fischer', 'tal', 'capablanca'] as const)[idx],
+              planOneLiner: 'Analyzing position...',
+              pv: [`${m.from}${m.to}`],
+              eval: 0,
+              conceptTags: ['development'] as string[],
+            }));
+            
             // Track this opponent move for syncing with server on next user move
             const fallbackUci = randomMove.from + randomMove.to + (randomMove.promotion || '');
             pendingOpponentMoveRef.current = fallbackUci;

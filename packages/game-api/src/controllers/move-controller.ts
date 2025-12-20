@@ -288,6 +288,29 @@ export class MoveController {
           justification: aiMoveResult.justification,
         };
         console.log(`[PERF] AI (${aiMoveResult.styleId}) played: ${aiMoveResult.moveSan}`);
+      } else {
+        // CRITICAL FIX: AI move failed - fall back to a random legal move
+        // This prevents the sideToMove / choices desync bug
+        console.error(`[CRITICAL] AI move ${aiMoveResult.moveUci} was invalid! Falling back to random move.`);
+        
+        const legalMoves = game.chess.moves({ verbose: true });
+        if (legalMoves.length > 0) {
+          const fallback = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+          const fallbackUci = `${fallback.from}${fallback.to}${fallback.promotion || ''}`;
+          const fallbackSuccess = this.makeLocalMove(game.chess, fallbackUci);
+          
+          if (fallbackSuccess) {
+            finalFen = game.chess.fen();
+            await this.deps.gameStore.updateGame(gameId, { fen: finalFen });
+            
+            aiMoveInfo = {
+              moveSan: fallback.san,
+              styleId: 'fischer',
+              justification: 'Playing a solid continuation.',
+            };
+            console.log(`[PERF] AI fallback move: ${fallback.san}`);
+          }
+        }
       }
     }
 

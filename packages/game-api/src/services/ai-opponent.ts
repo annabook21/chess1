@@ -84,20 +84,44 @@ export class AIOpponent {
     // Fallback: Use engine's best move (reduced depth for speed)
     console.log('AI falling back to engine move');
     const analysis = await this.deps.engineClient.analyzePosition({ fen, depth: 6 });
-    const bestMoveUci = analysis.pv[0] || this.getRandomLegalMove(chess);
+    let bestMoveUci = analysis.pv[0];
     
-    // Convert to SAN
-    const from = bestMoveUci.substring(0, 2);
-    const to = bestMoveUci.substring(2, 4);
-    const promotion = bestMoveUci.length > 4 ? bestMoveUci[4] : undefined;
+    // Validate engine's best move
+    if (bestMoveUci) {
+      const from = bestMoveUci.substring(0, 2);
+      const to = bestMoveUci.substring(2, 4);
+      const promotion = bestMoveUci.length > 4 ? bestMoveUci[4] : undefined;
+      
+      try {
+        const moveResult = chess.move({ from, to, promotion: promotion as any });
+        if (moveResult) {
+          return {
+            moveUci: bestMoveUci,
+            moveSan: moveResult.san,
+            styleId: 'fischer',
+            justification: 'Playing the objectively strongest continuation.',
+          };
+        }
+      } catch {
+        console.error(`Engine returned invalid move ${bestMoveUci}, using random fallback`);
+      }
+    }
     
-    const moveResult = chess.move({ from, to, promotion: promotion as any });
+    // Final fallback: random legal move (always valid)
+    const randomMoveUci = this.getRandomLegalMove(chess);
+    const from = randomMoveUci.substring(0, 2);
+    const to = randomMoveUci.substring(2, 4);
+    const promotion = randomMoveUci.length > 4 ? randomMoveUci[4] : undefined;
+    
+    // Reset chess instance (previous move attempt may have failed mid-way)
+    const freshChess = new Chess(fen);
+    const moveResult = freshChess.move({ from, to, promotion: promotion as any });
     
     return {
-      moveUci: bestMoveUci,
-      moveSan: moveResult?.san || bestMoveUci,
-      styleId: 'fischer', // Default to Fischer for engine moves
-      justification: 'Playing the objectively strongest continuation.',
+      moveUci: randomMoveUci,
+      moveSan: moveResult?.san || randomMoveUci,
+      styleId: 'fischer',
+      justification: 'Playing a solid continuation.',
     };
   }
 
