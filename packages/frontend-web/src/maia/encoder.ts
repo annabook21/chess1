@@ -269,9 +269,10 @@ function initMoveMappings(): void {
   const PROMO_PIECES = ['n', 'b', 'r']; // Knight, bishop, rook (no queen - that's default)
   
   // Build the mapping: iterate through all 64 squares and 73 move types
-  // This matches the LC0 policy vector layout
-  for (let fromRank = 0; fromRank < 8; fromRank++) {
-    for (let fromFile = 0; fromFile < 8; fromFile++) {
+  // LC0 uses FILE-MAJOR ordering: a1, a2, a3...a8, b1, b2...b8, etc.
+  // This is critical for correct policy index lookup!
+  for (let fromFile = 0; fromFile < 8; fromFile++) {
+    for (let fromRank = 0; fromRank < 8; fromRank++) {
       const from = FILES[fromFile] + RANKS[fromRank];
       
       // Move types 0-55: Queen-like moves (8 directions × 7 distances)
