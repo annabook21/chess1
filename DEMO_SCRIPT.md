@@ -236,6 +236,13 @@
 **What to say:**
 > "At game end, you get a summary: XP earned, rating change, accuracy percentage, and the emotional arc pattern for this game. Ready for another round?"
 
+**Technical Note - Lichess-Style Accuracy:**
+> "The accuracy percentage uses the **Lichess formula**:
+> 1. Convert each position's centipawn evaluation to **Win Probability** using: `1 / (1 + e^(-0.00368208 × cp))`
+> 2. Calculate per-move accuracy from the Win% change before/after
+> 3. Aggregate using **harmonic mean** — this weights bad moves more heavily than arithmetic mean
+> 4. Display with descriptive labels: 'Excellent' (90%+), 'Good' (75%+), 'Average' (60%+)"
+
 ---
 
 *[End of hands-on walkthrough. Transition to architecture discussion.]*
@@ -751,6 +758,14 @@ const LC0_POLICY_INDEX = [
 ```
 
 > "This is copied directly from the official `lczero-training` repository. The order matters — it must match the model output exactly."
+
+**Promotion Encoding:**
+
+> "The policy uses LC0's standard promotion encoding:
+> - **Queen promotions**: Just the base move (e.g., `e7e8` = pawn promotes to queen)
+> - **Underpromotions**: Explicit suffix for knight, rook, bishop (e.g., `e7e8n`, `e7e8r`, `e7e8b`)
+>
+> This is efficient — queen is the default (most common), underpromotions are explicit."
 
 ### Inference: The predict() Method
 
@@ -1625,8 +1640,13 @@ if (request.opponentMoveUci) {
 
 **Common Bugs:**
 - Passing SAN to a UCI endpoint → `Invalid move: e4`
-- Promotion without suffix → `e7e8` instead of `e7e8q`
+- Missing promotion piece → `e7e8` without suffix when chess.js needs to know the piece
 - Castling inconsistency → `e1g1` (UCI) vs `O-O` (SAN)
+
+**Promotion Encoding:**
+- **Maia/LC0 policy**: Queen = base move (`e7e8`), underpromotions = explicit (`e7e8n`, `e7e8r`, `e7e8b`)
+- **chess.js**: Always needs explicit promotion piece for any promotion move
+- **Conversion**: Add `q` suffix when parsing base promotion moves for chess.js
 
 **Our Convention:**
 
