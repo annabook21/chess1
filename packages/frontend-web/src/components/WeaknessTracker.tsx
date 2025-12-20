@@ -13,6 +13,11 @@ import {
   GamePhase,
 } from '@master-academy/contracts';
 import { PixelIcon } from '../ui/castle/PixelIcon';
+import { 
+  calculateOverallAccuracy, 
+  calculateAccuracyFromCentipawns,
+  getAccuracyDescription,
+} from '../utils/accuracy';
 import './WeaknessTracker.css';
 
 // Define tags locally to avoid ESM/CJS compatibility issues
@@ -333,18 +338,30 @@ export const WeaknessTracker: React.FC<WeaknessTrackerProps> = ({ isOpen, onClos
     }
   }, [isOpen]);
   
-  // Calculate overall accuracy
+  // Calculate overall accuracy using Lichess-style harmonic mean
   const overallAccuracy = useMemo(() => {
-    const total = profile.totalMoves;
-    if (total === 0) return 0;
+    if (profile.recentMoves.length === 0) return 0;
     
-    const good = profile.qualityDistribution.brilliant 
-      + profile.qualityDistribution.great 
-      + profile.qualityDistribution.good
-      + profile.qualityDistribution.book;
+    // Calculate per-move accuracies
+    const moveAccuracies = profile.recentMoves.map(move => {
+      // Use stored accuracy if available
+      if (move.accuracy !== undefined) {
+        return move.accuracy;
+      }
+      // Otherwise calculate from eval data
+      // Determine if it was Black's move from FEN
+      const isBlackMove = move.fen.includes(' b ');
+      return calculateAccuracyFromCentipawns(move.evalBefore, move.evalAfter, isBlackMove);
+    });
     
-    return Math.round((good / total) * 100);
+    // Use harmonic mean for overall accuracy (Lichess method)
+    return calculateOverallAccuracy(moveAccuracies);
   }, [profile]);
+  
+  // Get accuracy description for display
+  const accuracyDescription = useMemo(() => {
+    return getAccuracyDescription(overallAccuracy);
+  }, [overallAccuracy]);
   
   if (!isOpen) return null;
   
@@ -373,6 +390,7 @@ export const WeaknessTracker: React.FC<WeaknessTrackerProps> = ({ isOpen, onClos
           <div className="wt-stat-card accent">
             <span className="wt-stat-value">{overallAccuracy}%</span>
             <span className="wt-stat-label">Overall Accuracy</span>
+            <span className="wt-stat-sublabel">{accuracyDescription}</span>
           </div>
           <div className="wt-stat-card">
             <span className="wt-stat-value">{profile.topWeaknesses.length}</span>
@@ -660,6 +678,17 @@ export const WeaknessTracker: React.FC<WeaknessTrackerProps> = ({ isOpen, onClos
           <p className="wt-footer-tip">
             💡 Tip: Focus on your top weakness for fastest improvement!
           </p>
+          <button 
+            className="wt-reset-btn"
+            onClick={() => {
+              if (window.confirm('Reset all tracking data? This cannot be undone.')) {
+                localStorage.removeItem('masterAcademy_moveHistory');
+                setProfile(createEmptyProfile());
+              }
+            }}
+          >
+            🗑️ Reset Stats
+          </button>
         </div>
       </div>
     </div>

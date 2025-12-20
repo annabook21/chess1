@@ -27,10 +27,12 @@ import {
   trackMove,
   getGamePhase,
   getMoveQuality,
+  getChoiceAccuracy,
   detectMissedTactics,
   getPositionConcepts,
   uciToSan,
 } from '../utils/moveTracker';
+import { getQualityFromAccuracy } from '../utils/accuracy';
 import {
   createGameActor,
   submitMoveActor,
@@ -285,9 +287,15 @@ export const gameMachine = setup({
         // Use choice delta for quality, but store feedback delta for reference
         const delta = choiceDelta;
         
-        // Get move quality based on how close to best choice
+        // Determine if it's Black's move from the FEN
+        const isBlackMove = currentFen.includes(' b ');
+        
+        // Calculate Lichess-style accuracy (0-100) based on choice comparison
+        const accuracy = getChoiceAccuracy(bestMoveEval, playedChoiceEval, isBlackMove);
+        
+        // Get move quality based on accuracy (Lichess-style)
         const wasBestMove = choice.moveUci === bestMoveUci;
-        const quality = getMoveQuality(delta, wasBestMove);
+        const quality = getQualityFromAccuracy(accuracy, wasBestMove);
         
         // Get game phase and concepts
         const phase = getGamePhase(currentFen);
@@ -311,12 +319,13 @@ export const gameMachine = setup({
             evalBefore,
             evalAfter,
             delta,
+            accuracy, // Lichess-style accuracy (0-100)
             quality,
             phase,
             conceptTags: [...new Set([...positionConcepts, ...feedbackConcepts])],
             missedTactics,
           });
-          console.log(`[handleMoveSubmitted] Tracked move: ${choice.moveUci}, quality: ${quality}, delta: ${delta}, evalBefore: ${evalBefore}, evalAfter: ${evalAfter}, feedbackDelta: ${feedback.delta}, wasBestMove: ${wasBestMove}`);
+          console.log(`[handleMoveSubmitted] Tracked move: ${choice.moveUci}, quality: ${quality}, accuracy: ${accuracy}%, delta: ${delta}cp, wasBestMove: ${wasBestMove}`);
         } catch (e) {
           console.warn('[handleMoveSubmitted] Failed to track move:', e);
         }

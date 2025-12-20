@@ -207,7 +207,8 @@ export interface MoveRecord {
   bestMoveUci: string;           // Engine's best move
   evalBefore: number;            // Eval before move (centipawns)
   evalAfter: number;             // Eval after move (centipawns)
-  delta: number;                 // Eval change
+  delta: number;                 // Eval change (centipawns)
+  accuracy?: number;             // Lichess-style accuracy (0-100)
   quality: MoveQuality;          // Move quality classification
   phase: GamePhase;              // Game phase when move was made
   conceptTags: string[];         // Concepts present in the position

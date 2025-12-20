@@ -1,10 +1,17 @@
 /**
  * Move Tracker Utility
  * Stores move data for weakness analysis
+ * 
+ * Uses Lichess-style accuracy calculation for move quality
  */
 
 import { MoveRecord, MoveQuality, GamePhase } from '@master-academy/contracts';
 import { Chess } from 'chess.js';
+import {
+  calculateAccuracyFromCentipawns,
+  getQualityFromAccuracy,
+  centipawnToWinPercent,
+} from './accuracy';
 
 const STORAGE_KEY = 'masterAcademy_moveHistory';
 const MAX_MOVES = 500; // Keep last 500 moves
@@ -33,16 +40,64 @@ export function getGamePhase(fen: string): GamePhase {
 }
 
 /**
- * Classify move quality based on evaluation delta
+ * Classify move quality based on evaluation delta (legacy, centipawn-based)
+ * @deprecated Use getMoveQualityFromEval for Lichess-style accuracy
  */
 export function getMoveQuality(delta: number, wasBestMove: boolean): MoveQuality {
-  if (wasBestMove && delta >= 50) return 'brilliant';
-  if (delta >= 50) return 'great';
-  if (delta >= -10) return 'good';
-  if (delta >= -30) return 'book';
-  if (delta >= -100) return 'inaccuracy';
-  if (delta >= -200) return 'mistake';
-  return 'blunder';
+  // Convert centipawn delta to approximate accuracy
+  // delta of 0 = 100% accuracy, delta of -100 = ~60% accuracy
+  const accuracy = Math.max(0, Math.min(100, 100 + delta));
+  return getQualityFromAccuracy(accuracy, wasBestMove);
+}
+
+/**
+ * Classify move quality using Lichess-style accuracy calculation
+ * This considers the win% impact rather than raw centipawn loss
+ * 
+ * @param evalBefore - Position eval before move (centipawns)
+ * @param evalAfter - Position eval after move (centipawns)  
+ * @param wasBestMove - Whether this was the engine's top choice
+ * @param isBlackToMove - Whether it's Black's turn (flips perspective)
+ * @returns Move quality classification and accuracy percentage
+ */
+export function getMoveQualityFromEval(
+  evalBefore: number,
+  evalAfter: number,
+  wasBestMove: boolean,
+  isBlackToMove: boolean = false
+): { quality: MoveQuality; accuracy: number } {
+  const accuracy = calculateAccuracyFromCentipawns(evalBefore, evalAfter, isBlackToMove);
+  const quality = getQualityFromAccuracy(accuracy, wasBestMove);
+  
+  return { quality, accuracy };
+}
+
+/**
+ * Calculate accuracy comparing played move to best move
+ * This is the most accurate method when you have both evaluations
+ * 
+ * @param bestMoveEval - Eval after best move (centipawns)
+ * @param playedMoveEval - Eval after played move (centipawns)
+ * @param isBlackToMove - Whether it's Black's turn
+ * @returns Accuracy percentage (0-100)
+ */
+export function getChoiceAccuracy(
+  bestMoveEval: number,
+  playedMoveEval: number,
+  isBlackToMove: boolean = false
+): number {
+  // For choice comparison, we look at how close the played move is to the best
+  const bestWin = centipawnToWinPercent(isBlackToMove ? -bestMoveEval : bestMoveEval);
+  const playedWin = centipawnToWinPercent(isBlackToMove ? -playedMoveEval : playedMoveEval);
+  
+  // Win% lost by not playing the best move
+  const winLost = Math.max(0, bestWin - playedWin);
+  
+  // Convert to accuracy (0 win lost = 100% accuracy)
+  // Scale: losing 50% win chance = 0% accuracy
+  const accuracy = Math.max(0, 100 - (winLost * 2));
+  
+  return Math.round(accuracy);
 }
 
 /**
@@ -60,7 +115,14 @@ export function detectMissedTactics(
   const chess = new Chess(fen);
   
   // Check best move for tactical patterns
-  const bestMoveObj = chess.move({ from: bestMove.slice(0, 2), to: bestMove.slice(2, 4) });
+  // SAFETY: bestMove might be invalid if FEN state was out of sync
+  let bestMoveObj;
+  try {
+    bestMoveObj = chess.move({ from: bestMove.slice(0, 2), to: bestMove.slice(2, 4) });
+  } catch (e) {
+    console.warn('[detectMissedTactics] bestMove invalid for position:', bestMove, fen.substring(0, 30));
+    return []; // Can't detect tactics if bestMove is invalid
+  }
   if (bestMoveObj) {
     // Fork detection (simplified)
     if (bestMoveObj.piece === 'n' || bestMoveObj.piece === 'p') {
