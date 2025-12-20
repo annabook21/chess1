@@ -1,5 +1,6 @@
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import AppXState from './AppXState';
 import { MaiaProvider } from './maia';
 import { ThemeProvider } from './theme';
 import { AchievementProvider } from './achievements';
@@ -22,18 +23,18 @@ import './index.css';
  * 
  * Set USE_XSTATE to true in ./machines/GameProvider.tsx to enable.
  * 
- * Current status:
+ * Current status (Phase 2):
  * - XState machine infrastructure is complete
+ * - AppXState component consumes from machine context
  * - Actors for API calls use invoke pattern
  * - Tests pass with mocked actors
- * - UI integration pending (requires matching component interfaces)
  */
 function AppWithXState() {
   return (
     <GameMachineProvider>
       <MaiaBridge>
         <NarrationBridge>
-          <App />
+          <AppXState />
         </NarrationBridge>
       </MaiaBridge>
     </GameMachineProvider>
