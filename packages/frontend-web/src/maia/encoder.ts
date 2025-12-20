@@ -424,12 +424,24 @@ export function decodePolicyToMoves(
 /**
  * Flip a UCI move for black's perspective
  * Lc0 encodes moves from the side to move's perspective
+ * 
+ * For Black's moves, we need to flip the board:
+ * - Files: a↔h, b↔g, c↔f, d↔e
+ * - Ranks: 1↔8, 2↔7, 3↔6, 4↔5
+ * 
+ * Example: e7e5 (Black's e-pawn) → d2d4 (in policy space)
  */
 function flipUci(uci: string): string {
   const flipSquare = (sq: string): string => {
-    const file = String.fromCharCode('h'.charCodeAt(0) - (sq.charCodeAt(0) - 'a'.charCodeAt(0)));
-    const rank = String.fromCharCode('9'.charCodeAt(0) - sq.charCodeAt(1));
-    return file + rank;
+    // Flip file: a(0)↔h(7), b(1)↔g(6), etc.
+    const fileIdx = sq.charCodeAt(0) - 'a'.charCodeAt(0);
+    const flippedFile = String.fromCharCode('a'.charCodeAt(0) + (7 - fileIdx));
+    
+    // Flip rank: 1↔8, 2↔7, etc.
+    const rankNum = parseInt(sq[1]);
+    const flippedRank = String(9 - rankNum);
+    
+    return flippedFile + flippedRank;
   };
   
   const from = uci.slice(0, 2);
