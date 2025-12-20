@@ -1,0 +1,784 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * SIERRA VGA AUTHENTIC THEME
+ * Recreating the Quest for Glory / King's Quest VGA aesthetic (1990-1994)
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * Key features:
+ * - Beveled 3D borders (Windows 3.1 style)
+ * - Stone/parchment textures
+ * - VGA 256-color palette
+ * - Hard pixel edges (no anti-aliasing)
+ * - Ornate decorative frames
+ * - No blur or modern glass effects
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VGA COLOR PALETTE
+   Based on actual Quest for Glory 4 colors
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Stone grays - for frames and borders */
+  --vga-stone-light: #a8a8a8;
+  --vga-stone-mid: #808080;
+  --vga-stone-dark: #505050;
+  --vga-stone-shadow: #282828;
+  
+  /* Parchment/paper - for content areas */
+  --vga-parchment: #d4c4a8;
+  --vga-parchment-dark: #b0a080;
+  --vga-parchment-light: #e8dcc8;
+  
+  /* Wood browns - for frames */
+  --vga-wood-light: #c09060;
+  --vga-wood-mid: #906830;
+  --vga-wood-dark: #604018;
+  
+  /* Jewel tones - for accents */
+  --vga-gold: #d4a828;
+  --vga-gold-light: #f0d048;
+  --vga-gold-dark: #a07810;
+  --vga-ruby: #a82020;
+  --vga-emerald: #20a840;
+  --vga-sapphire: #3050a8;
+  
+  /* UI colors */
+  --vga-bg-dark: #181020;
+  --vga-bg-mid: #282038;
+  --vga-text-light: #e8e0d0;
+  --vga-text-gold: #f0d070;
+  
+  /* Bevel colors for 3D effect */
+  --bevel-light: #c8c8c8;
+  --bevel-dark: #383838;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GLOBAL PIXEL RENDERING
+   Force crisp pixel edges on everything
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme,
+.sierra-theme * {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+}
+
+/* Remove ALL modern rounded corners - aggressive global override */
+.sierra-theme *,
+.sierra-theme *::before,
+.sierra-theme *::after {
+  border-radius: 0 !important;
+}
+
+/* Additional specific overrides for stubborn elements */
+.sierra-theme .settings-panel,
+.sierra-theme .tone-btn,
+.sierra-theme .effect-toggle,
+.sierra-theme .opponent-btn,
+.sierra-theme .play-mode-btn,
+.sierra-theme .color-btn,
+.sierra-theme .maia-rating-selector,
+.sierra-theme .btn,
+.sierra-theme .choices-section,
+.sierra-theme .prediction-result,
+.sierra-theme .game-mode-controls,
+.sierra-theme .mode-btn,
+.sierra-theme .castle-action-btn,
+.sierra-theme .ritual-bar__button,
+.sierra-theme .ritual-bar,
+.sierra-theme .action-bar,
+.sierra-theme .action-bar__button,
+.sierra-theme button,
+.sierra-theme [class*="btn"],
+.sierra-theme [class*="button"],
+.sierra-theme [class*="toggle"],
+.sierra-theme [class*="card"],
+.sierra-theme [class*="panel"],
+.sierra-theme [class*="modal"],
+.sierra-theme [class*="dialog"],
+.sierra-theme [class*="toast"],
+.sierra-theme [class*="overlay"],
+.sierra-theme input,
+.sierra-theme select,
+.sierra-theme textarea {
+  border-radius: 0 !important;
+}
+
+/* Remove all blur effects */
+.sierra-theme .settings-overlay,
+.sierra-theme .castle-map-modal {
+  backdrop-filter: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BEVELED BORDER MIXIN (3D raised effect)
+   Classic Windows 3.1 / Sierra VGA style
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-bevel-raised {
+  border: 2px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  box-shadow: 
+    inset 1px 1px 0 var(--bevel-light),
+    inset -1px -1px 0 var(--bevel-dark);
+}
+
+.sierra-bevel-inset {
+  border: 2px solid;
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+  box-shadow: 
+    inset 1px 1px 0 var(--bevel-dark),
+    inset -1px -1px 0 var(--bevel-light);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STONE TEXTURE BACKGROUND
+   Repeating pixel pattern like castle walls
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .app {
+  background: 
+    /* Stone brick pattern overlay */
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 8px,
+      rgba(0, 0, 0, 0.1) 8px,
+      rgba(0, 0, 0, 0.1) 9px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 16px,
+      rgba(0, 0, 0, 0.05) 16px,
+      rgba(0, 0, 0, 0.05) 17px
+    ),
+    /* Base gradient */
+    linear-gradient(180deg, #282038 0%, #181020 100%);
+  background-attachment: fixed;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ORNATE FRAME STYLE
+   Double border with corner decorations
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-frame {
+  position: relative;
+  background: var(--vga-bg-mid);
+  
+  /* Outer dark border */
+  border: 4px solid var(--vga-stone-shadow);
+  
+  /* Beveled inner edge */
+  box-shadow: 
+    /* Inner light (top-left) */
+    inset 4px 4px 0 var(--vga-stone-mid),
+    /* Inner dark (bottom-right) */
+    inset -4px -4px 0 var(--vga-stone-dark),
+    /* Second layer light */
+    inset 6px 6px 0 var(--vga-stone-light),
+    /* Second layer dark */
+    inset -6px -6px 0 var(--vga-stone-shadow),
+    /* Outer shadow */
+    4px 4px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Corner decorations */
+.sierra-frame::before,
+.sierra-frame::after {
+  content: '◆';
+  position: absolute;
+  font-size: 12px;
+  color: var(--vga-gold);
+  text-shadow: 1px 1px 0 var(--vga-gold-dark);
+}
+
+.sierra-frame::before {
+  top: 2px;
+  left: 4px;
+}
+
+.sierra-frame::after {
+  top: 2px;
+  right: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PANEL STYLES (Settings, Dialogs, etc.)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .settings-panel {
+  background: var(--vga-bg-mid);
+  border: 4px solid var(--vga-stone-shadow);
+  box-shadow: 
+    inset 2px 2px 0 var(--vga-stone-mid),
+    inset -2px -2px 0 var(--vga-stone-dark),
+    6px 6px 0 rgba(0, 0, 0, 0.6);
+}
+
+.sierra-theme .settings-header {
+  background: linear-gradient(
+    180deg,
+    var(--vga-wood-mid) 0%,
+    var(--vga-wood-dark) 100%
+  );
+  border-bottom: 3px solid;
+  border-color: var(--vga-wood-dark);
+  box-shadow: 
+    inset 0 2px 0 var(--vga-wood-light),
+    inset 0 -1px 0 var(--vga-stone-shadow);
+}
+
+.sierra-theme .settings-title {
+  color: var(--vga-gold-light);
+  text-shadow: 
+    2px 2px 0 var(--vga-stone-shadow),
+    1px 1px 0 var(--vga-gold-dark);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BUTTONS - Chunky 3D beveled style
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .btn,
+.sierra-theme .tone-btn,
+.sierra-theme .opponent-btn,
+.sierra-theme .play-mode-btn,
+.sierra-theme .mode-btn {
+  background: var(--vga-stone-mid);
+  border: 3px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  box-shadow: 
+    inset 1px 1px 0 #e0e0e0,
+    inset -1px -1px 0 #404040,
+    2px 2px 0 rgba(0, 0, 0, 0.4);
+  color: var(--vga-text-light);
+  text-shadow: 1px 1px 0 var(--vga-stone-shadow);
+  transition: none; /* No smooth transitions! */
+}
+
+.sierra-theme .btn:hover,
+.sierra-theme .tone-btn:hover,
+.sierra-theme .opponent-btn:hover,
+.sierra-theme .play-mode-btn:hover,
+.sierra-theme .mode-btn:hover {
+  background: var(--vga-stone-light);
+  transform: none;
+}
+
+.sierra-theme .btn:active,
+.sierra-theme .tone-btn:active,
+.sierra-theme .btn.active,
+.sierra-theme .tone-btn.active,
+.sierra-theme .mode-btn.active {
+  /* Pressed state - invert bevel */
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+  box-shadow: 
+    inset 2px 2px 0 #404040,
+    inset -1px -1px 0 #a0a0a0;
+  background: var(--vga-stone-dark);
+}
+
+.sierra-theme .btn-primary {
+  background: linear-gradient(
+    180deg,
+    var(--vga-gold) 0%,
+    var(--vga-gold-dark) 100%
+  );
+  color: var(--vga-stone-shadow);
+  text-shadow: 0 1px 0 var(--vga-gold-light);
+  border-color: var(--vga-gold-light) var(--vga-gold-dark) var(--vga-gold-dark) var(--vga-gold-light);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CHOICES SECTION - Parchment scroll look
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .choices-section {
+  background: 
+    /* Parchment texture */
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(139, 90, 43, 0.03) 2px,
+      rgba(139, 90, 43, 0.03) 4px
+    ),
+    var(--vga-parchment);
+  border: 4px solid var(--vga-wood-dark);
+  box-shadow: 
+    inset 3px 3px 0 var(--vga-parchment-light),
+    inset -3px -3px 0 var(--vga-parchment-dark),
+    4px 4px 0 rgba(0, 0, 0, 0.5);
+}
+
+.sierra-theme .choices-section .section-title {
+  color: var(--vga-wood-dark);
+  text-shadow: 1px 1px 0 var(--vga-parchment-light);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GAME MODE CONTROLS - Stone tablet look
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .game-mode-controls {
+  background: var(--vga-stone-mid);
+  border: 3px solid;
+  border-color: var(--vga-stone-light) var(--vga-stone-shadow) var(--vga-stone-shadow) var(--vga-stone-light);
+  box-shadow: 
+    inset 2px 2px 0 var(--vga-stone-light),
+    inset -2px -2px 0 var(--vga-stone-dark),
+    3px 3px 0 rgba(0, 0, 0, 0.4);
+}
+
+.sierra-theme .mode-label {
+  color: var(--vga-text-gold);
+  text-shadow: 1px 1px 0 var(--vga-stone-shadow);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SPIRIT WHISPER - Darker, more mysterious
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .spirit-whisper__frame {
+  background: var(--vga-bg-dark);
+  border: 4px solid var(--vga-stone-shadow);
+  box-shadow: 
+    inset 3px 3px 0 var(--vga-stone-dark),
+    inset -3px -3px 0 #080808,
+    4px 4px 0 rgba(0, 0, 0, 0.7),
+    0 0 20px rgba(100, 80, 200, 0.2);
+}
+
+.sierra-theme .spirit-whisper__text {
+  color: var(--vga-text-gold);
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-size: 12px;
+  text-shadow: 1px 1px 0 var(--vga-bg-dark);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOAST NOTIFICATIONS - Scroll/banner style
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .illegal-move-toast,
+.sierra-theme .check-indicator-toast {
+  background: var(--vga-parchment);
+  border: 4px solid var(--vga-wood-dark);
+  box-shadow: 
+    inset 2px 2px 0 var(--vga-parchment-light),
+    inset -2px -2px 0 var(--vga-parchment-dark),
+    4px 4px 0 rgba(0, 0, 0, 0.6);
+  animation: none; /* No smooth animations */
+}
+
+.sierra-theme .illegal-move-text,
+.sierra-theme .check-indicator-text {
+  color: var(--vga-wood-dark);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  text-shadow: 1px 1px 0 var(--vga-parchment-light);
+}
+
+.sierra-theme .check-indicator-toast {
+  border-color: var(--vga-ruby);
+  background: linear-gradient(
+    180deg,
+    #f0d0d0 0%,
+    #e0b0b0 100%
+  );
+}
+
+.sierra-theme .check-indicator-text {
+  color: var(--vga-ruby);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACTION ICON BAR (Sierra-style verb icons)
+   If you add an icon bar, use these styles
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-icon-bar {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--vga-stone-mid);
+  border: 3px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+}
+
+.sierra-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--vga-stone-light);
+  border: 2px solid;
+  border-color: #e0e0e0 #404040 #404040 #e0e0e0;
+  cursor: pointer;
+}
+
+.sierra-icon:active,
+.sierra-icon.active {
+  border-color: #404040 #e0e0e0 #e0e0e0 #404040;
+  background: var(--vga-stone-dark);
+}
+
+.sierra-icon img {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCROLLBARS - Chunky pixel style
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme ::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+.sierra-theme ::-webkit-scrollbar-track {
+  background: var(--vga-stone-dark);
+  border: 2px solid;
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+}
+
+.sierra-theme ::-webkit-scrollbar-thumb {
+  background: var(--vga-stone-mid);
+  border: 2px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+}
+
+.sierra-theme ::-webkit-scrollbar-thumb:hover {
+  background: var(--vga-stone-light);
+}
+
+.sierra-theme ::-webkit-scrollbar-button {
+  background: var(--vga-stone-mid);
+  border: 2px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  height: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CRT SCANLINE EFFECT (Optional, enhanced)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme.effect-scanlines::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15) 0px,
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  z-index: 99999;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DISABLE MODERN EFFECTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme * {
+  /* Remove all transitions */
+  transition: none !important;
+}
+
+/* Remove glowing box shadows */
+.sierra-theme .tone-btn.active,
+.sierra-theme .opponent-btn.active,
+.sierra-theme .play-mode-btn.active {
+  box-shadow: 
+    inset 2px 2px 0 #404040,
+    inset -1px -1px 0 #a0a0a0 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOTTOM ACTION BAR - Ritual/Action buttons
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .ritual-bar,
+.sierra-theme .action-bar,
+.sierra-theme [class*="ritual-bar"],
+.sierra-theme [class*="action-bar"] {
+  background: var(--vga-stone-mid) !important;
+  border: 3px solid !important;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light) !important;
+  box-shadow: 
+    inset 1px 1px 0 var(--vga-stone-light),
+    inset -1px -1px 0 var(--vga-stone-dark),
+    0 -2px 4px rgba(0, 0, 0, 0.3) !important;
+  padding: 6px !important;
+  gap: 4px !important;
+}
+
+.sierra-theme .ritual-bar__button,
+.sierra-theme [class*="ritual-bar"] button,
+.sierra-theme [class*="action-bar"] button {
+  background: var(--vga-stone-light) !important;
+  border: 3px solid !important;
+  border-color: #e0e0e0 #404040 #404040 #e0e0e0 !important;
+  box-shadow: 
+    inset 1px 1px 0 #f0f0f0,
+    inset -1px -1px 0 #606060 !important;
+  color: var(--vga-stone-shadow) !important;
+  text-shadow: none !important;
+  font-weight: bold !important;
+}
+
+.sierra-theme .ritual-bar__button:hover,
+.sierra-theme [class*="ritual-bar"] button:hover,
+.sierra-theme [class*="action-bar"] button:hover {
+  background: #c8c8c8 !important;
+}
+
+.sierra-theme .ritual-bar__button:active,
+.sierra-theme .ritual-bar__button.active,
+.sierra-theme [class*="ritual-bar"] button:active,
+.sierra-theme [class*="action-bar"] button:active {
+  border-color: #404040 #e0e0e0 #e0e0e0 #404040 !important;
+  box-shadow: 
+    inset 2px 2px 0 #505050,
+    inset -1px -1px 0 #a0a0a0 !important;
+  background: var(--vga-stone-mid) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOGGLE BUTTONS (Attacks, Threats, Key Squares)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .toggle-group,
+.sierra-theme [class*="toggle"] {
+  background: transparent !important;
+}
+
+.sierra-theme .toggle-btn,
+.sierra-theme [class*="toggle-btn"],
+.sierra-theme .effect-toggle {
+  background: var(--vga-stone-mid) !important;
+  border: 2px solid !important;
+  border-color: #b0b0b0 #505050 #505050 #b0b0b0 !important;
+  box-shadow: 
+    inset 1px 1px 0 #c8c8c8,
+    inset -1px -1px 0 #404040 !important;
+  color: var(--vga-text-light) !important;
+  padding: 6px 12px !important;
+}
+
+.sierra-theme .toggle-btn:hover,
+.sierra-theme [class*="toggle-btn"]:hover,
+.sierra-theme .effect-toggle:hover {
+  background: var(--vga-stone-light) !important;
+}
+
+.sierra-theme .toggle-btn.active,
+.sierra-theme [class*="toggle-btn"].active,
+.sierra-theme .effect-toggle.active,
+.sierra-theme .toggle-btn:active {
+  border-color: #505050 #b0b0b0 #b0b0b0 #505050 !important;
+  box-shadow: 
+    inset 2px 2px 0 #404040,
+    inset -1px -1px 0 #909090 !important;
+  background: var(--vga-stone-dark) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CHESSBOARD FRAME
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .board-container,
+.sierra-theme [class*="chessboard"],
+.sierra-theme .chessboard-wrapper {
+  border: 4px solid !important;
+  border-color: var(--vga-wood-light) var(--vga-wood-dark) var(--vga-wood-dark) var(--vga-wood-light) !important;
+  box-shadow: 
+    inset 2px 2px 0 var(--vga-wood-mid),
+    inset -2px -2px 0 #402810,
+    6px 6px 0 rgba(0, 0, 0, 0.4) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIDEBAR ICONS (Settings, Castle map, etc.)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .sidebar-icon,
+.sierra-theme [class*="sidebar"] button,
+.sierra-theme .icon-button {
+  background: var(--vga-stone-mid) !important;
+  border: 2px solid !important;
+  border-color: #c0c0c0 #404040 #404040 #c0c0c0 !important;
+  box-shadow: 
+    inset 1px 1px 0 #d0d0d0,
+    inset -1px -1px 0 #505050,
+    2px 2px 0 rgba(0, 0, 0, 0.3) !important;
+}
+
+.sierra-theme .sidebar-icon:hover,
+.sierra-theme [class*="sidebar"] button:hover,
+.sierra-theme .icon-button:hover {
+  background: var(--vga-stone-light) !important;
+}
+
+.sierra-theme .sidebar-icon:active,
+.sierra-theme [class*="sidebar"] button:active,
+.sierra-theme .icon-button:active {
+  border-color: #404040 #c0c0c0 #c0c0c0 #404040 !important;
+  box-shadow: 
+    inset 2px 2px 0 #505050 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   XP/STATS DISPLAY
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .xp-display,
+.sierra-theme [class*="stats"],
+.sierra-theme [class*="score"] {
+  color: var(--vga-gold) !important;
+  text-shadow: 
+    1px 1px 0 var(--vga-stone-shadow),
+    -1px -1px 0 var(--vga-gold-dark) !important;
+  font-weight: bold !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HEADER/TITLE BAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .app-header,
+.sierra-theme header,
+.sierra-theme [class*="header"] {
+  background: linear-gradient(
+    180deg,
+    var(--vga-bg-mid) 0%,
+    var(--vga-bg-dark) 100%
+  ) !important;
+  border-bottom: 3px solid var(--vga-stone-shadow) !important;
+  box-shadow: 0 2px 0 var(--vga-stone-dark) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOGO - Pixel perfect
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .logo,
+.sierra-theme [class*="logo"] {
+  image-rendering: pixelated !important;
+  -webkit-font-smoothing: none !important;
+}
+
+.sierra-theme .logo-text {
+  color: var(--vga-gold-light) !important;
+  text-shadow: 
+    2px 2px 0 var(--vga-stone-shadow),
+    1px 1px 0 var(--vga-ruby) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIZ BUTTONS (Attacks, Threats, Key Squares toggles)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .viz-btn {
+  background: var(--vga-stone-mid) !important;
+  border: 2px solid !important;
+  border-color: #c0c0c0 #505050 #505050 #c0c0c0 !important;
+  border-radius: 0 !important;
+  box-shadow: 
+    inset 1px 1px 0 #d0d0d0,
+    inset -1px -1px 0 #404040,
+    2px 2px 0 rgba(0, 0, 0, 0.3) !important;
+  color: var(--vga-text-light) !important;
+  transition: none !important;
+}
+
+.sierra-theme .viz-btn:hover {
+  background: var(--vga-stone-light) !important;
+}
+
+.sierra-theme .viz-btn.active {
+  border-color: #505050 #c0c0c0 #c0c0c0 #505050 !important;
+  box-shadow: 
+    inset 2px 2px 0 #404040,
+    inset -1px -1px 0 #909090 !important;
+  background: var(--vga-sapphire) !important;
+  color: #fff !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOTTOM NAVIGATION BAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sierra-theme .bottom-nav {
+  background: var(--vga-stone-mid) !important;
+  border-top: 3px solid !important;
+  border-color: var(--bevel-light) !important;
+  box-shadow: 
+    inset 0 2px 0 var(--vga-stone-light),
+    0 -4px 8px rgba(0, 0, 0, 0.4) !important;
+  padding: 6px !important;
+  gap: 4px !important;
+}
+
+.sierra-theme .bottom-nav-item {
+  background: var(--vga-stone-light) !important;
+  border: 3px solid !important;
+  border-color: #e0e0e0 #404040 #404040 #e0e0e0 !important;
+  border-radius: 0 !important;
+  box-shadow: 
+    inset 1px 1px 0 #f0f0f0,
+    inset -1px -1px 0 #606060 !important;
+  color: var(--vga-stone-shadow) !important;
+  transition: none !important;
+  padding: 8px 16px !important;
+}
+
+.sierra-theme .bottom-nav-item:hover {
+  background: #d8d8d8 !important;
+}
+
+.sierra-theme .bottom-nav-item:active,
+.sierra-theme .bottom-nav-item.active {
+  border-color: #404040 #e0e0e0 #e0e0e0 #404040 !important;
+  box-shadow: 
+    inset 2px 2px 0 #505050,
+    inset -1px -1px 0 #a0a0a0 !important;
+  background: var(--vga-stone-mid) !important;
+}
+
+.sierra-theme .bottom-nav-primary {
+  background: linear-gradient(180deg, var(--vga-gold) 0%, var(--vga-gold-dark) 100%) !important;
+  border-color: var(--vga-gold-light) #604018 #604018 var(--vga-gold-light) !important;
+  color: #301800 !important;
+  font-weight: bold !important;
+}
+
+.sierra-theme .bottom-nav-badge {
+  background: var(--vga-stone-dark) !important;
+  border: 1px solid #404040 !important;
+  border-radius: 0 !important;
+  color: var(--vga-gold) !important;
+  padding: 2px 6px !important;
+  font-size: 10px !important;
+}
+
+.sierra-theme .bottom-nav-badge.on {
+  background: var(--vga-emerald) !important;
+  color: #fff !important;
+}
+
+

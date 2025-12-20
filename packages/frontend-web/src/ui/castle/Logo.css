@@ -1,83 +1,290 @@
 /**
  * Quest for Grandmaster Logo Styles
+ * Sierra VGA-era adventure game aesthetic
+ * Inspired by Quest for Glory, King's Quest title screens
  */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN LOGO - Ornate framed illustration with title banner
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 .qfg-logo {
   display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.qfg-logo__dragon {
-  flex-shrink: 0;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-}
-
-.qfg-logo__text {
-  display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: center;
+}
+
+/* The ornate frame - multi-layered border like Sierra UI */
+.qfg-logo__frame {
+  position: relative;
+  padding: 8px;
+  
+  /* Stone/brass frame layers */
+  background: linear-gradient(135deg, #8b7355 0%, #5c4a3a 50%, #3d2e22 100%);
+  
+  /* Outer border - dark edge */
+  border: 4px solid #1a1208;
+  
+  /* Multiple inset shadows create depth like carved stone */
+  box-shadow:
+    /* Outermost gold highlight */
+    inset 2px 2px 0 #c9a227,
+    /* Inner shadow for depth */
+    inset -2px -2px 0 #2a1a0a,
+    /* Gold inner trim */
+    inset 4px 4px 0 #a08040,
+    inset -4px -4px 0 #4a3020,
+    /* Deep inset */
+    inset 6px 6px 0 #705830,
+    inset -6px -6px 0 #1a1008,
+    /* Drop shadow */
+    4px 4px 0 #0a0804,
+    6px 6px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Corner decorations - gold rivets/gems */
+.qfg-logo__corner {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(135deg, #ffd700 0%, #c9a227 40%, #8b6914 100%);
+  border: 2px solid #1a1208;
+  box-shadow:
+    inset 1px 1px 0 #ffe55c,
+    inset -1px -1px 0 #6b4a0a;
+  z-index: 10;
+}
+
+.qfg-logo__corner--tl { top: -2px; left: -2px; }
+.qfg-logo__corner--tr { top: -2px; right: -2px; }
+.qfg-logo__corner--bl { bottom: -2px; left: -2px; }
+.qfg-logo__corner--br { bottom: -2px; right: -2px; }
+
+/* The illustration container */
+.qfg-logo__illustration {
+  position: relative;
+  overflow: hidden;
+  /* Inner border around the art */
+  border: 3px solid #2a1a0a;
+  box-shadow: inset 2px 2px 0 #4a3a2a;
+}
+
+/* The pixel art itself */
+.qfg-logo__art {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Title banner - scroll/parchment style overlay */
+.qfg-logo__banner {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  
+  /* Parchment/scroll background */
+  background: linear-gradient(180deg, 
+    #d4c4a0 0%, 
+    #c9b896 20%, 
+    #b8a878 80%, 
+    #a09060 100%
+  );
+  
+  border: 3px solid #3d2e22;
+  padding: 2px;
+  
+  box-shadow:
+    /* Gold trim */
+    inset 1px 1px 0 #e8d8b8,
+    inset -1px -1px 0 #8a7a5a,
+    /* Drop shadow */
+    3px 3px 0 rgba(0, 0, 0, 0.6);
+}
+
+.qfg-logo__banner-inner {
+  background: linear-gradient(180deg, #c9b896 0%, #b8a878 100%);
+  padding: 8px 16px;
+  border: 1px solid #8a7a5a;
+  text-align: center;
 }
 
 .qfg-logo__title {
   font-family: 'Press Start 2P', monospace;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: normal;
-  color: var(--castle-text, #e8e8e8);
+  color: #2a1a0a;
   margin: 0;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
-  letter-spacing: 1px;
+  text-shadow: 1px 1px 0 #d4c4a0;
+  letter-spacing: 0.5px;
   line-height: 1.4;
+  white-space: nowrap;
 }
 
 .qfg-logo__subtitle {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
-  color: var(--castle-text-muted, #8a8a9a);
-  margin: 0;
-  margin-top: 4px;
+  font-size: 6px;
+  color: #5a4a3a;
+  margin: 6px 0 0 0;
+  letter-spacing: 1px;
 }
 
-/* Size variants */
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIZE VARIANTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Small - compact for tight spaces */
+.qfg-logo--small .qfg-logo__frame {
+  padding: 4px;
+  border-width: 2px;
+}
+
+.qfg-logo--small .qfg-logo__corner {
+  width: 8px;
+  height: 8px;
+}
+
+.qfg-logo--small .qfg-logo__illustration {
+  max-width: 160px;
+  border-width: 2px;
+}
+
+.qfg-logo--small .qfg-logo__banner {
+  bottom: 8px;
+  border-width: 2px;
+  padding: 1px;
+}
+
+.qfg-logo--small .qfg-logo__banner-inner {
+  padding: 4px 8px;
+}
+
 .qfg-logo--small .qfg-logo__title {
-  font-size: 9px;
+  font-size: 7px;
 }
 
 .qfg-logo--small .qfg-logo__subtitle {
-  font-size: 6px;
+  font-size: 5px;
+  margin-top: 3px;
+}
+
+/* Medium - default */
+.qfg-logo--medium .qfg-logo__illustration {
+  max-width: 280px;
+}
+
+/* Large - for title screens */
+.qfg-logo--large .qfg-logo__frame {
+  padding: 12px;
+  border-width: 5px;
+}
+
+.qfg-logo--large .qfg-logo__corner {
+  width: 16px;
+  height: 16px;
+  border-width: 3px;
+}
+
+.qfg-logo--large .qfg-logo__illustration {
+  max-width: 400px;
+  border-width: 4px;
+}
+
+.qfg-logo--large .qfg-logo__banner {
+  bottom: 16px;
+  border-width: 4px;
+  padding: 3px;
+}
+
+.qfg-logo--large .qfg-logo__banner-inner {
+  padding: 12px 24px;
 }
 
 .qfg-logo--large .qfg-logo__title {
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .qfg-logo--large .qfg-logo__subtitle {
   font-size: 8px;
+  margin-top: 8px;
 }
 
-/* Logomark (icon only) */
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOGOMARK - Small dragon sprite icon for headers
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 .qfg-logomark {
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-  transition: transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .qfg-logomark:hover {
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
-/* Animation for special occasions */
-@keyframes logoShimmer {
+.qfg-logomark img {
+  display: block;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANIMATIONS - Subtle Sierra-style effects
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes logoGleam {
   0%, 100% {
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    box-shadow:
+      inset 2px 2px 0 #c9a227,
+      inset -2px -2px 0 #2a1a0a,
+      inset 4px 4px 0 #a08040,
+      inset -4px -4px 0 #4a3020,
+      inset 6px 6px 0 #705830,
+      inset -6px -6px 0 #1a1008,
+      4px 4px 0 #0a0804,
+      6px 6px 0 rgba(0, 0, 0, 0.5);
   }
   50% {
-    filter: drop-shadow(0 2px 8px rgba(201, 162, 39, 0.5));
+    box-shadow:
+      inset 2px 2px 0 #ffd700,
+      inset -2px -2px 0 #2a1a0a,
+      inset 4px 4px 0 #c9a227,
+      inset -4px -4px 0 #4a3020,
+      inset 6px 6px 0 #a08040,
+      inset -6px -6px 0 #1a1008,
+      4px 4px 0 #0a0804,
+      6px 6px 0 rgba(0, 0, 0, 0.5);
   }
 }
 
-.qfg-logo--animated .qfg-logo__dragon {
-  animation: logoShimmer 3s ease-in-out infinite;
+.qfg-logo--animated .qfg-logo__frame {
+  animation: logoGleam 4s steps(8) infinite;
 }
 
+/* Corner gem sparkle */
+@keyframes cornerSparkle {
+  0%, 90%, 100% {
+    background: linear-gradient(135deg, #ffd700 0%, #c9a227 40%, #8b6914 100%);
+  }
+  95% {
+    background: linear-gradient(135deg, #fff 0%, #ffd700 40%, #c9a227 100%);
+  }
+}
 
+.qfg-logo--animated .qfg-logo__corner {
+  animation: cornerSparkle 3s steps(2) infinite;
+}
 
+.qfg-logo--animated .qfg-logo__corner--tr {
+  animation-delay: 0.75s;
+}
+
+.qfg-logo--animated .qfg-logo__corner--bl {
+  animation-delay: 1.5s;
+}
+
+.qfg-logo--animated .qfg-logo__corner--br {
+  animation-delay: 2.25s;
+}

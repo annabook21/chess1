@@ -63,6 +63,65 @@ body {
   line-height: 1.5;
 }
 
+/* Sierra palette overrides (scoped) */
+.app.sierra-theme {
+  --bg-primary: #0b0d1e;
+  --bg-secondary: #11142d;
+  --bg-tertiary: #191d3a;
+  --bg-elevated: #1f2446;
+  --bg-card: #15192f;
+  --accent-primary: #e5c07b;
+  --accent-secondary: #8be9fd;
+  --accent-danger: #f26d6d;
+  --accent-info: #76a6ff;
+  --text-primary: #f5f3e8;
+  --text-secondary: #c9c7c0;
+  --text-muted: #8c8aa1;
+  --border-color: #2b3152;
+  --border-hover: #3a4268;
+  --shadow-sm: 0 0 0 1px rgba(0,0,0,0.35);
+  --shadow-md: 0 4px 0 rgba(0,0,0,0.45);
+  --shadow-lg: 0 8px 0 rgba(0,0,0,0.5);
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at 30% 20%, rgba(118,166,255,0.12), transparent 30%),
+              radial-gradient(circle at 70% 80%, rgba(229,192,123,0.12), transparent 35%),
+              linear-gradient(180deg, #0b0d1e 0%, #090a17 100%);
+}
+
+.app.sierra-theme::before,
+.app.sierra-theme::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Vignette */
+.app.sierra-theme::before {
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.45) 100%);
+}
+
+/* CRT scanlines + grain */
+.app.sierra-theme::after {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.04),
+      rgba(255,255,255,0.04) 1px,
+      rgba(0,0,0,0.08) 3px,
+      rgba(0,0,0,0.08) 4px
+    ),
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" opacity="0.04"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)"/></svg>');
+  mix-blend-mode: overlay;
+}
+
+.app.sierra-theme > * {
+  position: relative;
+  z-index: 1;
+}
+
 #root {
   min-height: 100vh;
 }
@@ -119,6 +178,31 @@ body {
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.app.sierra-theme .btn {
+  border-radius: 0;
+  border: 2px solid var(--border-color);
+  background: #11142d;
+  color: var(--text-primary);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 -1px 0 rgba(0,0,0,0.45),
+    0 2px 0 rgba(0,0,0,0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.app.sierra-theme .btn:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+
+.app.sierra-theme .btn:active {
+  transform: translateY(0);
+  box-shadow:
+    inset 0 -1px 0 rgba(255,255,255,0.03),
+    inset 0 1px 0 rgba(0,0,0,0.5);
 }
 
 .btn-primary {

@@ -1,0 +1,227 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * VGA PIXEL ART SYSTEM STYLES
+ * Styling for the multi-color pixel art icons and decorative elements
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+/* Base pixel icon styling */
+.vga-pixel-icon {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  -webkit-font-smoothing: none;
+  shape-rendering: crispEdges;
+}
+
+/* Prevent any blur on scaling */
+.vga-pixel-icon rect {
+  shape-rendering: crispEdges;
+}
+
+/* CSS-based pixel art */
+.css-pixel-art {
+  image-rendering: pixelated;
+  background: transparent;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PIXEL ART ANIMATION CLASSES
+   Frame-by-frame style animations (no tweening)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Flicker effect for flames/magic */
+.vga-pixel-icon--flame_warm {
+  animation: pixelFlicker 0.15s steps(2) infinite;
+}
+
+@keyframes pixelFlicker {
+  0%, 50% { opacity: 1; }
+  25%, 75% { opacity: 0.9; }
+}
+
+/* Pulse effect for gems/orbs */
+.vga-pixel-icon--gem_magic,
+.vga-pixel-icon--orb_glow {
+  animation: pixelPulse 1s steps(4) infinite;
+}
+
+@keyframes pixelPulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.2); }
+}
+
+/* Float effect for ghosts */
+.vga-pixel-icon--ghost_spirit {
+  animation: pixelFloat 2s steps(8) infinite;
+}
+
+@keyframes pixelFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+/* Sparkle effect for stars */
+.vga-pixel-icon--star_gold {
+  animation: pixelSparkle 0.5s steps(3) infinite;
+}
+
+@keyframes pixelSparkle {
+  0%, 100% { opacity: 1; }
+  33% { opacity: 0.7; }
+  66% { opacity: 0.9; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DECORATIVE FRAME ELEMENTS
+   Sierra-style ornate borders and corners
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Ornate frame container */
+.pixel-frame {
+  position: relative;
+  padding: 16px;
+}
+
+.pixel-frame::before,
+.pixel-frame::after,
+.pixel-frame .corner-bl,
+.pixel-frame .corner-br {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+/* Gold corner pieces */
+.pixel-frame--gold::before {
+  content: '';
+  top: 0;
+  left: 0;
+  background: 
+    linear-gradient(135deg, #f0d048 25%, transparent 25%),
+    linear-gradient(225deg, #f0d048 25%, transparent 25%);
+  background-size: 4px 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PIXEL BORDER PATTERNS
+   Repeating pixel patterns for borders
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Gold chain border */
+.pixel-border-chain {
+  background-image: 
+    repeating-linear-gradient(
+      90deg,
+      #906830 0px,
+      #906830 2px,
+      #d4a828 2px,
+      #d4a828 4px,
+      #f0d048 4px,
+      #f0d048 6px,
+      #d4a828 6px,
+      #d4a828 8px,
+      #906830 8px,
+      #906830 10px,
+      transparent 10px,
+      transparent 12px
+    );
+  background-size: 12px 4px;
+  background-repeat: repeat-x;
+  height: 4px;
+  image-rendering: pixelated;
+}
+
+/* Stone brick border */
+.pixel-border-stone {
+  background-image: 
+    repeating-linear-gradient(
+      90deg,
+      #505050 0px,
+      #505050 8px,
+      #282828 8px,
+      #282828 10px,
+      #787878 10px,
+      #787878 18px,
+      #282828 18px,
+      #282828 20px
+    );
+  background-size: 20px 8px;
+  height: 8px;
+  image-rendering: pixelated;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DITHERING PATTERNS
+   Classic VGA dithering for gradients and textures
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 50% dither pattern */
+.dither-50 {
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 1px,
+      currentColor 1px,
+      currentColor 2px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 1px,
+      currentColor 1px,
+      currentColor 2px
+    );
+  background-size: 2px 2px;
+}
+
+/* 25% dither pattern */
+.dither-25 {
+  background-image: 
+    radial-gradient(
+      circle at 0 0,
+      currentColor 1px,
+      transparent 1px
+    );
+  background-size: 4px 4px;
+}
+
+/* Ordered dither (Bayer matrix style) */
+.dither-bayer {
+  background-image: url("data:image/svg+xml,%3Csvg width='4' height='4' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='0' y='0' width='1' height='1' fill='%23000'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23000'/%3E%3C/svg%3E");
+  background-size: 4px 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ICON SIZE VARIANTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.vga-pixel-icon--tiny { width: 16px; height: 16px; }
+.vga-pixel-icon--small { width: 24px; height: 24px; }
+.vga-pixel-icon--medium { width: 32px; height: 32px; }
+.vga-pixel-icon--large { width: 48px; height: 48px; }
+.vga-pixel-icon--xlarge { width: 64px; height: 64px; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COLOR OVERRIDE UTILITIES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.vga-icon-glow-gold {
+  filter: drop-shadow(0 0 4px #d4a828);
+}
+
+.vga-icon-glow-magic {
+  filter: drop-shadow(0 0 4px #8050c0);
+}
+
+.vga-icon-glow-fire {
+  filter: drop-shadow(0 0 4px #d04040);
+}
+
+.vga-icon-glow-ice {
+  filter: drop-shadow(0 0 4px #5080d0);
+}
+
+

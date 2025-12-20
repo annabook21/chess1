@@ -1,17 +1,18 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   FEEDBACK STYLES - Clean
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* Sierra pixel HUD feedback */
 
 .feedback-card {
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
   animation: slideUp 0.3s ease forwards;
   opacity: 0;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  border: 2px solid var(--border-color);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 -1px 0 rgba(0,0,0,0.5),
+    0 4px 0 rgba(0,0,0,0.45);
 }
 
 @keyframes slideUp {
@@ -19,17 +20,9 @@
   from { opacity: 0; transform: translateY(10px); }
 }
 
-.feedback-card.excellent {
-  border-color: rgba(34, 197, 94, 0.3);
-}
-
-.feedback-card.good {
-  border-color: rgba(59, 130, 246, 0.3);
-}
-
-.feedback-card.bad {
-  border-color: rgba(239, 68, 68, 0.3);
-}
+.feedback-card.excellent { border-color: rgba(139, 221, 181, 0.4); }
+.feedback-card.good { border-color: rgba(118, 166, 255, 0.4); }
+.feedback-card.bad { border-color: rgba(242, 109, 109, 0.4); }
 
 /* Header */
 .feedback-header {
@@ -42,9 +35,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
-  font-weight: 600;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  font-weight: 700;
   margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .feedback-icon {
@@ -52,44 +48,31 @@
 }
 
 .feedback-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 5px 12px;
-  border-radius: 16px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 0;
+  border: 2px solid var(--border-color);
+  background: #11142d;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.45);
+  text-transform: uppercase;
 }
 
-.feedback-badge.excellent {
-  background: rgba(34, 197, 94, 0.15);
-  color: var(--accent-secondary);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-}
-
-.feedback-badge.good {
-  background: rgba(59, 130, 246, 0.15);
-  color: var(--accent-info);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.feedback-badge.neutral {
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-}
-
-.feedback-badge.bad {
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--accent-danger);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
+.feedback-badge.excellent { color: var(--accent-secondary); border-color: rgba(139,221,181,0.5); }
+.feedback-badge.good { color: var(--accent-info); border-color: rgba(118,166,255,0.5); }
+.feedback-badge.neutral { color: var(--text-secondary); }
+.feedback-badge.bad { color: var(--accent-danger); border-color: rgba(242,109,109,0.5); }
 
 /* Evaluation */
 .feedback-eval {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   align-items: center;
-  padding: 14px;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-md);
+  padding: 12px;
+  background: #11142d;
+  border: 2px solid var(--border-color);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.45);
 }
 
 .eval-change {
@@ -99,7 +82,8 @@
 }
 
 .eval-label {
-  font-size: 10px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-muted);
@@ -107,8 +91,9 @@
 
 .eval-delta {
   font-family: var(--font-mono);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.45);
 }
 
 .eval-delta.excellent { color: var(--accent-secondary); }
@@ -119,7 +104,7 @@
 .eval-meter {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex: 1;
 }
 
@@ -132,7 +117,8 @@
 }
 
 .eval-meter-label {
-  font-size: 10px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
   text-transform: uppercase;
   color: var(--text-muted);
 }
@@ -153,11 +139,11 @@
   display: flex;
   gap: 12px;
   align-items: center;
-  padding: 12px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: var(--radius-md);
+  padding: 10px;
+  background: rgba(242, 109, 109, 0.1);
+  border: 2px solid rgba(242, 109, 109, 0.5);
   animation: shake 0.4s ease-in-out;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.45);
 }
 
 .blunder-icon {
@@ -184,10 +170,10 @@
 .feedback-coach {
   display: flex;
   gap: 12px;
-  padding: 14px;
-  background: rgba(59, 130, 246, 0.08);
+  padding: 12px;
+  background: rgba(118, 166, 255, 0.08);
   border-left: 3px solid var(--accent-info);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.4);
 }
 
 .coach-avatar {
@@ -220,10 +206,10 @@
 .feedback-opponent {
   display: flex;
   gap: 12px;
-  padding: 14px;
-  background: rgba(239, 68, 68, 0.05);
+  padding: 12px;
+  background: rgba(242, 109, 109, 0.08);
   border-left: 3px solid var(--accent-danger);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.4);
 }
 
 .opponent-avatar {

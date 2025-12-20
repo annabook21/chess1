@@ -34,7 +34,10 @@ function useBoardSize(): number {
     }
 
     function handleResize() {
-      setBoardSize(calculateSize());
+      // Snap to a 16px grid so pixel pieces scale cleanly (integer factor)
+      const raw = calculateSize();
+      const snapped = Math.max(256, Math.round(raw / 16) * 16);
+      setBoardSize(snapped);
     }
 
     // Initial calculation
@@ -103,18 +106,37 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
   );
   
   const customSquareStyles = useMemo(() => {
-    const styles: Record<string, React.CSSProperties> = {};
-    
+    // Build a full 64-square map to override the library inline styles
+    const baseStyles: Record<string, React.CSSProperties> = {};
+    const files = ['a','b','c','d','e','f','g','h'];
+    const light = { backgroundColor: '#d6b48a', backgroundImage: 'none', boxShadow: 'inset 1px 1px 0 #f0d4aa, inset -1px -1px 0 #9c7752' };
+    const dark  = { backgroundColor: '#6d5040', backgroundImage: 'none', boxShadow: 'inset 1px 1px 0 #8a6a55, inset -1px -1px 0 #3f2a20' };
+    for (let r = 1; r <= 8; r++) {
+      for (let f = 0; f < 8; f++) {
+        const square = `${files[f]}${r}`;
+        const isLight = (f + r) % 2 === 0;
+        baseStyles[square] = {
+          ...(isLight ? light : dark),
+          imageRendering: 'pixelated',
+        };
+      }
+    }
+
+    const styles: Record<string, React.CSSProperties> = { ...baseStyles };
+
+    // Pixel art style highlights - sharp borders instead of smooth shadows
     // Prediction hover takes precedence
     if (predictionHover?.from && predictionHover?.to) {
       styles[predictionHover.from] = {
-        background: 'rgba(139, 92, 246, 0.6)',
-        boxShadow: 'inset 0 0 0 4px rgba(139, 92, 246, 0.9)',
+        ...styles[predictionHover.from],
+        background: '#8b5cf6', // Solid purple - pixel art style
+        boxShadow: 'inset 3px 3px 0 #a78bfa, inset -3px -3px 0 #6b4acd',
       };
       
       styles[predictionHover.to] = {
-        background: 'rgba(139, 92, 246, 0.4)',
-        boxShadow: 'inset 0 0 0 4px rgba(139, 92, 246, 0.7)',
+        ...styles[predictionHover.to],
+        background: '#7c4fe6',
+        boxShadow: 'inset 3px 3px 0 #9b7bea, inset -3px -3px 0 #5b3abd',
       };
     } else if (selectedChoice && choices) {
       const choice = choices.find(c => c.id === selectedChoice);
@@ -123,26 +145,30 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
         const to = choice.moveUci.slice(2, 4);
         
         styles[from] = {
-          background: 'rgba(232, 185, 35, 0.6)',
-          boxShadow: 'inset 0 0 0 3px rgba(232, 185, 35, 0.8)',
+          ...styles[from],
+          background: '#c9a227', // Gold - pixel art style
+          boxShadow: 'inset 3px 3px 0 #e8c847, inset -3px -3px 0 #a88207',
         };
         
         styles[to] = {
-          background: 'rgba(34, 197, 94, 0.6)',
-          boxShadow: 'inset 0 0 0 3px rgba(34, 197, 94, 0.8)',
+          ...styles[to],
+          background: '#4a9c6d', // Green - pixel art style
+          boxShadow: 'inset 3px 3px 0 #6abc8d, inset -3px -3px 0 #2a7c4d',
         };
       }
     }
     
-    // Highlight last move
+    // Highlight last move - pixel art style
     if (lastMove) {
       styles[lastMove.from] = {
         ...styles[lastMove.from],
-        background: 'rgba(255, 255, 0, 0.3)',
+        background: '#d4b060', // Muted gold
+        boxShadow: 'inset 2px 2px 0 #e4c070, inset -2px -2px 0 #b49040',
       };
       styles[lastMove.to] = {
         ...styles[lastMove.to],
-        background: 'rgba(255, 255, 0, 0.4)',
+        background: '#e4c070', // Brighter gold
+        boxShadow: 'inset 2px 2px 0 #f4d080, inset -2px -2px 0 #c4a050',
       };
     }
     
@@ -158,6 +184,29 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
   }, [predictionHover]);
 
   const isWhiteToMove = fen.includes(' w ');
+
+  // Pixel piece components (override default SVG pieces) using 16x16 wood sprites
+  const customPieces = useMemo(() => {
+    const names = ['P', 'N', 'B', 'R', 'Q', 'K'] as const;
+    const components: Record<string, React.FC> = {};
+    names.forEach(letter => {
+      components[`w${letter}`] = () => (
+        <img
+          src={`/pixel-pieces-wood/w${letter}.png`}
+          alt={`White ${letter}`}
+          style={{ width: '100%', height: '100%', imageRendering: 'pixelated' }}
+        />
+      );
+      components[`b${letter}`] = () => (
+        <img
+          src={`/pixel-pieces-wood/b${letter}.png`}
+          alt={`Black ${letter}`}
+          style={{ width: '100%', height: '100%', imageRendering: 'pixelated' }}
+        />
+      );
+    });
+    return components;
+  }, []);
 
   return (
     <div className="chess-board-wrapper">
@@ -191,6 +240,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
           position={fen}
           boardWidth={boardSize}
           arePiecesDraggable={freePlayMode}
+          customPieces={customPieces}
           onPieceDrop={(sourceSquare, targetSquare, piece) => {
             if (!freePlayMode || !onMove) return false;
             // Check if it's a promotion (pawn reaching last rank)
@@ -211,14 +261,18 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
           customSquareStyles={customSquareStyles}
           customArrows={customArrows}
           customLightSquareStyle={{
-            backgroundColor: '#eeeed2',
+            backgroundColor: '#c9a080', // Warm tan - pixel art style
           }}
           customDarkSquareStyle={{
-            backgroundColor: '#769656',
+          backgroundColor: '#6b4a3a', // Chocolate brown - pixel art style
+          backgroundImage: 'none',
           }}
           customBoardStyle={{
-            borderRadius: '4px',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+            borderRadius: '0', // Sharp corners for pixel art
+            boxShadow: 'none', // Shadow handled by container
+          imageRendering: 'pixelated',
+          backgroundImage: 'none',
+          backgroundColor: '#5a4a3a',
           }}
           animationDuration={180}
         />

@@ -48,7 +48,9 @@ import { useAchievementContext, Achievement, AchievementProgress } from './achie
 import { useMaiaContext, sampleMove, calculatePredictionReward, TEMPERATURE_PRESETS } from './maia';
 import type { MovePrediction } from './maia';
 import { getCurrentDayStreak, updateDayStreak } from './utils/dayStreak';
+import { generateMaiaMove, applyMaiaOrFallbackMove, checkGameOver } from './hooks/useGameFlow';
 import './App.css';
+import './styles/sierra-vga.css';
 
 // Game end state type
 type GameEndState = 'victory' | 'defeat' | 'draw' | null;
@@ -98,6 +100,17 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   // Illegal move notification
   const [illegalMoveMessage, setIllegalMoveMessage] = useState<string | null>(null);
+  // Check indicator - computed from current FEN
+  const isInCheck = useMemo(() => {
+    const fen = optimisticFen || turnPackage?.fen;
+    if (!fen) return false;
+    try {
+      const chess = new Chess(fen);
+      return chess.inCheck();
+    } catch {
+      return false;
+    }
+  }, [optimisticFen, turnPackage?.fen]);
   
   // Move history
   const [moveHistory, setMoveHistory] = useState<Array<{
@@ -364,17 +377,20 @@ function App() {
   } = useAchievementToast();
 
   // Keyboard shortcuts (Phase 3 - Sierra style)
+  // Note: handleChoiceSelect, handleMoveSubmit, initializeGame are defined later
+  // but captured correctly due to React's closure semantics in the callback functions.
+  // They're intentionally omitted from deps to avoid declaration-order issues.
   const keyboardShortcuts = useMemo(() => ({
     // Move selection
     selectChoice1: () => turnPackage?.choices[0] && handleChoiceSelect(turnPackage.choices[0].id),
     selectChoice2: () => turnPackage?.choices[1] && handleChoiceSelect(turnPackage.choices[1].id),
     selectChoice3: () => turnPackage?.choices[2] && handleChoiceSelect(turnPackage.choices[2].id),
     confirmMove: () => selectedChoice && handleMoveSubmit(),
-    
+
     // Navigation
     openMap: () => setShowCastleMap(true),
     openSettings: () => setShowSettings(true),
-    
+
     // General
     dismiss: () => {
       if (showCastleMap) setShowCastleMap(false);
@@ -383,9 +399,10 @@ function App() {
       else if (gameEndState) setGameEndState(null);
     },
     newGame: () => !loading && initializeGame(),
-    
+
     // Prediction toggle
     intuit: () => setPredictionEnabled((prev: boolean) => !prev),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [turnPackage, selectedChoice, showCastleMap, showSettings, showWeaknessTracker, gameEndState, loading]);
   
   useKeyboardShortcuts(keyboardShortcuts, {
@@ -648,7 +665,18 @@ function App() {
     setTimeout(() => setIllegalMoveMessage(null), 3000);
   };
 
+  // AbortController ref for cancelling async operations (best practice for React)
+  const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // Cleanup on unmount - prevents memory leaks from pending async operations
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   // Handle free play move (drag and drop)
+  // REFACTORED: Extracted async logic properly to avoid fire-and-forget IIFE anti-pattern
   const handleFreeMove = (from: string, to: string, promotion?: string): boolean => {
     if (!gameId || !turnPackage) return false;
 
@@ -679,32 +707,28 @@ function App() {
 
       const moveUci = `${from}${to}${promotion || ''}`;
       const fenAfterUserMove = chess.fen();
-      const moveSan = moveResult.san; // Capture move notation before async
+      const moveSan = moveResult.san;
 
-      // OPTIMISTIC UPDATE: Update board position immediately before API call
-      // This prevents the board from resetting while waiting for the response
-      // Store the original FEN for reference
+      // Store original FEN for potential revert
       const originalFen = turnPackage.fen;
+      
+      // OPTIMISTIC UPDATE: Update board immediately before API call
       const optimisticTurnPackage: TurnPackage = {
         ...turnPackage,
         fen: fenAfterUserMove,
         sideToMove: chess.turn() === 'w' ? 'w' : 'b',
       };
       setTurnPackage(optimisticTurnPackage);
-      // Also store optimistic FEN separately to persist across mode switches
       setOptimisticFen(fenAfterUserMove);
-      // Track which FEN this API call is for (to prevent race conditions)
       pendingMoveFenRef.current = fenAfterUserMove;
-      // Capture the FEN for this specific request (to check against in the callback)
       const thisRequestFen = fenAfterUserMove;
       
       console.log('[App] Free move optimistic update:', {
         userMove: moveUci,
         fenAfterUserMove: fenAfterUserMove.substring(0, 40) + '...',
-        pendingMoveFenRef: pendingMoveFenRef.current?.substring(0, 40) + '...',
       });
       
-      // Also update move history optimistically
+      // Update move history optimistically
       const newMoveNum = Math.ceil(moveHistory.length / 2) + 1;
       setMoveHistory(prev => {
         const updated = [...prev];
@@ -721,8 +745,15 @@ function App() {
         return updated;
       });
 
-      // Move is valid - now process it asynchronously
-      (async () => {
+      // Process async operations with proper AbortController cleanup
+      // Cancel any previous pending operation to prevent race conditions
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = new AbortController();
+      
+      // Use a named async function instead of anonymous IIFE for better debugging
+      const processMove = async () => {
+        const signal = abortControllerRef.current?.signal;
+        
         setFenBeforeAiMove(fenAfterUserMove);
 
         // Only show predictions for human-like opponents
@@ -768,6 +799,12 @@ function App() {
 
           const response = await submitMove(gameId, moveRequest);
 
+          // Check if this request was superseded by a newer one
+          if (signal?.aborted) {
+            console.log('[App] Move response ignored (superseded)');
+            return;
+          }
+
           // CRITICAL: Check if server rejected the move
           // This can happen if client/server state diverged (e.g., race condition)
           if (!response.accepted) {
@@ -793,6 +830,12 @@ function App() {
           if (opponentType === 'human-like' && response.nextTurn) {
             console.log('[App] Generating Maia opponent move for human-like opponent');
             const maiaMove = await generateMaiaOpponentMove(fenAfterUserMove);
+            
+            // Check abort after async Maia call
+            if (signal?.aborted) {
+              console.log('[App] Maia move ignored (superseded)');
+              return;
+            }
             
             if (maiaMove) {
               // Store predictions for proper scoring
@@ -982,18 +1025,24 @@ function App() {
             console.log('[App] Game ended after free move');
           }
         } catch (err) {
+          // Check if this was an intentional abort (race condition prevention)
+          if (signal?.aborted) {
+            console.log('[App] Move processing aborted (superseded by newer move)');
+            return;
+          }
           console.error('Free move API error:', err);
           setLoading(false);
           setError('Failed to process move');
           // Don't reset the board on error - keep optimistic update
           // The board already shows the user's move, which is valid
-          // Also clear prediction state on error
           setShowPrediction(false);
           setFenBeforeAiMove(null);
           setPendingResponse(null);
-          // Keep optimisticFen so the board doesn't reset
         }
-      })();
+      };
+
+      // Execute the async operation (properly named, not anonymous IIFE)
+      processMove();
 
       return true; // Synchronously return true since the move is valid
     } catch (err) {
@@ -1085,6 +1134,11 @@ function App() {
   const handleMoveSubmit = async () => {
     if (!gameId || !selectedChoice || !turnPackage) return;
 
+    // Cancel any pending free move operations to prevent race conditions
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     // Check if it's the player's turn
     const isPlayerTurn = playerColor === 'white' 
       ? turnPackage.sideToMove === 'w'
@@ -1165,6 +1219,12 @@ function App() {
       });
 
       const response = await submitMove(gameId, moveRequest);
+
+      // Check if this request was superseded
+      if (signal.aborted) {
+        console.log('[App] Guided move response ignored (superseded)');
+        return;
+      }
 
       // CRITICAL: Check if server rejected the move
       if (!response.accepted) {
@@ -1313,7 +1373,8 @@ function App() {
   // Store user's prediction while waiting for API
   const [userPrediction, setUserPrediction] = useState<string | null>(null);
 
-  const handlePredictionSubmit = async (predictedMoveUci: string) => {
+  // BEST PRACTICE: Wrap in useCallback to avoid stale closure in useEffect
+  const handlePredictionSubmit = useCallback(async (predictedMoveUci: string) => {
     // If API hasn't returned yet, store the prediction and wait
     if (!pendingResponse?.feedback.aiMove) {
       setUserPrediction(predictedMoveUci);
@@ -1384,19 +1445,26 @@ function App() {
       totalPoints: reward.totalPoints,
     });
 
-    // Update prediction stats
-    const newStreak = isCorrect ? predictionStats.streak + 1 : 0;
-    setPredictionStats((prev: { total: number; correct: number; streak: number }) => ({
-      total: prev.total + 1,
-      correct: isCorrect ? prev.correct + 1 : prev.correct,
-      streak: newStreak,
-    }));
+    // Update prediction stats using functional update to avoid stale closure
+    // BEST PRACTICE: Use a ref or calculate inside functional update
+    // We need the newStreak value for achievement tracking, so use flushSync pattern
+    let capturedStreak = 0;
+    setPredictionStats((prev: { total: number; correct: number; streak: number }) => {
+      capturedStreak = isCorrect ? prev.streak + 1 : 0;
+      return {
+        total: prev.total + 1,
+        correct: isCorrect ? prev.correct + 1 : prev.correct,
+        streak: capturedStreak,
+      };
+    });
+    // Note: React 18+ batches state updates, so capturedStreak is set synchronously
+    // before the component re-renders
 
-    // Track prediction achievement
+    // Track prediction achievement using the captured streak value
     const newlyCompleted = achievementCtx.trackEvent({
       type: 'PREDICTION_MADE',
       correct: isCorrect,
-      streak: newStreak,
+      streak: capturedStreak,
     });
 
     // Show achievement toasts
@@ -1426,7 +1494,16 @@ function App() {
 
     // Continue with move processing
     finishPredictionFlow();
-  };
+    // Note: finishPredictionFlow is intentionally omitted from deps - it's always the latest
+    // version due to React's closure semantics, and including it would cause circular dep
+  }, [
+    pendingResponse, 
+    currentMaiaPredictions, 
+    opponentType, 
+    achievementCtx, 
+    handleAchievementUnlock,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ]);
   
   // Process stored prediction when API response arrives
   useEffect(() => {
@@ -1434,7 +1511,7 @@ function App() {
       handlePredictionSubmit(userPrediction);
       setUserPrediction(null);
     }
-  }, [pendingResponse, userPrediction]);
+  }, [pendingResponse, userPrediction, handlePredictionSubmit]);
 
   const handlePredictionSkip = () => {
     setPredictionStats((prev: { total: number; correct: number; streak: number }) => ({
@@ -1505,6 +1582,26 @@ function App() {
             }
             return updated;
           });
+        }
+        
+        // CRITICAL: Check for game-over after AI move in free play mode
+        // Using shared utility for consistent game-over detection
+        if (pendingResponse.nextTurn?.fen) {
+          const gameOver = checkGameOver(pendingResponse.nextTurn.fen);
+          if (gameOver.isOver) {
+            const playerColorChar = playerColor === 'white' ? 'w' : 'b';
+            
+            if (gameOver.type === 'checkmate') {
+              const playerWon = gameOver.loserColor !== playerColorChar;
+              console.log('[App] Checkmate detected after AI move!', { loserColor: gameOver.loserColor, playerWon });
+              setGameEndState(playerWon ? 'victory' : 'defeat');
+              playSound(playerWon ? 'victory' : 'game_over');
+            } else if (gameOver.type === 'stalemate' || gameOver.type === 'draw') {
+              console.log('[App] Stalemate/Draw detected after AI move!');
+              setGameEndState('draw');
+              playSound('draw');
+            }
+          }
         }
       }
     }
@@ -1721,9 +1818,10 @@ function App() {
       setTurnPackage(null);
       setOptimisticFen(null);
       
-      // Check the final position
+      // Compute final FEN after our move
       const finalChess = new Chess(currentTurn.fen);
       finalChess.move({ from: choice.moveUci.slice(0, 2), to: choice.moveUci.slice(2, 4) });
+      const finalFen = finalChess.fen();
       
       // Use ref to get current stats (avoids stale closure issues)
       const currentStats = playerStatsRef.current;
@@ -1742,21 +1840,19 @@ function App() {
         accuracy,
       });
       
-      // Determine game result
+      // Determine game result using shared utility for consistency
       let playerWon = false;
-      if (finalChess.isCheckmate()) {
-        // The side whose turn it is in checkmate is the loser
-        // If it's white's turn (and checkmate), white lost → player wins if player is black
-        // If it's black's turn (and checkmate), black lost → player wins if player is white
-        const loserColor = finalChess.turn(); // 'w' or 'b'
-        const playerColorChar = playerColor === 'white' ? 'w' : 'b';
-        playerWon = loserColor !== playerColorChar; // Player wins if the loser is not them
+      const gameOver = checkGameOver(finalFen);
+      const playerColorChar = playerColor === 'white' ? 'w' : 'b';
+      
+      if (gameOver.type === 'checkmate') {
+        playerWon = gameOver.loserColor !== playerColorChar;
         setGameEndState(playerWon ? 'victory' : 'defeat');
         playSound(playerWon ? 'victory' : 'game_over');
-      } else if (finalChess.isDraw() || finalChess.isStalemate()) {
+      } else if (gameOver.type === 'stalemate' || gameOver.type === 'draw') {
         setGameEndState('draw');
         playSound('draw');
-        playerWon = false; // Draw is not a win
+        playerWon = false;
       } else {
         // Game ended for other reason (e.g., resignation) - treat as defeat
         setGameEndState('defeat');
@@ -1841,7 +1937,7 @@ function App() {
   // being called after early returns (which causes React error #300)
 
   return (
-    <div className="app castle-theme">
+    <div className="app castle-theme sierra-theme">
       {/* Game End Screens (Phase 3) */}
       {gameEndState === 'defeat' && (
         <GameOverScreen
@@ -1879,6 +1975,14 @@ function App() {
         achievement={currentAchievement}
         onDismiss={dismissAchievement}
       />
+      
+      {/* Check Indicator - Prominent warning */}
+      {isInCheck && !illegalMoveMessage && (
+        <div className="check-indicator-toast">
+          <PixelIcon name="warning" size="medium" className="check-indicator-icon" />
+          <span className="check-indicator-text">You are in CHECK! You must escape check.</span>
+        </div>
+      )}
       
       {/* Illegal Move Toast - Narrator Style */}
       {illegalMoveMessage && (

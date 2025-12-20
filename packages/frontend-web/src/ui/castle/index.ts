@@ -7,6 +7,15 @@
 export { PixelIcon, Icon } from './PixelIcon';
 export type { PixelIconName } from './PixelIcon';
 
+// VGA Multi-Color Pixel Art System (Sierra VGA authentic)
+export { 
+  VGAPixelIcon, 
+  CSSPixelArt, 
+  OrnateCorner,
+  VGA_PALETTE,
+  VGA_ICONS,
+} from './PixelArtSystem';
+
 // Logo
 export { Logo, LogoMark } from './Logo';
 

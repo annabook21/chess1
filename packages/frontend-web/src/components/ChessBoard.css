@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   CHESS BOARD - Clean Modern Style
+   CHESS BOARD - Pixel Art Style
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .chess-board-wrapper {
@@ -9,9 +9,12 @@
   justify-content: center;
   gap: 12px;
   width: 100%;
+  /* Pixel-perfect rendering */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
-/* Visualization Controls */
+/* Visualization Controls - Pixel Art Style */
 .viz-controls {
   display: flex;
   gap: 8px;
@@ -22,30 +25,47 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 20px;
-  font-size: 12px;
+  padding: 6px 12px;
+  background: linear-gradient(180deg, #4a3a2a 0%, #3a2a1a 100%);
+  border: 2px solid #2a2218;
+  border-radius: 0;
+  font-size: 10px;
   font-weight: 500;
-  color: var(--text-muted);
+  font-family: 'Press Start 2P', monospace;
+  color: #c9b896;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
+  text-shadow: 1px 1px 0 #1a1510;
+  box-shadow: 
+    inset 1px 1px 0 #5a4a3a,
+    inset -1px -1px 0 #1a1510,
+    2px 2px 0 #1a1510;
 }
 
 .viz-btn:hover {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
+  background: linear-gradient(180deg, #5a4a3a 0%, #4a3a2a 100%);
+  color: #e8d8b8;
+}
+
+.viz-btn:active {
+  box-shadow: 
+    inset -1px -1px 0 #5a4a3a,
+    inset 1px 1px 0 #1a1510;
+  transform: translate(1px, 1px);
 }
 
 .viz-btn.active {
-  background: rgba(139, 92, 246, 0.2);
-  border-color: rgba(139, 92, 246, 0.5);
-  color: #a78bfa;
+  background: linear-gradient(180deg, #5a4a2a 0%, #4a3a1a 100%);
+  border-color: #c9a227;
+  color: #c9a227;
+  box-shadow: 
+    inset 1px 1px 0 #6a5a3a,
+    inset -1px -1px 0 #2a2010,
+    2px 2px 0 #1a1510;
 }
 
 .viz-btn.active:hover {
-  background: rgba(139, 92, 246, 0.3);
+  background: linear-gradient(180deg, #6a5a3a 0%, #5a4a2a 100%);
 }
 
 .board-ambient-glow {
@@ -55,6 +75,72 @@
 .chess-board-container {
   position: relative;
   animation: fadeIn 0.4s ease-out;
+  /* Pixel art frame - thick border with inset/outset 3D effect */
+  padding: 8px;
+  background: linear-gradient(135deg, #5a4a3a 0%, #3d3225 100%);
+  border: 4px solid #2a2218;
+  box-shadow: 
+    /* Outer highlight (top-left) */
+    inset 2px 2px 0 #7a6a5a,
+    /* Outer shadow (bottom-right) */
+    inset -2px -2px 0 #1a1510,
+    /* Drop shadow */
+    4px 4px 0 #1a1510,
+    8px 8px 0 rgba(0, 0, 0, 0.3);
+  /* Sharp corners for pixel art look */
+  border-radius: 0;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Force the chessboard grid itself to render pixelated and blocky */
+.chess-board-container :global(.chessboard),
+.chess-board-container :global(.chessboard-b72b1),
+.chess-board-container :global(.board-b72b1),
+.chess-board-container :global(.square-55d63),
+.chess-board-container img,
+.chess-board-container svg {
+  image-rendering: pixelated !important;
+  image-rendering: crisp-edges !important;
+}
+
+/* Pixelated squares with inset bevel, matching the reference palette */
+:global(.board-b72b1 .square-55d63.light),
+:global(.board-b72b1 .square-55d63.white) {
+  background-color: #d6b48a !important;
+  background-image: none !important;
+  box-shadow:
+    inset 1px 1px 0 #f0d4aa,
+    inset -1px -1px 0 #9c7752 !important;
+}
+
+:global(.board-b72b1 .square-55d63.dark),
+:global(.board-b72b1 .square-55d63.black) {
+  background-color: #6d5040 !important;
+  background-image: none !important;
+  box-shadow:
+    inset 1px 1px 0 #8a6a55,
+    inset -1px -1px 0 #3f2a20 !important;
+}
+
+/* Sharper edges and slight grid separation */
+:global(.board-b72b1 .square-55d63) {
+  border-radius: 0 !important;
+  filter: none !important;
+}
+
+/* Pixel art inner border around the actual board */
+.chess-board-container::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  border: 2px solid #4a3a2a;
+  box-shadow: inset 1px 1px 0 #6a5a4a;
+  pointer-events: none;
+  z-index: 1;
 }
 
 @keyframes fadeIn {
@@ -71,52 +157,79 @@
   display: none;
 }
 
-/* Turn indicator */
+/* Turn indicator - Pixel Art Style */
 .turn-indicator {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 20px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 24px;
+  padding: 8px 16px;
+  background: linear-gradient(180deg, #4a3a2a 0%, #3a2a1a 100%);
+  border: 3px solid #2a2218;
+  border-radius: 0;
+  box-shadow: 
+    inset 1px 1px 0 #5a4a3a,
+    inset -1px -1px 0 #1a1510,
+    2px 2px 0 #1a1510;
 }
 
 .turn-indicator.white-turn {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: #3a3228;
+  background: linear-gradient(180deg, #5a4a3a 0%, #4a3a2a 100%);
 }
 
 .turn-indicator.black-turn {
-  border-color: var(--border-color);
+  border-color: #2a2218;
 }
 
 .turn-piece {
   font-size: 24px;
   line-height: 1;
+  /* Pixel art text rendering */
+  text-shadow: 2px 2px 0 #1a1510;
 }
 
 .turn-text {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: #c9b896;
+  font-family: 'Press Start 2P', monospace;
+  text-shadow: 1px 1px 0 #1a1510;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .turn-pulse {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
-  background: var(--accent-primary);
-  animation: pulse 2s ease-in-out infinite;
+  border-radius: 0;
+  background: #c9a227;
+  animation: pulse 1s steps(2) infinite;
+  box-shadow: 1px 1px 0 #1a1510;
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  50% { opacity: 0.3; }
 }
 
-/* Piece shadows */
+/* Piece styling - Pixel Art */
 .chess-board-container img {
-  filter: drop-shadow(1px 2px 3px rgba(0, 0, 0, 0.3));
+  /* Hard pixel-style shadow instead of soft drop shadow */
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.5));
+  /* Ensure pixel-perfect rendering */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.chess-board-container :global(.piece-417db) {
+  image-rendering: pixelated !important;
+  filter:
+    drop-shadow(1px 0 0 rgba(0,0,0,0.65))
+    drop-shadow(-1px 0 0 rgba(0,0,0,0.65))
+    drop-shadow(0 1px 0 rgba(0,0,0,0.65))
+    drop-shadow(0 -1px 0 rgba(0,0,0,0.65))
+    drop-shadow(0 2px 0 rgba(0,0,0,0.35));
+  transform: translateZ(0);
 }
 
 /* Responsive */
@@ -137,13 +250,13 @@
   }
   
   .viz-btn {
-    padding: 6px 12px;
-    font-size: 11px;
+    padding: 4px 8px;
+    font-size: 8px;
     gap: 4px;
   }
   
   .turn-indicator {
-    padding: 8px 16px;
+    padding: 6px 12px;
     gap: 8px;
   }
   
@@ -152,7 +265,7 @@
   }
   
   .turn-text {
-    font-size: 13px;
+    font-size: 10px;
   }
   
   /* Ensure board fits screen width and is centered */
@@ -160,17 +273,23 @@
     max-width: calc(100vw - 24px);
     max-height: calc(100vw - 24px);
     margin: 0 auto;
+    padding: 6px;
+    /* Smaller shadows on mobile */
+    box-shadow: 
+      inset 2px 2px 0 #7a6a5a,
+      inset -2px -2px 0 #1a1510,
+      3px 3px 0 #1a1510;
   }
 }
 
 @media (max-width: 375px) {
   .viz-btn {
-    padding: 5px 10px;
-    font-size: 10px;
+    padding: 4px 6px;
+    font-size: 7px;
   }
   
   .turn-indicator {
-    padding: 6px 12px;
+    padding: 5px 10px;
   }
   
   .turn-piece {
@@ -178,6 +297,11 @@
   }
   
   .turn-text {
-    font-size: 12px;
+    font-size: 8px;
+  }
+  
+  .chess-board-container {
+    padding: 4px;
+    border-width: 3px;
   }
 }
