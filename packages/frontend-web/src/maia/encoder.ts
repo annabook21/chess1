@@ -373,32 +373,50 @@ export function decodePolicyToMoves(
   let missedCount = 0;
   let outOfBoundsCount = 0;
   
+  // DEBUG: Log first few lookups to understand mapping
+  let debugLogged = false;
+  
   for (const [uci] of legalUcis) {
-    // Transform UCI if black to move (policy is from mover's perspective)
-    const lookupUci = isBlackTurn ? flipUci(uci) : uci;
+    // Try BOTH flipped and unflipped to find the best match
+    // This handles cases where the model may use different conventions
+    const flippedUci = isBlackTurn ? flipUci(uci) : uci;
+    const unflippedUci = uci;
     
-    // For queen promotions, look up the base move (Lc0 doesn't have separate queen promo indices)
-    let policyUci = lookupUci;
-    if (lookupUci.length === 5 && lookupUci[4] === 'q') {
-      policyUci = lookupUci.slice(0, 4);
+    // For queen promotions, look up the base move
+    const flippedPolicyUci = flippedUci.length === 5 && flippedUci[4] === 'q' 
+      ? flippedUci.slice(0, 4) : flippedUci;
+    const unflippedPolicyUci = unflippedUci.length === 5 && unflippedUci[4] === 'q' 
+      ? unflippedUci.slice(0, 4) : unflippedUci;
+    
+    // Try flipped first (standard LC0), then unflipped as fallback
+    let idx = _uciToPolicy.get(flippedPolicyUci);
+    let usedFlip = true;
+    
+    if (idx === undefined) {
+      idx = _uciToPolicy.get(unflippedPolicyUci);
+      usedFlip = false;
     }
     
-    const idx = _uciToPolicy.get(policyUci);
     if (idx === undefined) {
       missedCount++;
-      // Try without flip as fallback
-      const altIdx = _uciToPolicy.get(uci.length === 5 && uci[4] === 'q' ? uci.slice(0, 4) : uci);
-      if (altIdx !== undefined && altIdx < expValues.length) {
-        const probability = expValues[altIdx] / sumExp;
-        moveProbs.push({ uci, probability });
-        foundCount++;
-      }
     } else if (idx >= expValues.length) {
       outOfBoundsCount++;
     } else {
       const probability = expValues[idx] / sumExp;
       moveProbs.push({ uci, probability });
       foundCount++;
+      
+      // DEBUG: Log first 3 high-probability moves
+      if (!debugLogged && isBlackTurn && probability > 0.05) {
+        console.log('[Maia Decoder] High-prob move found:', {
+          originalUci: uci,
+          flippedUci: flippedPolicyUci,
+          usedFlip,
+          index: idx,
+          probability: (probability * 100).toFixed(2) + '%',
+        });
+        debugLogged = true;
+      }
     }
   }
   
