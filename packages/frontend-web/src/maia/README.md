@@ -209,6 +209,23 @@ Maia uses the Lc0 (Leela Chess Zero) input format:
 
 **Total: 112 planes × 8 × 8 = 7,168 values**
 
+## Policy Output Encoding
+
+The policy head outputs 1,858 move probabilities using LC0's official encoding:
+
+### Move Format
+- **Base moves** (e.g., `e2e4`, `g1f3`) - Standard piece movements
+- **Queen promotions** - Use base move format (e.g., `e7e8` = pawn promotes to queen)
+- **Underpromotions** - Explicit suffix for knight, rook, bishop:
+  - `e7e8n` - Knight underpromotion
+  - `e7e8r` - Rook underpromotion  
+  - `e7e8b` - Bishop underpromotion
+
+### Board Perspective
+For Black's moves, the board is flipped so the policy indices remain consistent:
+- Black's `e7e5` → Policy lookup as `d2d4` (mirrored from Black's perspective)
+- This matches LC0's convention of always encoding from the side-to-move's viewpoint
+
 ## Performance
 
 | Metric | Value |

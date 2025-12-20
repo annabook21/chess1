@@ -34,8 +34,14 @@ Real-time Stockfish analysis showing:
 ### 🏆 Achievement System
 Earn achievements for good moves, game completions, and learning milestones.
 
-### 📈 Weakness Tracking
+### 📈 Weakness Tracking & Accuracy
 Identifies your weakest concepts (e.g., "Open file control", "Knight outposts") based on move history.
+
+**Lichess-Style Accuracy Calculation:**
+- Converts centipawn evaluations to **Win Probability** using the Lichess formula
+- Calculates per-move accuracy based on win% change (0-100%)
+- Uses **harmonic mean** for overall accuracy (weights poor moves more heavily)
+- Provides descriptive ratings: "Excellent" (90%+), "Good" (75%+), "Average" (60%+), etc.
 
 ---
 
@@ -325,16 +331,18 @@ export class MaiaEngine {
   }
 
   async predictMove(fen: string): Promise<MaiaPrediction[]> {
-    // Encode position to 808-dimensional feature vector
-    const encoded = encodePosition(fen);  // 8x8x12 board + 8 meta features
+    // Encode position to 112-plane Lc0 format (7,168 values)
+    const encoded = encodeFenToPlanes(fen, history);
     
     // Run inference
-    const tensor = new ort.Tensor('float32', encoded, [1, 808]);
+    const tensor = new ort.Tensor('float32', encoded, [1, 112, 8, 8]);
     const results = await this.session!.run({ input: tensor });
     
-    // Decode policy output to move probabilities
+    // Decode 1,858-element policy to move probabilities
+    // Uses LC0 encoding: base moves for queen promotions,
+    // explicit n/r/b suffixes for underpromotions
     const policy = results.policy.data as Float32Array;
-    return decodeMoves(policy, fen);
+    return decodePolicyToMoves(policy, fen);
   }
 }
 ```

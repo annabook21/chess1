@@ -109,7 +109,11 @@ Master Academy Chess is built as a microservices architecture with strict separa
 ## Move Format
 
 - **UCI Format**: Used throughout (e.g., "e2e4")
+- **Promotions**: 
+  - Queen: Base move only (e.g., "e7e8")
+  - Underpromotions: Explicit suffix (e.g., "e7e8n" for knight)
 - **Conversion**: chess.js uses SAN internally, conversion happens at boundaries
+- **Maia Policy**: Uses LC0's 1,858-move encoding with board flip for Black's perspective
 
 ## Storage
 
