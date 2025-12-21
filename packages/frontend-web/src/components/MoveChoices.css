@@ -115,16 +115,21 @@
   }
 }
 
-/* Choice Card */
+/* Choice Card - Glassmorphism style for overlay */
 .choice-card {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 18px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  
+  /* Glassmorphism card effect */
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-lg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  
   cursor: pointer;
   text-align: left;
   transition: all 0.2s ease;
@@ -138,13 +143,15 @@
 }
 
 .choice-card:hover {
-  border-color: var(--master-color, var(--border-hover));
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--master-color, rgba(255, 255, 255, 0.3));
   transform: translateY(-2px);
 }
 
 .choice-card.selected {
+  background: rgba(255, 255, 255, 0.15);
   border-color: var(--master-color, var(--accent-primary));
-  background: var(--bg-tertiary);
+  box-shadow: 0 0 20px rgba(var(--master-color-rgb, 255, 255, 255), 0.2);
 }
 
 /* Selected indicator */

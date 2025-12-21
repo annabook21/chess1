@@ -90,16 +90,16 @@
   }
 }
 
-/* Game Area - Must fit within viewport */
+/* Game Area - Board centered, overlay floats at bottom */
 .game-area {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center; /* Center board vertically */
   gap: 16px;
   width: 100%;
-  min-height: 0; /* Critical: allows shrinking */
-  overflow-y: auto; /* Allow scroll if content exceeds viewport */
-  overflow-x: hidden;
+  min-height: 0;
+  padding-bottom: 200px; /* Space for the overlay at bottom */
   position: relative;
 }
 
@@ -134,22 +134,71 @@
   font-size: 22px;
 }
 
-/* Choices Section */
+/* ═══════════════════════════════════════════════════════════════════════════
+   CHOICES SECTION - GLASSMORPHISM OVERLAY (ALL SCREENS)
+   Semi-transparent panel that floats over the board
+   ═══════════════════════════════════════════════════════════════════════════ */
 .choices-section {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 24px;
+  /* FIXED POSITIONING - floats over the board */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  
+  /* GLASSMORPHISM EFFECT */
+  background: rgba(20, 18, 30, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  
+  /* Styling */
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px 20px 0 0;
+  padding: 20px 24px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  
+  /* Depth shadow */
+  box-shadow: 
+    0 -8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  
+  /* Smooth entrance animation */
+  animation: overlaySlideUp 0.3s ease-out;
+}
+
+@keyframes overlaySlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Section title styling for overlay */
+.choices-section .section-title {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+
+.choices-section .title-icon {
+  font-size: 18px;
+  margin-right: 8px;
 }
 
 
-/* Action Bar */
+/* Action Bar - inside overlay */
 .action-bar {
   display: flex;
   justify-content: center;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-color);
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .btn-large {
