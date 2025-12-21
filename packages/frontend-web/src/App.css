@@ -80,7 +80,8 @@
   margin: 0 auto;
   width: 100%;
   min-height: 0; /* Critical: allows flex children to shrink */
-  overflow: hidden; /* Prevent any scroll */
+  overflow-y: auto; /* Allow scroll if needed */
+  overflow-x: hidden;
 }
 
 @media (max-width: 1200px) {
@@ -97,8 +98,8 @@
   gap: 16px;
   width: 100%;
   min-height: 0; /* Critical: allows shrinking */
-  max-height: 100%; /* Don't exceed parent */
-  overflow: hidden; /* Prevent scroll */
+  overflow-y: auto; /* Allow scroll if content exceeds viewport */
+  overflow-x: hidden;
   position: relative;
 }
 
