@@ -8,6 +8,12 @@ import { MoveChoice } from '@master-academy/contracts';
 import { PixelIcon, PixelIconName } from '../ui/castle';
 import './MoveChoices.css';
 
+interface TooltipState {
+  visible: boolean;
+  text: string;
+  choiceId: string;
+}
+
 interface MoveChoicesProps {
   choices: MoveChoice[];
   selectedChoice: string | null;
@@ -68,6 +74,7 @@ export const MoveChoices: React.FC<MoveChoicesProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, text: '', choiceId: '' });
 
   // Check if mobile
   useEffect(() => {
@@ -133,6 +140,13 @@ export const MoveChoices: React.FC<MoveChoicesProps> = ({
             {/* Selection indicator */}
             {isSelected && <div className="choice-selected-indicator" />}
             
+            {/* Tooltip balloon - desktop only */}
+            {!isMobile && tooltip.visible && tooltip.choiceId === choice.id && (
+              <div className="info-tooltip">
+                {tooltip.text}
+              </div>
+            )}
+            
             {/* Master header - show probability for human-like predictions */}
             <div className="choice-header">
               <div className="master-avatar" style={{ color: master.color }}>
@@ -150,9 +164,29 @@ export const MoveChoices: React.FC<MoveChoicesProps> = ({
                   </>
                 ) : (
                   <>
-                    <span className="master-name" style={{ color: master.color }}>
-                      {master.name}
-                    </span>
+                    <div className="master-name-row">
+                      <span className="master-name" style={{ color: master.color }}>
+                        {master.name}
+                      </span>
+                      {/* Info icon - desktop only, shows plan on hover */}
+                      {!isMobile && (
+                        <button
+                          className="info-icon-btn"
+                          onMouseEnter={(e) => {
+                            e.stopPropagation();
+                            setTooltip({ visible: true, text: choice.planOneLiner, choiceId: choice.id });
+                          }}
+                          onMouseLeave={(e) => {
+                            e.stopPropagation();
+                            setTooltip({ visible: false, text: '', choiceId: '' });
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label="Show strategy info"
+                        >
+                          ⓘ
+                        </button>
+                      )}
+                    </div>
                     <span className="master-title">{master.title}</span>
                   </>
                 )}

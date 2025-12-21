@@ -1,0 +1,270 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACTION BAR - UNIFIED (Mobile + Desktop)
+   Transparent glassmorphism styling as requested
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.action-bar-unified {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0; /* DEFAULT: Always at bottom */
+  z-index: 1000;
+  
+  /* Default solid background */
+  background: var(--bg-secondary, #1a1a2e);
+  border-top: 1px solid var(--border-color, #3d3d5c);
+  padding: 8px 16px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+
+/* Position variants */
+.action-bar-unified[data-position="bottom"] {
+  bottom: 0;
+}
+
+.action-bar-unified[data-position="top"] {
+  top: 0;
+  bottom: auto;
+  border-top: none;
+  border-bottom: 1px solid var(--border-color, #3d3d5c);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRANSPARENT / GLASSMORPHISM MODE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.action-bar-unified.transparent,
+.sierra-theme .action-bar-unified.transparent {
+  /* GLASSMORPHISM - transparent with blur */
+  /* Use !important to override sierra-theme VGA styles */
+  background: rgba(15, 12, 25, 0.85) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  
+  /* Override sierra border styles */
+  border: none !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0 !important;
+  
+  /* Shadow for depth - override sierra box-shadow */
+  box-shadow: 
+    0 -4px 30px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONTENT LAYOUT
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.action-bar-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACTION BUTTONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.action-bar-button,
+.sierra-theme .action-bar-unified .action-bar-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 16px;
+  min-width: 60px;
+  flex: 1;
+  max-width: 120px;
+  
+  /* TRANSPARENT button styling - override sierra VGA styles */
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 8px !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.action-bar-button:hover,
+.sierra-theme .action-bar-unified .action-bar-button:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-1px);
+}
+
+.action-bar-button:active,
+.sierra-theme .action-bar-unified .action-bar-button:active {
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(0);
+}
+
+/* Primary action (highlighted) */
+.action-bar-button.primary,
+.sierra-theme .action-bar-unified .action-bar-button.primary {
+  background: rgba(134, 184, 27, 0.2) !important;
+  border-color: rgba(134, 184, 27, 0.4) !important;
+}
+
+.action-bar-button.primary:hover,
+.sierra-theme .action-bar-unified .action-bar-button.primary:hover {
+  background: rgba(134, 184, 27, 0.3) !important;
+  border-color: rgba(134, 184, 27, 0.5) !important;
+}
+
+/* Active toggle state */
+.action-bar-button.active,
+.sierra-theme .action-bar-unified .action-bar-button.active {
+  background: rgba(139, 92, 246, 0.2) !important;
+  border-color: rgba(139, 92, 246, 0.4) !important;
+}
+
+.action-bar-button.active:hover,
+.sierra-theme .action-bar-unified .action-bar-button.active:hover {
+  background: rgba(139, 92, 246, 0.3) !important;
+  border-color: rgba(139, 92, 246, 0.5) !important;
+}
+
+/* Icon */
+.action-bar-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* Label */
+.action-bar-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.action-bar-button:hover .action-bar-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Toggle indicator badge */
+.action-bar-toggle-indicator {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 8px;
+  font-weight: 700;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.action-bar-toggle-indicator.on {
+  background: rgba(139, 92, 246, 0.4);
+  color: #c4b5fd;
+}
+
+.action-bar-toggle-indicator.off {
+  background: rgba(100, 100, 100, 0.3);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPACT MODE (icons only)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.action-bar-unified.compact .action-bar-button {
+  flex-direction: row;
+  padding: 8px 12px;
+  min-width: 44px;
+  max-width: 60px;
+}
+
+.action-bar-unified.compact .action-bar-icon {
+  font-size: 22px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE - Mobile Adjustments
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .action-bar-unified {
+    padding: 6px 12px;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+  }
+  
+  .action-bar-content {
+    gap: 6px;
+  }
+  
+  .action-bar-button {
+    padding: 8px 12px;
+    min-width: 50px;
+  }
+  
+  .action-bar-icon {
+    font-size: 18px;
+  }
+  
+  .action-bar-label {
+    font-size: 10px;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 375px) {
+  .action-bar-button {
+    padding: 6px 8px;
+    min-width: 44px;
+  }
+  
+  .action-bar-label {
+    display: none;
+  }
+  
+  .action-bar-icon {
+    font-size: 20px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DESKTOP-SPECIFIC STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 769px) {
+  .action-bar-unified {
+    padding: 10px 24px;
+  }
+  
+  .action-bar-content {
+    gap: 12px;
+  }
+  
+  .action-bar-button {
+    flex-direction: row;
+    gap: 8px;
+    padding: 10px 16px;
+    min-width: auto;
+    max-width: none;
+  }
+  
+  .action-bar-icon {
+    font-size: 18px;
+  }
+  
+  .action-bar-label {
+    font-size: 13px;
+  }
+  
+  .action-bar-toggle-indicator {
+    position: static;
+    margin-left: 4px;
+  }
+}

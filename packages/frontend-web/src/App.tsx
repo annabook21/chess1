@@ -16,9 +16,11 @@ import { Celebration } from './components/Celebration';
 import { PredictOpponent } from './components/PredictOpponent';
 import { MasterMonologue } from './components/MasterMonologue';
 import { WeaknessTracker } from './components/WeaknessTracker';
-import { BottomNav } from './components/BottomNav';
+import { ActionBar } from './components/ActionBar';
+import { DeviceModePrompt } from './components/DeviceModePrompt';
+import { useViewConfig } from './context/ViewConfigContext';
 import { createGame, getTurn, submitMove } from './api/client';
-import { TurnPackage, MoveRequest, MoveResponse, MoveQuality } from '@master-academy/contracts';
+import { TurnPackage, MoveRequest, MoveResponse, MoveQuality, MoveFeedback } from '@master-academy/contracts';
 import { 
   trackMove, 
   getGamePhase, 
@@ -83,6 +85,15 @@ interface PlayerStats {
 }
 
 function App() {
+  // View configuration based on user's device mode preference
+  const { 
+    viewConfig, 
+    showPrompt: showDevicePrompt, 
+    setMode: setDeviceMode, 
+    dismissPrompt: dismissDevicePrompt,
+    autoDetectedMode 
+  } = useViewConfig();
+  
   // Game state
   const [gameId, setGameId] = useState<string | null>(null);
   const [turnPackage, setTurnPackage] = useState<TurnPackage | null>(null);
@@ -164,6 +175,53 @@ function App() {
   
   // Celebration state
   const [celebration, setCelebration] = useState<'good' | 'great' | 'blunder' | 'predict' | null>(null);
+  
+  // Coach logs state - store all feedback for later review
+  const [coachLogs, setCoachLogs] = useState<Array<MoveFeedback & { timestamp: number; moveNumber: number }>>([]);
+  const [showCoachLogs, setShowCoachLogs] = useState(false);
+  
+  // Auto-dismiss feedback after 5 seconds and add to coach logs
+  useEffect(() => {
+    if (feedback) {
+      // Add to coach logs
+      const moveNum = Math.ceil((moveHistory.length) / 2);
+      setCoachLogs(prev => [...prev, { ...feedback, timestamp: Date.now(), moveNumber: moveNum }].slice(-20)); // Keep last 20
+      
+      // Auto-dismiss after 5 seconds
+      const timer = setTimeout(() => {
+        setFeedback(null);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [feedback, moveHistory.length]);
+  
+  // Touch handling for swipe-down to dismiss prediction bottom sheet
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientY);
+  };
+  
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientY);
+  };
+  
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchEnd - touchStart;
+    const isDownSwipe = distance > 100; // Minimum 100px swipe down
+    
+    if (isDownSwipe && showPrediction) {
+      // Skip prediction on swipe down
+      handlePredictionSkip();
+    }
+    
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
   
   // Opponent type state
   const [opponentType, setOpponentType] = useState<OpponentType>(() => {
@@ -1534,7 +1592,8 @@ function App() {
         if (shouldShowPrediction) {
           setPendingResponse(response);
           // Keep showing prediction - user will submit or timeout
-          // Don't return - let the code below handle turn package update
+          // CRITICAL: Return early to keep showPrediction=true
+          return;
         } else {
           // Prediction disabled or AI master - process directly
           processMoveResponse(response, choice, turnPackage);
@@ -2143,7 +2202,7 @@ function App() {
   // being called after early returns (which causes React error #300)
 
   return (
-    <div className="app castle-theme sierra-theme">
+    <div className={`app castle-theme sierra-theme device-mode-${viewConfig.mode}`} data-device-mode={viewConfig.mode}>
       {/* Game End Screens (Phase 3) */}
       {gameEndState === 'defeat' && (
         <GameOverScreen
@@ -2217,7 +2276,42 @@ function App() {
         onPlayModeChange={setPlayMode}
         playerColor={playerColor}
         onPlayerColorChange={setPlayerColor}
+        deviceMode={viewConfig.mode}
+        onDeviceModeChange={setDeviceMode}
+        onOpenCoachLogs={() => setShowCoachLogs(true)}
       />
+      
+      {/* Coach's Logs Modal */}
+      {showCoachLogs && (
+        <div className="modal-overlay" onClick={() => setShowCoachLogs(false)}>
+          <div className="modal-content coach-logs-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>📋 Coach's Logs</h2>
+              <button className="modal-close" onClick={() => setShowCoachLogs(false)}>✕</button>
+            </div>
+            <div className="modal-body coach-logs-list">
+              {coachLogs.length === 0 ? (
+                <p className="empty-logs">No coaching feedback yet. Keep playing!</p>
+              ) : (
+                [...coachLogs].reverse().map((log, idx) => (
+                  <div key={idx} className="coach-log-item">
+                    <div className="log-header">
+                      <span className="log-move-number">Move {log.moveNumber}</span>
+                      <span className="log-timestamp">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <div className="log-eval">
+                      <span className={`eval-badge ${log.delta > 0 ? 'positive' : log.delta < -100 ? 'negative' : 'neutral'}`}>
+                        {log.delta > 0 ? '+' : ''}{(log.delta / 100).toFixed(2)}
+                      </span>
+                    </div>
+                    <p className="log-coach-text">{log.coachText}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Castle Map Modal */}
       {showCastleMap && (
@@ -2292,35 +2386,93 @@ function App() {
             </div>
           </div>
 
-          <div className="board-container">
-            <div className="eval-bar-container">
-              <div
-                className="eval-bar-white"
-                style={{
-                  height: `${50 + (feedback?.evalAfter || 0) / 10}%`
-                }}
+          {/* Board with overlay wrapper - allows choices to float over board */}
+          <div className="board-overlay-wrapper">
+            <div className="board-container">
+              <div className="eval-bar-container">
+                <div
+                  className="eval-bar-white"
+                  style={{
+                    height: `${50 + (feedback?.evalAfter || 0) / 10}%`
+                  }}
+                />
+              </div>
+
+              <ChessBoard
+                fen={
+                  showPrediction && fenBeforeAiMove
+                    ? fenBeforeAiMove
+                    : (optimisticFen || turnPackage?.fen || 'start')
+                }
+                choices={showPrediction ? undefined : (playMode === 'guided' ? turnPackage?.choices : undefined)}
+                selectedChoice={showPrediction ? null : selectedChoice}
+                hoveredChoice={showPrediction ? null : hoveredChoice}
+                predictionHover={showPrediction ? predictionHover : undefined}
+                freePlayMode={playMode === 'free' && !showPrediction && !loading}
+                onMove={handleFreeMove}
+                orientation={playerColor}
               />
             </div>
 
-            <ChessBoard
-              fen={
-                showPrediction && fenBeforeAiMove
-                  ? fenBeforeAiMove
-                  : (optimisticFen || turnPackage?.fen || 'start')
-              }
-              choices={showPrediction ? undefined : (playMode === 'guided' ? turnPackage?.choices : undefined)}
-              selectedChoice={showPrediction ? null : selectedChoice}
-              hoveredChoice={showPrediction ? null : hoveredChoice}
-              predictionHover={showPrediction ? predictionHover : undefined}
-              freePlayMode={playMode === 'free' && !showPrediction && !loading}
-              onMove={handleFreeMove}
-              orientation={playerColor}
-            />
+            {/* Move choices OVERLAY - positioned over the board */}
+            {turnPackage && !showPrediction && playMode === 'guided' && (() => {
+              const isPlayerTurn = playerColor === 'white' 
+                ? turnPackage.sideToMove === 'w'
+                : turnPackage.sideToMove === 'b';
+              return isPlayerTurn;
+            })() && (
+              <div className="choices-overlay">
+                <div className="choices-overlay-content">
+                  {/* PREDICTION TOGGLE - Enable to predict opponent's NEXT move for XP */}
+                  <button
+                    className={`toolbar-toggle-btn ${predictionEnabled ? 'active' : ''}`}
+                    onClick={() => setPredictionEnabled((prev: boolean) => !prev)}
+                    title={predictionEnabled ? 'Prediction ON - Guess opponent moves for XP' : 'Turn ON to guess opponent moves for XP'}
+                  >
+                    🧠 {predictionEnabled ? 'Predict ON' : 'Predict OFF'}
+                  </button>
+                  
+                  <MoveChoices
+                    choices={turnPackage.choices}
+                    selectedChoice={selectedChoice}
+                    onSelectChoice={handleChoiceSelect}
+                    onHoverChoice={setHoveredChoice}
+                  />
+                  
+                  {selectedChoice && (
+                    <button
+                      className="btn btn-primary btn-confirm-overlay"
+                      onClick={handleMoveSubmit}
+                      disabled={loading}
+                    >
+                      {loading ? 'Processing...' : '⚡ Make Move'}
+                    </button>
+                  )}
+                  
+                  {/* MENU BUTTON - Shows settings, logs, etc. */}
+                  <button
+                    className="toolbar-icon-btn toolbar-menu-btn"
+                    onClick={() => setShowSettings(true)}
+                    title="Menu"
+                  >
+                    ☰
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Prediction Mode - show when we have the FEN after user's move */}
           {showPrediction && fenBeforeAiMove && (
-            <div className="prediction-section animate-fade-in-up">
+            <div 
+              className="prediction-section animate-fade-in-up"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              {/* Swipe handle indicator */}
+              <div className="bottom-sheet-handle" />
+              
               <PredictOpponent
                 fen={fenBeforeAiMove}
                 onPredictionSubmit={handlePredictionSubmit}
@@ -2440,64 +2592,19 @@ function App() {
             </div>
           )}
 
-          {/* Move choices - only show in guided mode, hide during prediction, and only when it's player's turn */}
-          {turnPackage && !showPrediction && playMode === 'guided' && (() => {
-            const isPlayerTurn = playerColor === 'white' 
-              ? turnPackage.sideToMove === 'w'
-              : turnPackage.sideToMove === 'b';
-            return isPlayerTurn;
-          })() && (
-            <div className="choices-section animate-fade-in-up">
-              <h2 className="section-title">
-                <span className="title-icon">♟️</span>
-                Choose Your Move
-              </h2>
-              <MoveChoices
-                choices={turnPackage.choices}
-                selectedChoice={selectedChoice}
-                onSelectChoice={handleChoiceSelect}
-                onHoverChoice={setHoveredChoice}
-              />
-              
-              {/* Master Monologue for selected choice */}
-              {selectedChoice && (() => {
-                const choice = turnPackage.choices.find(c => c.id === selectedChoice);
-                return choice ? (
-                  <MasterMonologue
-                    masterStyle={choice.styleId}
-                    justification={choice.planOneLiner}
-                    threats={choice.threats}
-                  />
-                ) : null;
-              })()}
-              
-              {selectedChoice && (
-                <div className="action-bar animate-fade-in">
-                  <button
-                    className="btn btn-primary btn-large"
-                    onClick={handleMoveSubmit}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <span className="loading-dot">●</span>
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <span>⚡</span>
-                        Make Move
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Move choices are now inside board-overlay-wrapper above */}
 
-          {/* Feedback panel */}
+          {/* Feedback panel - Toast with manual dismiss */}
           {feedback && !showPrediction && (
             <div className="feedback-section animate-slide-in-right">
+              <button 
+                className="toast-close-btn"
+                onClick={() => setFeedback(null)}
+                title="Dismiss"
+                aria-label="Dismiss feedback"
+              >
+                ✕
+              </button>
               <Feedback feedback={feedback} />
             </div>
           )}
@@ -2519,39 +2626,61 @@ function App() {
           )}
         </div>
 
-        {/* Right: Sidebar */}
-        <Sidebar 
-          moveHistory={moveHistory}
-          playerStats={playerStats}
-          currentEval={feedback?.evalAfter || 0}
-        />
+        {/* Right: Sidebar - only show based on view config */}
+        {viewConfig.gameArea.showSidebar && (
+          <Sidebar 
+            moveHistory={moveHistory}
+            playerStats={playerStats}
+            currentEval={feedback?.evalAfter || 0}
+          />
+        )}
       </main>
       
-      {/* Castle Quick Actions (Desktop) */}
-      <div className="castle-quick-actions">
-        <button 
-          className="castle-action-btn"
-          onClick={() => setShowCastleMap(true)}
-          title="Castle Map"
-        >
-          <PixelIcon name="castle" size="small" />
-        </button>
-        <button 
-          className="castle-action-btn"
-          onClick={() => setShowSettings(true)}
-          title="Settings"
-        >
-          ⚙️
-        </button>
-      </div>
+      {/* Castle Quick Actions - only show if config says to */}
+      {viewConfig.gameArea.showQuickActions && (
+        <div className="castle-quick-actions">
+          <button 
+            className="castle-action-btn"
+            onClick={() => setShowCastleMap(true)}
+            title="Castle Map"
+          >
+            <PixelIcon name="castle" size="small" />
+          </button>
+          <button 
+            className="castle-action-btn"
+            onClick={() => setShowSettings(true)}
+            title="Settings"
+          >
+            ⚙️
+          </button>
+        </div>
+      )}
 
-      {/* Mobile Bottom Navigation */}
-      <BottomNav
-        predictionEnabled={predictionEnabled}
-        onTogglePrediction={() => setPredictionEnabled((prev: boolean) => !prev)}
-        onOpenWeaknessTracker={() => setShowWeaknessTracker(true)}
-        onNewGame={initializeGame}
-      />
+      {/* 
+        Action Bar - ONLY show when NOT in guided gameplay
+        During guided play, the master move choices (Karpov/Fischer/Tal) are the primary UI
+        The action bar is for secondary actions when there's no active move to make
+      */}
+      {!showDevicePrompt && (playMode === 'free' || !turnPackage?.choices?.length) && (
+        <ActionBar
+          config={viewConfig}
+          predictionEnabled={predictionEnabled}
+          onTogglePrediction={() => setPredictionEnabled((prev: boolean) => !prev)}
+          onOpenWeaknessTracker={() => setShowWeaknessTracker(true)}
+          onNewGame={initializeGame}
+          onOpenSettings={() => setShowSettings(true)}
+          onOpenCastleMap={() => setShowCastleMap(true)}
+        />
+      )}
+
+      {/* Device Mode Selection Prompt */}
+      {showDevicePrompt && (
+        <DeviceModePrompt
+          autoDetectedMode={autoDetectedMode}
+          onSelectMode={setDeviceMode}
+          onDismiss={dismissDevicePrompt}
+        />
+      )}
     </div>
   );
 }
