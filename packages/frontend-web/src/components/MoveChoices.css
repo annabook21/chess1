@@ -15,26 +15,25 @@
   }
 }
 
-/* Mobile: Compact horizontal layout - all 3 cards visible */
+/* Mobile: Glassmorphism overlay with horizontal cards */
 @media (max-width: 768px) {
-  /* Wrapper for scroll container - full width */
+  /* Wrapper for scroll container */
   .move-choices-wrapper {
     position: relative;
     width: 100%;
-    max-width: 100vw;
     overflow: visible;
   }
   
-  /* Horizontal flex container - try to fit all cards */
+  /* Horizontal flex container */
   .move-choices-grid {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
-    overflow-y: hidden;
+    overflow-y: visible;
     scroll-snap-type: x mandatory;
-    gap: 8px;
-    padding: 4px 8px;
+    gap: 10px;
+    padding: 4px 4px;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     width: 100%;
@@ -45,12 +44,24 @@
     display: none;
   }
   
-  /* Cards - COMPACT width to fit 3 on screen or scroll smoothly */
+  /* Cards - sized to fit 3 comfortably or scroll */
   .move-choices-grid .choice-card {
-    flex: 0 0 calc(33.33% - 6px) !important;
-    min-width: 140px !important;
-    max-width: 200px !important;
-    scroll-snap-align: start;
+    flex: 0 0 calc(33.33% - 8px) !important;
+    min-width: 120px !important;
+    max-width: 180px !important;
+    scroll-snap-align: center;
+    
+    /* Glassmorphism card style */
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  
+  .move-choices-grid .choice-card:hover,
+  .move-choices-grid .choice-card.selected {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: var(--master-color, rgba(255, 255, 255, 0.3)) !important;
   }
   
   /* Scroll hint indicator */
@@ -58,14 +69,14 @@
     display: flex;
     justify-content: center;
     gap: 6px;
-    padding: 6px 0 2px;
+    padding: 8px 0 4px;
   }
   
   .scroll-hint-dot {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
-    background: var(--border-color);
+    background: rgba(255, 255, 255, 0.3);
     border: none;
     padding: 0;
     cursor: pointer;
@@ -76,18 +87,18 @@
   .scroll-hint-dot::before {
     content: '';
     position: absolute;
-    top: -6px;
-    left: -6px;
-    right: -6px;
-    bottom: -6px;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
   }
   
   .scroll-hint-dot.active {
-    background: var(--accent-primary);
-    transform: scale(1.2);
+    background: var(--accent-primary, #fff);
+    transform: scale(1.3);
   }
   
-  /* Hide swipe hint - not needed with compact layout */
+  /* Hide swipe hint */
   .swipe-hint {
     display: none;
   }
@@ -284,13 +295,14 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MOBILE COMPACT CARDS - Fit all 3 visible with board
+   MOBILE COMPACT CARDS - Glassmorphism overlay style
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
   .choice-card {
-    padding: 8px;
-    gap: 6px;
+    padding: 10px;
+    gap: 8px;
+    border-radius: 12px;
   }
   
   .choice-card:hover {
@@ -298,42 +310,47 @@
   }
   
   .choice-card:active {
-    transform: scale(0.98);
-    background: var(--bg-tertiary);
+    transform: scale(0.97);
+    background: rgba(255, 255, 255, 0.2) !important;
   }
   
   .choice-selected-indicator {
-    width: 16px;
-    height: 16px;
-    top: 4px;
-    right: 4px;
+    width: 18px;
+    height: 18px;
+    top: 6px;
+    right: 6px;
+    background: var(--accent-primary);
   }
   
   .choice-selected-indicator::after {
-    font-size: 9px;
+    font-size: 10px;
   }
   
-  /* Simplified header - just avatar and name */
+  /* Header with avatar and name */
   .choice-header {
-    gap: 6px;
+    gap: 8px;
   }
   
   .master-avatar {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
   }
   
   .master-emoji {
-    font-size: 14px;
+    font-size: 16px;
   }
   
   .master-name {
-    font-size: 12px;
+    font-size: 13px;
+    color: #fff;
   }
   
   .master-title {
-    font-size: 8px;
-    display: none; /* Hide on mobile for space */
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.6);
+    display: block; /* Show title in overlay */
   }
   
   /* Hide plan on mobile - show only move */
@@ -343,17 +360,38 @@
   
   /* Compact move display */
   .choice-move {
-    padding: 6px 8px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
   }
   
   .move-notation-display {
-    font-size: 13px;
+    font-size: 14px;
     gap: 4px;
+    color: #fff;
+  }
+  
+  .from-square, .to-square {
+    color: #fff;
+  }
+  
+  .move-arrow {
+    color: rgba(255, 255, 255, 0.5);
   }
   
   .move-eval {
-    font-size: 11px;
-    padding: 2px 6px;
+    font-size: 12px;
+    padding: 3px 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+  }
+  
+  .move-eval.positive {
+    color: #86b81b;
+  }
+  
+  .move-eval.negative {
+    color: #ff6b6b;
   }
   
   /* Hide tags on mobile */
@@ -364,39 +402,43 @@
 
 @media (max-width: 375px) {
   .move-choices-grid .choice-card {
-    flex: 0 0 calc(33.33% - 4px) !important;
-    min-width: 100px !important;
-    max-width: 140px !important;
+    flex: 0 0 calc(33.33% - 6px) !important;
+    min-width: 95px !important;
+    max-width: 120px !important;
   }
   
   .choice-card {
-    padding: 6px;
-    gap: 4px;
+    padding: 8px;
+    gap: 6px;
   }
   
   .master-avatar {
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
   }
   
   .master-emoji {
-    font-size: 12px;
+    font-size: 14px;
   }
   
   .master-name {
-    font-size: 10px;
-  }
-  
-  .choice-move {
-    padding: 4px 6px;
-  }
-  
-  .move-notation-display {
     font-size: 11px;
   }
   
+  .master-title {
+    display: none; /* Hide on very small screens */
+  }
+  
+  .choice-move {
+    padding: 6px 8px;
+  }
+  
+  .move-notation-display {
+    font-size: 12px;
+  }
+  
   .move-eval {
-    font-size: 9px;
-    padding: 2px 4px;
+    font-size: 10px;
+    padding: 2px 6px;
   }
 }

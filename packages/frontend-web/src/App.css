@@ -254,7 +254,7 @@
 
 @media (max-width: 768px) {
   /* ═══════════════════════════════════════════════════════════════════════════
-     MOBILE: Viewport-locked layout - board + choices must fit, NO SCROLL
+     MOBILE: Board fills viewport, choices overlay with glassmorphism
      ═══════════════════════════════════════════════════════════════════════════ */
   
   .app {
@@ -269,31 +269,33 @@
     display: flex;
     flex-direction: column;
     padding: 8px;
-    gap: 8px;
-    min-height: 0; /* Critical for flex shrink */
+    gap: 0; /* No gap - overlay handles spacing */
+    min-height: 0;
     overflow: hidden;
+    position: relative; /* For overlay positioning */
   }
   
-  /* Game area - fills available space, no scroll */
+  /* Game area - fills ALL available space for board */
   .game-area {
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 8px;
     width: 100%;
-    min-height: 0; /* Critical for flex shrink */
-    overflow: hidden;
+    min-height: 0;
+    overflow: visible; /* Allow overlay to extend */
     align-items: center;
+    justify-content: center; /* Center board vertically */
   }
   
-  /* Board container - takes remaining space after choices */
+  /* Board container - takes full space, board is maximized */
   .board-container {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 0; /* Allows shrinking */
+    min-height: 0;
     width: 100%;
     padding: 4px 0;
   }
@@ -303,69 +305,130 @@
     display: none;
   }
   
-  /* Turn indicator - compact */
+  /* Turn indicator - compact, positioned at top */
   .turn-indicator {
     padding: 6px 12px;
     font-size: 12px;
-    flex-shrink: 0; /* Don't shrink */
+    flex-shrink: 0;
+    z-index: 10;
   }
   
-  /* Choices section - FIXED HEIGHT, horizontal layout */
+  /* ═══════════════════════════════════════════════════════════════════════════
+     GLASSMORPHISM OVERLAY - Choices float over board
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
   .choices-section {
-    flex-shrink: 0; /* Never shrink - always visible */
-    padding: 8px;
-    border-radius: var(--radius-md);
-    width: 100%;
-    max-height: 140px; /* Fixed max height */
-    overflow-x: auto; /* Horizontal scroll for many choices */
-    overflow-y: hidden;
-    box-sizing: border-box;
+    position: fixed !important;
+    bottom: 60px; /* Above bottom nav */
+    left: 0;
+    right: 0;
+    z-index: 100;
+    
+    /* Glassmorphism effect */
+    background: rgba(15, 15, 25, 0.85) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    
+    /* Subtle top border for definition */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px 16px 0 0;
+    
+    /* Padding with safe area */
+    padding: 12px 8px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    
+    /* Shadow for depth */
+    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.4);
+    
+    /* Smooth entrance */
+    animation: overlaySlideUp 0.3s ease-out;
+  }
+  
+  @keyframes overlaySlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   
   .section-title {
-    font-size: 14px;
+    font-size: 12px;
     margin-bottom: 8px;
-    padding: 0 4px;
+    padding: 0 8px;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
   
-  /* Action bar - compact, above choices */
+  /* Action bar - inside overlay */
   .action-bar {
-    flex-shrink: 0;
+    position: fixed;
+    bottom: 60px;
+    left: 0;
+    right: 0;
+    z-index: 101;
     margin: 0;
-    padding: 8px;
-    border-top: 1px solid var(--border-color);
+    padding: 12px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    
+    /* Glassmorphism */
+    background: rgba(15, 15, 25, 0.9);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
   
   .action-bar .btn {
     width: 100%;
-    padding: 10px 16px;
+    padding: 12px 16px;
     font-size: 14px;
     font-weight: 600;
   }
   
   .btn-large {
     width: 100%;
-    padding: 10px 16px;
+    padding: 12px 16px;
     font-size: 14px;
   }
   
-  /* Feedback section - compact inline */
+  /* Feedback section - part of overlay */
   .feedback-section {
     margin-top: 4px;
-    flex-shrink: 0;
   }
   
-  /* Prediction section - compact, fixed height */
+  /* Prediction section - overlay style */
   .prediction-section {
-    flex-shrink: 0;
-    margin-top: 4px;
-    max-height: 100px;
+    position: fixed !important;
+    bottom: 60px;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    
+    /* Glassmorphism */
+    background: rgba(15, 15, 25, 0.9);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px 16px 0 0;
+    
+    padding: 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    max-height: 40vh;
     overflow-y: auto;
+    
+    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.4);
+    animation: overlaySlideUp 0.3s ease-out;
   }
   
   .prediction-result {
-    padding: 8px 12px;
+    padding: 10px 12px;
     margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
   }
   
   .prediction-result-header {
@@ -396,7 +459,6 @@
 @media (max-width: 375px) {
   .app-main {
     padding: 4px;
-    gap: 4px;
   }
   
   .game-area {
@@ -407,19 +469,25 @@
     padding: 2px 0;
   }
   
+  /* Overlay adjustments for small screens */
   .choices-section {
-    padding: 6px;
-    max-height: 120px; /* Even more compact */
+    padding: 8px 6px;
+    border-radius: 12px 12px 0 0;
   }
 
   .section-title {
-    font-size: 12px;
+    font-size: 10px;
     margin-bottom: 6px;
   }
   
   .turn-indicator {
     padding: 4px 8px;
     font-size: 10px;
+  }
+  
+  .prediction-section {
+    padding: 10px 8px;
+    max-height: 35vh;
   }
 }
 
