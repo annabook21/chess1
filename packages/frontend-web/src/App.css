@@ -538,7 +538,7 @@
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  max-height: 50vh !important; /* Only take bottom half of screen */
+  max-height: 70vh !important; /* Larger - 70% of screen for prediction cards */
   z-index: 1100 !important; /* ABOVE the choices overlay */
   
   /* Dark glassmorphism bottom sheet */
@@ -552,7 +552,7 @@
   display: flex !important;
   flex-direction: column !important;
   justify-content: flex-start !important;
-  align-items: center !important;
+  align-items: stretch !important; /* Stretch children to full width */
   padding: 8px 16px 16px !important;
   padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
   overflow-y: auto !important;
@@ -561,6 +561,15 @@
   
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6) !important;
   animation: slideUpFromBottom 0.3s ease-out !important;
+}
+
+/* Make PredictOpponent fill the prediction-section properly */
+.prediction-section .predict-opponent-v2 {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important; /* Allow content to flow */
+  flex: 1 !important;
+  min-height: 0 !important;
 }
 
 /* Bottom sheet handle indicator for swipe gesture */
@@ -799,7 +808,7 @@
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
-    max-height: 60vh !important; /* Take only bottom 60%, board visible above */
+    max-height: 75vh !important; /* Take 75% of screen - prediction needs more space */
     z-index: 1100 !important; /* ABOVE the choices overlay (z-index 1000) */
     
     /* Dark glassmorphism bottom sheet */
@@ -809,11 +818,11 @@
     border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
     border-radius: 20px 20px 0 0 !important;
     
-    /* Scrollable content - COMPACT */
+    /* Scrollable content */
     display: flex !important;
     flex-direction: column !important;
     justify-content: flex-start !important;
-    align-items: center !important;
+    align-items: stretch !important; /* Stretch to full width */
     padding: 8px 12px 12px !important;
     padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
     overflow-y: auto !important;
@@ -822,6 +831,21 @@
     
     box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6) !important;
     animation: slideUpFromBottom 0.3s ease-out !important;
+  }
+  
+  /* Mobile: Make prediction content scrollable */
+  .prediction-section .predict-opponent-v2 {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+  }
+  
+  .prediction-section .prediction-choices-wrapper {
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
   }
   
   /* Make handle more prominent on mobile */
@@ -895,7 +919,7 @@
   
   .prediction-section {
     padding: 10px 8px;
-    max-height: 35vh;
+    max-height: 70vh; /* Still show 70% even on small screens */
   }
 }
 

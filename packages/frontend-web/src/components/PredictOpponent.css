@@ -9,11 +9,13 @@
   padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   box-shadow: 0 0 30px rgba(232, 185, 35, 0.2);
   animation: slideIn 0.3s ease-out;
   min-height: 0; /* Prevent flex overflow */
-  overflow: hidden; /* Let child handle scrolling */
+  overflow: visible; /* Allow content to show */
+  flex: 1; /* Fill available space */
+  max-height: 100%; /* Don't exceed parent */
 }
 
 @keyframes slideIn {
@@ -142,9 +144,17 @@
   gap: 12px;
   flex: 1;
   min-height: 0;
-  max-height: 500px; /* Increased from 400px for better visibility */
-  overflow-y: auto; /* Scroll only the move options, not the whole container */
+  max-height: none; /* Remove max-height - parent controls scrolling */
+  overflow-y: visible; /* Parent handles scrolling */
   padding: 8px 4px 8px 0; /* More padding for better spacing */
+}
+
+/* Prediction choices wrapper - scrollable container */
+.prediction-choices-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px; /* Space for scrollbar */
 }
 
 /* Custom scrollbar for move options */
