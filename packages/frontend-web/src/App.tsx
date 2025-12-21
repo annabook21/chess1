@@ -2292,30 +2292,62 @@ function App() {
             </div>
           </div>
 
-          <div className="board-container">
-            <div className="eval-bar-container">
-              <div
-                className="eval-bar-white"
-                style={{
-                  height: `${50 + (feedback?.evalAfter || 0) / 10}%`
-                }}
+          {/* Board with overlay wrapper - allows choices to float over board */}
+          <div className="board-overlay-wrapper">
+            <div className="board-container">
+              <div className="eval-bar-container">
+                <div
+                  className="eval-bar-white"
+                  style={{
+                    height: `${50 + (feedback?.evalAfter || 0) / 10}%`
+                  }}
+                />
+              </div>
+
+              <ChessBoard
+                fen={
+                  showPrediction && fenBeforeAiMove
+                    ? fenBeforeAiMove
+                    : (optimisticFen || turnPackage?.fen || 'start')
+                }
+                choices={showPrediction ? undefined : (playMode === 'guided' ? turnPackage?.choices : undefined)}
+                selectedChoice={showPrediction ? null : selectedChoice}
+                hoveredChoice={showPrediction ? null : hoveredChoice}
+                predictionHover={showPrediction ? predictionHover : undefined}
+                freePlayMode={playMode === 'free' && !showPrediction && !loading}
+                onMove={handleFreeMove}
+                orientation={playerColor}
               />
             </div>
 
-            <ChessBoard
-              fen={
-                showPrediction && fenBeforeAiMove
-                  ? fenBeforeAiMove
-                  : (optimisticFen || turnPackage?.fen || 'start')
-              }
-              choices={showPrediction ? undefined : (playMode === 'guided' ? turnPackage?.choices : undefined)}
-              selectedChoice={showPrediction ? null : selectedChoice}
-              hoveredChoice={showPrediction ? null : hoveredChoice}
-              predictionHover={showPrediction ? predictionHover : undefined}
-              freePlayMode={playMode === 'free' && !showPrediction && !loading}
-              onMove={handleFreeMove}
-              orientation={playerColor}
-            />
+            {/* Move choices OVERLAY - positioned over the board */}
+            {turnPackage && !showPrediction && playMode === 'guided' && (() => {
+              const isPlayerTurn = playerColor === 'white' 
+                ? turnPackage.sideToMove === 'w'
+                : turnPackage.sideToMove === 'b';
+              return isPlayerTurn;
+            })() && (
+              <div className="choices-overlay">
+                <div className="choices-overlay-content">
+                  <MoveChoices
+                    choices={turnPackage.choices}
+                    selectedChoice={selectedChoice}
+                    onSelectChoice={handleChoiceSelect}
+                    onHoverChoice={setHoveredChoice}
+                  />
+                  
+                  {selectedChoice && (
+                    <button
+                      className="btn btn-primary btn-confirm-overlay"
+                      onClick={handleMoveSubmit}
+                      disabled={loading}
+                    >
+                      {loading ? 'Processing...' : '⚡ Make Move'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Prediction Mode - show when we have the FEN after user's move */}
@@ -2440,60 +2472,7 @@ function App() {
             </div>
           )}
 
-          {/* Move choices - only show in guided mode, hide during prediction, and only when it's player's turn */}
-          {turnPackage && !showPrediction && playMode === 'guided' && (() => {
-            const isPlayerTurn = playerColor === 'white' 
-              ? turnPackage.sideToMove === 'w'
-              : turnPackage.sideToMove === 'b';
-            return isPlayerTurn;
-          })() && (
-            <div className="choices-section animate-fade-in-up">
-              <h2 className="section-title">
-                <span className="title-icon">♟️</span>
-                Choose Your Move
-              </h2>
-              <MoveChoices
-                choices={turnPackage.choices}
-                selectedChoice={selectedChoice}
-                onSelectChoice={handleChoiceSelect}
-                onHoverChoice={setHoveredChoice}
-              />
-              
-              {/* Master Monologue for selected choice */}
-              {selectedChoice && (() => {
-                const choice = turnPackage.choices.find(c => c.id === selectedChoice);
-                return choice ? (
-                  <MasterMonologue
-                    masterStyle={choice.styleId}
-                    justification={choice.planOneLiner}
-                    threats={choice.threats}
-                  />
-                ) : null;
-              })()}
-              
-              {selectedChoice && (
-                <div className="action-bar animate-fade-in">
-                  <button
-                    className="btn btn-primary btn-large"
-                    onClick={handleMoveSubmit}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <span className="loading-dot">●</span>
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <span>⚡</span>
-                        Make Move
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Move choices are now inside board-overlay-wrapper above */}
 
           {/* Feedback panel */}
           {feedback && !showPrediction && (

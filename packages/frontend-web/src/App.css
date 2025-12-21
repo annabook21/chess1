@@ -90,16 +90,14 @@
   }
 }
 
-/* Game Area - Board centered, overlay floats at bottom */
+/* Game Area - Contains board and choices */
 .game-area {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center; /* Center board vertically */
   gap: 16px;
   width: 100%;
   min-height: 0;
-  padding-bottom: 200px; /* Space for the overlay at bottom */
   position: relative;
 }
 
@@ -135,41 +133,45 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   CHOICES SECTION - GLASSMORPHISM OVERLAY (ALL SCREENS)
-   Semi-transparent panel that floats over the board
+   BOARD WITH OVERLAY WRAPPER
+   Contains the board and the semi-transparent choices overlay
    ═══════════════════════════════════════════════════════════════════════════ */
-.choices-section {
-  /* FIXED POSITIONING - floats over the board */
-  position: fixed;
+.board-overlay-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Choices overlay - floats OVER the board */
+.choices-overlay {
+  position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 100;
+  z-index: 50; /* Below modals (1000+) but above board */
   
-  /* GLASSMORPHISM EFFECT */
-  background: rgba(20, 18, 30, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  /* Glassmorphism effect */
+  background: rgba(15, 12, 25, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   
   /* Styling */
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px 20px 0 0;
-  padding: 20px 24px;
-  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  border-radius: 16px 16px 0 0;
+  padding: 16px;
   
-  /* Depth shadow */
-  box-shadow: 
-    0 -8px 32px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  /* Shadow for depth */
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
   
-  /* Smooth entrance animation */
-  animation: overlaySlideUp 0.3s ease-out;
+  /* Animation */
+  animation: overlaySlideUp 0.25s ease-out;
 }
 
 @keyframes overlaySlideUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -177,28 +179,38 @@
   }
 }
 
-/* Section title styling for overlay */
-.choices-section .section-title {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 16px;
+.choices-overlay-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.choices-section .title-icon {
-  font-size: 18px;
-  margin-right: 8px;
+/* Confirm button inside overlay */
+.btn-confirm-overlay {
+  width: 100%;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+/* Legacy choices-section (for fallback/other uses) */
+.choices-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin-top: 16px;
 }
 
 
-/* Action Bar - inside overlay */
+/* Action Bar */
 .action-bar {
   display: flex;
   justify-content: center;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
 }
 
 .btn-large {
@@ -364,84 +376,35 @@
   }
   
   /* ═══════════════════════════════════════════════════════════════════════════
-     GLASSMORPHISM OVERLAY - Choices float over board
+     MOBILE: Overlay adjustments
      ═══════════════════════════════════════════════════════════════════════════ */
   
-  .choices-section {
-    position: fixed !important;
-    bottom: 60px; /* Above bottom nav */
-    left: 0;
-    right: 0;
-    z-index: 100;
-    
-    /* Glassmorphism effect */
-    background: rgba(15, 15, 25, 0.85) !important;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    
-    /* Subtle top border for definition */
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px 16px 0 0;
-    
-    /* Padding with safe area */
-    padding: 12px 8px;
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
-    
-    /* Shadow for depth */
-    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.4);
-    
-    /* Smooth entrance */
-    animation: overlaySlideUp 0.3s ease-out;
+  .choices-overlay {
+    padding: 12px;
+    border-radius: 12px 12px 0 0;
   }
   
-  @keyframes overlaySlideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .choices-overlay .move-choices-grid {
+    flex-direction: row;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
   
-  .section-title {
-    font-size: 12px;
-    margin-bottom: 8px;
-    padding: 0 8px;
-    color: rgba(255, 255, 255, 0.7);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  .choices-overlay .move-choices-grid::-webkit-scrollbar {
+    display: none;
   }
   
-  /* Action bar - inside overlay */
-  .action-bar {
-    position: fixed;
-    bottom: 60px;
-    left: 0;
-    right: 0;
-    z-index: 101;
-    margin: 0;
-    padding: 12px 16px;
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
-    
-    /* Glassmorphism */
-    background: rgba(15, 15, 25, 0.9);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  .choices-overlay .choice-card {
+    flex: 0 0 auto;
+    min-width: 140px;
+    max-width: 200px;
+    scroll-snap-align: center;
   }
   
-  .action-bar .btn {
-    width: 100%;
-    padding: 12px 16px;
-    font-size: 14px;
-    font-weight: 600;
-  }
-  
-  .btn-large {
-    width: 100%;
-    padding: 12px 16px;
+  .btn-confirm-overlay {
+    padding: 10px 20px;
     font-size: 14px;
   }
   

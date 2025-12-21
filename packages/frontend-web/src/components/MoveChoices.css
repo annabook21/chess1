@@ -8,6 +8,56 @@
   gap: 14px;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   OVERLAY MODE - When inside .choices-overlay, use glassmorphism cards
+   ═══════════════════════════════════════════════════════════════════════════ */
+.choices-overlay .move-choices-grid {
+  display: flex;
+  gap: 12px;
+}
+
+.choices-overlay .choice-card {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.choices-overlay .choice-card:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--master-color, rgba(255, 255, 255, 0.25));
+}
+
+.choices-overlay .choice-card.selected {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--master-color, var(--accent-primary));
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+/* Text contrast for overlay */
+.choices-overlay .master-name {
+  color: #fff;
+}
+
+.choices-overlay .master-title {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.choices-overlay .choice-plan {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.choices-overlay .move-notation-display {
+  color: #fff;
+}
+
+.choices-overlay .choice-tags .tag {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
 /* Tablet: 2 columns */
 @media (max-width: 1100px) and (min-width: 769px) {
   .move-choices-grid {
@@ -115,21 +165,16 @@
   }
 }
 
-/* Choice Card - Glassmorphism style for overlay */
+/* Choice Card */
 .choice-card {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 18px;
-  
-  /* Glassmorphism card effect */
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  
   cursor: pointer;
   text-align: left;
   transition: all 0.2s ease;
@@ -143,15 +188,13 @@
 }
 
 .choice-card:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: var(--master-color, rgba(255, 255, 255, 0.3));
+  border-color: var(--master-color, var(--border-hover));
   transform: translateY(-2px);
 }
 
 .choice-card.selected {
-  background: rgba(255, 255, 255, 0.15);
   border-color: var(--master-color, var(--accent-primary));
-  box-shadow: 0 0 20px rgba(var(--master-color-rgb, 255, 255, 255), 0.2);
+  background: var(--bg-tertiary);
 }
 
 /* Selected indicator */
