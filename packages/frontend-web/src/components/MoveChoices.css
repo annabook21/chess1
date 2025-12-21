@@ -15,7 +15,7 @@
   }
 }
 
-/* Mobile: Horizontal scroll with visual indicators */
+/* Mobile: Compact horizontal layout - all 3 cards visible */
 @media (max-width: 768px) {
   /* Wrapper for scroll container - full width */
   .move-choices-wrapper {
@@ -25,16 +25,16 @@
     overflow: visible;
   }
   
-  /* Scrollable container */
+  /* Horizontal flex container - try to fit all cards */
   .move-choices-grid {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
-    overflow-y: visible;
+    overflow-y: hidden;
     scroll-snap-type: x mandatory;
-    gap: 12px;
-    padding: 8px 16px;
+    gap: 8px;
+    padding: 4px 8px;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     width: 100%;
@@ -45,12 +45,11 @@
     display: none;
   }
   
-  /* Cards - fixed width, don't shrink */
+  /* Cards - COMPACT width to fit 3 on screen or scroll smoothly */
   .move-choices-grid .choice-card {
-    flex: 0 0 280px !important;
-    width: 280px !important;
-    min-width: 280px !important;
-    max-width: 280px !important;
+    flex: 0 0 calc(33.33% - 6px) !important;
+    min-width: 140px !important;
+    max-width: 200px !important;
     scroll-snap-align: start;
   }
   
@@ -58,44 +57,39 @@
   .scroll-hint {
     display: flex;
     justify-content: center;
-    gap: 8px;
-    padding: 12px 0 4px;
+    gap: 6px;
+    padding: 6px 0 2px;
   }
   
   .scroll-hint-dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: var(--border-color);
     border: none;
     padding: 0;
     cursor: pointer;
     transition: all 0.2s ease;
-    /* Larger touch target */
     position: relative;
   }
   
   .scroll-hint-dot::before {
     content: '';
     position: absolute;
-    top: -8px;
-    left: -8px;
-    right: -8px;
-    bottom: -8px;
+    top: -6px;
+    left: -6px;
+    right: -6px;
+    bottom: -6px;
   }
   
   .scroll-hint-dot.active {
     background: var(--accent-primary);
-    transform: scale(1.3);
+    transform: scale(1.2);
   }
   
-  /* Swipe instruction text */
+  /* Hide swipe hint - not needed with compact layout */
   .swipe-hint {
-    text-align: center;
-    font-size: 11px;
-    color: var(--text-muted);
-    padding: 4px 0;
-    opacity: 0.7;
+    display: none;
   }
 }
 
@@ -290,13 +284,13 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MOBILE COMPACT CARDS
+   MOBILE COMPACT CARDS - Fit all 3 visible with board
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
   .choice-card {
-    padding: 14px;
-    gap: 10px;
+    padding: 8px;
+    gap: 6px;
   }
   
   .choice-card:hover {
@@ -309,85 +303,100 @@
   }
   
   .choice-selected-indicator {
-    width: 20px;
-    height: 20px;
-    top: 8px;
-    right: 8px;
+    width: 16px;
+    height: 16px;
+    top: 4px;
+    right: 4px;
   }
   
   .choice-selected-indicator::after {
-    font-size: 11px;
+    font-size: 9px;
   }
   
-  .master-avatar {
-    width: 36px;
-    height: 36px;
-  }
-  
-  .master-emoji {
-    font-size: 17px;
-  }
-  
-  .master-name {
-    font-size: 14px;
-  }
-  
-  .master-title {
-    font-size: 10px;
-  }
-  
-  .choice-plan {
-    font-size: 12px;
-    padding: 8px 10px;
-  }
-  
-  .choice-move {
-    padding: 8px 10px;
-  }
-  
-  .move-notation-display {
-    font-size: 14px;
+  /* Simplified header - just avatar and name */
+  .choice-header {
     gap: 6px;
   }
   
-  .move-eval {
-    font-size: 12px;
-    padding: 3px 8px;
+  .master-avatar {
+    width: 28px;
+    height: 28px;
   }
   
-  .choice-tags {
+  .master-emoji {
+    font-size: 14px;
+  }
+  
+  .master-name {
+    font-size: 12px;
+  }
+  
+  .master-title {
+    font-size: 8px;
+    display: none; /* Hide on mobile for space */
+  }
+  
+  /* Hide plan on mobile - show only move */
+  .choice-plan {
+    display: none;
+  }
+  
+  /* Compact move display */
+  .choice-move {
+    padding: 6px 8px;
+  }
+  
+  .move-notation-display {
+    font-size: 13px;
     gap: 4px;
   }
   
-  .choice-tag {
-    font-size: 9px;
-    padding: 3px 8px;
+  .move-eval {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+  
+  /* Hide tags on mobile */
+  .choice-tags {
+    display: none;
   }
 }
 
 @media (max-width: 375px) {
   .move-choices-grid .choice-card {
-    flex: 0 0 250px;
-    min-width: 250px;
-    max-width: 250px;
+    flex: 0 0 calc(33.33% - 4px) !important;
+    min-width: 100px !important;
+    max-width: 140px !important;
   }
   
   .choice-card {
-    padding: 12px;
-    gap: 8px;
+    padding: 6px;
+    gap: 4px;
   }
   
   .master-avatar {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
   }
   
   .master-emoji {
-    font-size: 15px;
+    font-size: 12px;
   }
   
-  .choice-plan {
+  .master-name {
+    font-size: 10px;
+  }
+  
+  .choice-move {
+    padding: 4px 6px;
+  }
+  
+  .move-notation-display {
     font-size: 11px;
-    padding: 6px 8px;
+  }
+  
+  .move-eval {
+    font-size: 9px;
+    padding: 2px 4px;
   }
 }

@@ -3,10 +3,13 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .app {
-  min-height: 100vh;
+  /* Viewport-locked: NO scroll, everything must fit */
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile Safari */
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
+  overflow: hidden; /* Prevent any scroll */
 }
 
 /* Loading State */
@@ -76,8 +79,8 @@
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
-  min-height: 0; /* Prevent flex item from overflowing */
-  overflow-x: hidden; /* Prevent horizontal scroll */
+  min-height: 0; /* Critical: allows flex children to shrink */
+  overflow: hidden; /* Prevent any scroll */
 }
 
 @media (max-width: 1200px) {
@@ -86,15 +89,17 @@
   }
 }
 
-/* Game Area */
+/* Game Area - Must fit within viewport */
 .game-area {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
   width: 100%;
-  min-height: 0; /* Prevent flex overflow */
-  position: relative; /* For proper positioning context */
+  min-height: 0; /* Critical: allows shrinking */
+  max-height: 100%; /* Don't exceed parent */
+  overflow: hidden; /* Prevent scroll */
+  position: relative;
 }
 
 /* Board Container with Eval Bar */
@@ -248,33 +253,49 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
-  /* App container adjustments for mobile */
+  /* ═══════════════════════════════════════════════════════════════════════════
+     MOBILE: Viewport-locked layout - board + choices must fit, NO SCROLL
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
   .app {
-    padding-bottom: 70px; /* Space for bottom nav */
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for iOS Safari */
+    padding-bottom: 60px; /* Space for bottom nav */
+    overflow: hidden;
   }
 
   .app-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     padding: 8px;
     gap: 8px;
+    min-height: 0; /* Critical for flex shrink */
+    overflow: hidden;
   }
   
-  /* Game area - single column, compact, centered */
+  /* Game area - fills available space, no scroll */
   .game-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     gap: 8px;
     width: 100%;
+    min-height: 0; /* Critical for flex shrink */
+    overflow: hidden;
     align-items: center;
   }
   
-  /* Board container - centered, NOT sticky so choices are visible */
+  /* Board container - takes remaining space after choices */
   .board-container {
-    position: relative;
+    flex: 1;
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: var(--bg-primary);
-    padding: 8px 0;
+    min-height: 0; /* Allows shrinking */
     width: 100%;
-    margin: 0;
+    padding: 4px 0;
   }
   
   /* Hide eval bar on mobile - too narrow */
@@ -284,87 +305,84 @@
   
   /* Turn indicator - compact */
   .turn-indicator {
-    padding: 8px 16px;
-    font-size: 13px;
+    padding: 6px 12px;
+    font-size: 12px;
+    flex-shrink: 0; /* Don't shrink */
   }
   
-  /* Choices section - full width for horizontal scroll */
+  /* Choices section - FIXED HEIGHT, horizontal layout */
   .choices-section {
-    padding: 12px 0;
+    flex-shrink: 0; /* Never shrink - always visible */
+    padding: 8px;
     border-radius: var(--radius-md);
     width: 100%;
-    max-width: 100vw;
-    overflow: visible;
+    max-height: 140px; /* Fixed max height */
+    overflow-x: auto; /* Horizontal scroll for many choices */
+    overflow-y: hidden;
     box-sizing: border-box;
   }
   
   .section-title {
-    font-size: 16px;
-    margin-bottom: 12px;
-    padding: 0 12px;
+    font-size: 14px;
+    margin-bottom: 8px;
+    padding: 0 4px;
   }
   
-  /* Action bar - FIXED at bottom, above nav */
+  /* Action bar - compact, above choices */
   .action-bar {
-    position: fixed;
-    bottom: 70px; /* Above bottom nav */
-    left: 0;
-    right: 0;
+    flex-shrink: 0;
     margin: 0;
-    padding: 12px 16px;
-    background: linear-gradient(to top, var(--bg-primary) 80%, transparent);
-    z-index: 100;
-    display: flex;
-    justify-content: center;
+    padding: 8px;
+    border-top: 1px solid var(--border-color);
   }
   
   .action-bar .btn {
     width: 100%;
-    max-width: 320px;
-    padding: 14px 24px;
-    font-size: 16px;
+    padding: 10px 16px;
+    font-size: 14px;
     font-weight: 600;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
   }
   
   .btn-large {
     width: 100%;
-    padding: 14px 24px;
-    font-size: 15px;
-  }
-  
-  /* Feedback section - compact */
-  .feedback-section {
-    margin-top: 4px;
-  }
-  
-  /* Prediction section - compact */
-  .prediction-section {
-    margin-top: 8px;
-    max-height: calc(100vh - 150px); /* Adjust for mobile layout */
-    min-height: 0;
-  }
-  
-  .prediction-result {
-    padding: 12px 16px;
-    margin-bottom: 12px;
-  }
-  
-  .prediction-result-header {
-    margin-bottom: 8px;
-  }
-  
-  .result-icon {
-    font-size: 20px;
-  }
-  
-  .result-text {
+    padding: 10px 16px;
     font-size: 14px;
   }
   
+  /* Feedback section - compact inline */
+  .feedback-section {
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  
+  /* Prediction section - compact, fixed height */
+  .prediction-section {
+    flex-shrink: 0;
+    margin-top: 4px;
+    max-height: 100px;
+    overflow-y: auto;
+  }
+  
+  .prediction-result {
+    padding: 8px 12px;
+    margin-bottom: 8px;
+  }
+  
+  .prediction-result-header {
+    margin-bottom: 4px;
+  }
+  
+  .result-icon {
+    font-size: 18px;
+  }
+  
+  .result-text {
+    font-size: 13px;
+  }
+  
   .prediction-stats-mini {
-    font-size: 12px;
-    gap: 12px;
+    font-size: 11px;
+    gap: 8px;
   }
   
   /* Hide sidebar on mobile */
@@ -372,32 +390,36 @@
   aside {
     display: none !important;
   }
-  
-  /* Force single column layout */
-  .app-main {
-    display: flex;
-    flex-direction: column;
-  }
 }
 
 /* Extra small screens (iPhone SE, etc.) */
 @media (max-width: 375px) {
   .app-main {
-    padding: 8px;
+    padding: 4px;
+    gap: 4px;
+  }
+  
+  .game-area {
+    gap: 4px;
   }
   
   .board-container {
-    margin: -8px -8px 0;
-    padding: 4px 8px;
+    padding: 2px 0;
   }
   
   .choices-section {
-    padding: 10px 0;
+    padding: 6px;
+    max-height: 120px; /* Even more compact */
   }
 
   .section-title {
-    font-size: 15px;
-    padding: 0 12px;
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+  
+  .turn-indicator {
+    padding: 4px 8px;
+    font-size: 10px;
   }
 }
 

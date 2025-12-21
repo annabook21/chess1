@@ -235,8 +235,10 @@
 /* Responsive */
 @media (max-width: 768px) {
   .chess-board-wrapper {
-    gap: 8px;
+    flex: 1;
+    gap: 4px;
     width: 100%;
+    min-height: 0; /* Critical for flex shrink */
     align-items: center;
     justify-content: center;
   }
@@ -244,52 +246,22 @@
   .viz-controls {
     flex-wrap: wrap;
     justify-content: center;
-    gap: 6px;
+    gap: 4px;
     margin-bottom: 2px;
     width: 100%;
+    flex-shrink: 0; /* Don't shrink controls */
   }
   
   .viz-btn {
-    padding: 4px 8px;
-    font-size: 8px;
-    gap: 4px;
-  }
-  
-  .turn-indicator {
-    padding: 6px 12px;
-    gap: 8px;
-  }
-  
-  .turn-piece {
-    font-size: 20px;
-  }
-  
-  .turn-text {
-    font-size: 10px;
-  }
-  
-  /* Ensure board fits screen width and is centered */
-  .chess-board-container {
-    max-width: calc(100vw - 24px);
-    max-height: calc(100vw - 24px);
-    margin: 0 auto;
-    padding: 6px;
-    /* Smaller shadows on mobile */
-    box-shadow: 
-      inset 2px 2px 0 #7a6a5a,
-      inset -2px -2px 0 #1a1510,
-      3px 3px 0 #1a1510;
-  }
-}
-
-@media (max-width: 375px) {
-  .viz-btn {
-    padding: 4px 6px;
+    padding: 3px 6px;
     font-size: 7px;
+    gap: 3px;
   }
   
   .turn-indicator {
-    padding: 5px 10px;
+    padding: 4px 10px;
+    gap: 6px;
+    flex-shrink: 0;
   }
   
   .turn-piece {
@@ -297,11 +269,49 @@
   }
   
   .turn-text {
-    font-size: 8px;
+    font-size: 9px;
+  }
+  
+  /* Board sizes to fill available space while staying square */
+  .chess-board-container {
+    /* Size based on available space, not viewport */
+    width: 100%;
+    max-width: min(calc(100vw - 24px), calc(100dvh - 280px)); /* Fit viewport minus UI */
+    max-height: min(calc(100vw - 24px), calc(100dvh - 280px));
+    aspect-ratio: 1; /* Stay square */
+    margin: 0 auto;
+    padding: 4px;
+    /* Smaller shadows on mobile */
+    box-shadow: 
+      inset 2px 2px 0 #7a6a5a,
+      inset -2px -2px 0 #1a1510,
+      2px 2px 0 #1a1510;
+  }
+}
+
+@media (max-width: 375px) {
+  .viz-btn {
+    padding: 2px 4px;
+    font-size: 6px;
+  }
+  
+  .turn-indicator {
+    padding: 3px 8px;
+  }
+  
+  .turn-piece {
+    font-size: 16px;
+  }
+  
+  .turn-text {
+    font-size: 7px;
   }
   
   .chess-board-container {
-    padding: 4px;
-    border-width: 3px;
+    padding: 3px;
+    border-width: 2px;
+    /* Even tighter sizing for small screens */
+    max-width: min(calc(100vw - 16px), calc(100dvh - 260px));
+    max-height: min(calc(100vw - 16px), calc(100dvh - 260px));
   }
 }
