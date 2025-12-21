@@ -185,13 +185,34 @@
   gap: 12px;
 }
 
-/* Confirm button inside overlay */
+/* Confirm button inside overlay - TRANSPARENT glassmorphism style */
 .btn-confirm-overlay {
   width: 100%;
   padding: 12px 24px;
   font-size: 15px;
   font-weight: 600;
   margin-top: 8px;
+  
+  /* Override solid button styling with glassmorphism */
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: #fff !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 8px;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.btn-confirm-overlay:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+.btn-confirm-overlay:active {
+  background: rgba(255, 255, 255, 0.3) !important;
+  transform: translateY(0);
 }
 
 /* Legacy choices-section (for fallback/other uses) */
