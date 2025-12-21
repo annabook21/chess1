@@ -25,6 +25,8 @@ interface PredictOpponentProps {
   targetRating?: number;
   /** Whether opponent is human-like (Maia) or AI Master */
   isHumanLike?: boolean;
+  /** Compact mode - renders only the choice cards inline for toolbar use */
+  compact?: boolean;
 }
 
 interface CandidateMove {
@@ -46,6 +48,7 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
   onHoverMove,
   targetRating = 1500,
   isHumanLike = false,
+  compact = false,
 }) => {
   const [selectedMove, setSelectedMove] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(timeLimit);
@@ -190,6 +193,57 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
 
   // getMoveLabel and formatProbability no longer needed - MoveChoices handles display
 
+  // COMPACT MODE: Just render the choices inline for toolbar use
+  if (compact) {
+    if (shouldShowLoading) {
+      return (
+        <div className="prediction-loading-compact">
+          <span className="loading-spinner-small"></span>
+        </div>
+      );
+    }
+    
+    return (
+      <>
+        {/* Compact timer */}
+        <div className={`prediction-timer-compact ${timeRemaining <= 5 ? 'urgent' : ''}`}>
+          <span className="timer-value-compact">{timeRemaining}s</span>
+        </div>
+        
+        {/* Just the choices inline */}
+        <MoveChoices
+          choices={predictionChoices}
+          selectedChoice={selectedChoiceId}
+          onSelectChoice={(choiceId) => {
+            const choice = predictionChoices.find(c => c.id === choiceId);
+            if (choice && !isLockingIn) {
+              setSelectedMove(choice.moveUci);
+              if (onHoverMove) {
+                const from = choice.moveUci.slice(0, 2);
+                const to = choice.moveUci.slice(2, 4);
+                onHoverMove(from, to);
+              }
+              setIsLockingIn(true);
+              setTimeout(() => {
+                onPredictionSubmit(choice.moveUci);
+              }, 400); // Faster for compact mode
+            }
+          }}
+          onHoverChoice={(choice) => {
+            if (choice && onHoverMove) {
+              const from = choice.moveUci.slice(0, 2);
+              const to = choice.moveUci.slice(2, 4);
+              onHoverMove(from, to);
+            } else if (!choice && onHoverMove) {
+              onHoverMove(null, null);
+            }
+          }}
+        />
+      </>
+    );
+  }
+
+  // FULL MODE: Original UI with header, hints, etc.
   return (
     <div className="predict-opponent-v2">
       <div className="predict-header-v2">

@@ -463,6 +463,62 @@
   box-shadow: none !important;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPACT PREDICTION TOOLBAR STYLES
+   Same format as master choices - inline in bottom bar
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.prediction-toolbar {
+  /* Inherits from choices-overlay */
+}
+
+.prediction-timer-compact {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 48px;
+  padding: 0 12px;
+  background: rgba(232, 185, 35, 0.2);
+  border: 2px solid rgba(232, 185, 35, 0.5);
+  border-radius: 8px;
+  font-weight: 700;
+  color: #e8b923;
+}
+
+.prediction-timer-compact.urgent {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #ef4444;
+  animation: pulse 0.5s ease-in-out infinite;
+}
+
+.timer-value-compact {
+  font-size: 14px;
+  font-family: var(--font-mono);
+}
+
+.prediction-loading-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+}
+
+.loading-spinner-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Legacy choices-section (for fallback/other uses) */
 .choices-section {
   background: var(--bg-secondary);

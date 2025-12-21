@@ -2462,34 +2462,32 @@ function App() {
             )}
           </div>
 
-          {/* Prediction Mode - show when we have the FEN after user's move */}
+          {/* Prediction Mode - COMPACT TOOLBAR same as master choices */}
           {showPrediction && fenBeforeAiMove && (
-            <div 
-              className="prediction-section animate-fade-in-up"
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-            >
-              {/* Swipe handle indicator */}
-              <div className="bottom-sheet-handle" />
-              
-              <PredictOpponent
-                fen={fenBeforeAiMove}
-                onPredictionSubmit={handlePredictionSubmit}
-                onSkip={handlePredictionSkip}
-                timeLimit={25}
-                masterStyle={getOpponentInfo().styleId}
-                masterName={getOpponentInfo().name}
-                onHoverMove={handlePredictionHover}
-                isHumanLike={opponentType === 'human-like'}
-                targetRating={maiaOpponentRating}
-              />
-              {loading && (
-                <div className="prediction-loading">
-                  <span className="loading-dot">●</span>
-                  AI is thinking...
-                </div>
-              )}
+            <div className="choices-overlay prediction-toolbar">
+              <div className="choices-overlay-content">
+                {/* Prediction cards via PredictOpponent in compact mode */}
+                <PredictOpponent
+                  fen={fenBeforeAiMove}
+                  onPredictionSubmit={handlePredictionSubmit}
+                  onSkip={handlePredictionSkip}
+                  timeLimit={25}
+                  masterStyle={getOpponentInfo().styleId}
+                  masterName={getOpponentInfo().name}
+                  onHoverMove={handlePredictionHover}
+                  isHumanLike={opponentType === 'human-like'}
+                  targetRating={maiaOpponentRating}
+                  compact={true}
+                />
+                
+                {/* Skip button */}
+                <button
+                  className="toolbar-toggle-btn"
+                  onClick={handlePredictionSkip}
+                >
+                  Skip
+                </button>
+              </div>
             </div>
           )}
 
