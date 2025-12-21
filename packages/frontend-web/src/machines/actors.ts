@@ -90,7 +90,12 @@ export const createGameActor = fromPromise<CreateGameOutput, CreateGameInput>(
       // Fetch the initial turn package
       const turnPackage = await getTurn(gameId);
       
-      console.log('[createGameActor] Game created:', gameId);
+      console.log('[createGameActor] Game created:', gameId, {
+        fen: turnPackage.fen,
+        sideToMove: turnPackage.sideToMove,
+        choicesCount: turnPackage.choices?.length ?? 0,
+        choices: turnPackage.choices?.map(c => c.moveUci),
+      });
       
       return { gameId, turnPackage };
     } catch (error) {

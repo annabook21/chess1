@@ -169,8 +169,17 @@ function AppXState() {
   
   // Is it the player's turn to move?
   const shouldShowMoveChoices = useMemo(() => {
-    return isPlayerTurn && playMode === 'guided' && !isShowingPrediction && choices.length > 0;
-  }, [isPlayerTurn, playMode, isShowingPrediction, choices]);
+    const result = isPlayerTurn && playMode === 'guided' && !isShowingPrediction && choices.length > 0;
+    console.log('[AppXState] shouldShowMoveChoices:', result, {
+      isPlayerTurn,
+      playMode,
+      isShowingPrediction,
+      choicesCount: choices.length,
+      gamePhase,
+      gameId,
+    });
+    return result;
+  }, [isPlayerTurn, playMode, isShowingPrediction, choices, gamePhase, gameId]);
   
   // ============================================================================
   // EVENT HANDLERS
@@ -551,12 +560,18 @@ function AppXState() {
 
           {/* Move Choices (guided mode) */}
           {shouldShowMoveChoices && (
-            <MoveChoices
-              choices={choices}
-              selectedChoice={selectedChoice}
-              onSelectChoice={handleSelectChoice}
-              onHoverChoice={handleHoverChoice}
-            />
+            <div className="choices-section animate-fade-in-up">
+              <h2 className="section-title">
+                <span className="title-icon">♟️</span>
+                Choose Your Move
+              </h2>
+              <MoveChoices
+                choices={choices}
+                selectedChoice={selectedChoice}
+                onSelectChoice={handleSelectChoice}
+                onHoverChoice={handleHoverChoice}
+              />
+            </div>
           )}
 
           {/* Confirm Button */}

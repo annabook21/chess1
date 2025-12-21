@@ -16,12 +16,14 @@
   },
   "dependencies": {
     "@master-academy/contracts": "workspace:*",
+    "@xstate/react": "^6.0.0",
     "axios": "^1.9.0",
     "chess.js": "^1.4.0",
     "onnxruntime-web": "^1.21.0",
     "react": "^18.3.1",
     "react-chessboard": "^4.7.3",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "xstate": "^5.25.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
