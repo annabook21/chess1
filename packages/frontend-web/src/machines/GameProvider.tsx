@@ -11,8 +11,8 @@ import { useGameMachine, UseGameMachine } from './useGameMachine';
 // Feature flag for XState migration
 // Set to true to enable XState state machine
 // Phase 2: XState infrastructure complete, AppXState component ready.
-// Enable to use XState for all game state management.
-export const USE_XSTATE = true;
+// TEMPORARILY DISABLED: AppXState layout has issues, using original App.tsx
+export const USE_XSTATE = false;
 
 // Context for the game machine
 const GameMachineContext = createContext<UseGameMachine | null>(null);
