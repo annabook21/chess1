@@ -25,7 +25,7 @@ interface PredictOpponentProps {
   targetRating?: number;
   /** Whether opponent is human-like (Maia) or AI Master */
   isHumanLike?: boolean;
-  /** Compact mode for inline toolbar rendering */
+  /** Compact mode - renders only the choice cards inline for toolbar use */
   compact?: boolean;
   /** Whether to start the countdown timer (waits for feedback dismissal) */
   startTimer?: boolean;
@@ -264,6 +264,7 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
     );
   }
 
+  // FULL MODE: Original UI with header, hints, etc.
   return (
     <div className="predict-opponent-v2">
       <div className="predict-header-v2">

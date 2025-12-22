@@ -6,6 +6,7 @@ import { ThemeProvider } from './theme';
 import { AchievementProvider } from './achievements';
 import { AudioProvider } from './audio';
 import { ErrorBoundary } from './ErrorBoundary';
+import { ViewConfigProvider } from './context/ViewConfigContext';
 import { 
   GameMachineProvider, 
   MaiaBridge, 
@@ -49,14 +50,16 @@ function AppWithXState() {
  */
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <ErrorBoundary>
-    <ThemeProvider defaultTheme="cursed-castle-spirit">
-      <AudioProvider debug={import.meta.env.DEV}>
-        <AchievementProvider>
-          <MaiaProvider initialRating={1500} autoLoad={true} useWorker={true}>
-            {USE_XSTATE ? <AppWithXState /> : <App />}
-          </MaiaProvider>
-        </AchievementProvider>
-      </AudioProvider>
-    </ThemeProvider>
+    <ViewConfigProvider>
+      <ThemeProvider defaultTheme="cursed-castle-spirit">
+        <AudioProvider debug={import.meta.env.DEV}>
+          <AchievementProvider>
+            <MaiaProvider initialRating={1500} autoLoad={true} useWorker={true}>
+              {USE_XSTATE ? <AppWithXState /> : <App />}
+            </MaiaProvider>
+          </AchievementProvider>
+        </AudioProvider>
+      </ThemeProvider>
+    </ViewConfigProvider>
   </ErrorBoundary>
 );

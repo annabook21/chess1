@@ -9,11 +9,13 @@
   padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   box-shadow: 0 0 30px rgba(232, 185, 35, 0.2);
   animation: slideIn 0.3s ease-out;
   min-height: 0; /* Prevent flex overflow */
-  overflow: hidden; /* Let child handle scrolling */
+  overflow: visible; /* Allow content to show */
+  flex: 1; /* Fill available space */
+  max-height: 100%; /* Don't exceed parent */
 }
 
 @keyframes slideIn {
@@ -142,9 +144,17 @@
   gap: 12px;
   flex: 1;
   min-height: 0;
-  max-height: 500px; /* Increased from 400px for better visibility */
-  overflow-y: auto; /* Scroll only the move options, not the whole container */
+  max-height: none; /* Remove max-height - parent controls scrolling */
+  overflow-y: visible; /* Parent handles scrolling */
   padding: 8px 4px 8px 0; /* More padding for better spacing */
+}
+
+/* Prediction choices wrapper - scrollable container */
+.prediction-choices-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px; /* Space for scrollbar */
 }
 
 /* Custom scrollbar for move options */
@@ -583,6 +593,38 @@
   color: #9ca3af;
 }
 
+/* Compact mode wrapper - renders inline in toolbar */
+.predict-opponent-compact {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  max-width: 100%;
+}
+
+.predict-opponent-compact::-webkit-scrollbar {
+  display: none;
+}
+
+/* Paused timer state - shown while waiting for feedback dismissal */
+.prediction-timer-compact.paused {
+  background: rgba(156, 163, 175, 0.2);
+  border-color: rgba(156, 163, 175, 0.5);
+  color: #9ca3af;
+}
+
+.predict-timer-v2.paused .timer-fill {
+  stroke: #9ca3af;
+}
+
+.predict-timer-v2.paused .timer-value-v2 {
+  color: #9ca3af;
+}
+
 .timer-value-compact {
   font-size: 14px;
   font-family: var(--font-mono);
@@ -631,134 +673,140 @@
 
 @media (max-width: 768px) {
   .predict-opponent-v2 {
-    padding: 16px;
-    gap: 14px;
-    border-radius: var(--radius-lg);
+    padding: 12px !important;
+    gap: 10px !important;
+    border-radius: 12px !important;
+    max-width: 95vw !important;
   }
   
   .predict-header-v2 {
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
+    flex-direction: row !important;
+    gap: 8px !important;
+    align-items: center !important;
   }
   
   .predict-title-v2 {
-    gap: 10px;
+    gap: 6px !important;
+    flex: 1 !important;
   }
   
   .predict-icon-v2 {
-    font-size: 26px;
+    font-size: 18px !important;
   }
   
   .title-text h3 {
-    font-size: 16px;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
   }
   
   .title-text .subtitle {
-    font-size: 12px;
+    font-size: 10px !important;
+    display: none !important; /* Hide subtitle on mobile to save space */
   }
   
   .predict-timer-v2 {
-    position: absolute;
-    top: 16px;
-    right: 16px;
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
   }
   
   .timer-ring {
-    width: 48px;
-    height: 48px;
+    width: 36px !important;
+    height: 36px !important;
   }
   
   .timer-value-v2 {
-    font-size: 15px;
+    font-size: 12px !important;
   }
   
   .master-hint-v2 {
-    padding: 10px 12px;
-    gap: 10px;
+    padding: 6px 8px !important;
+    gap: 6px !important;
   }
   
   .master-emoji-v2 {
-    font-size: 20px;
+    font-size: 14px !important;
   }
   
   .hint-text {
-    font-size: 12px;
+    font-size: 10px !important;
+    line-height: 1.3 !important;
   }
   
   .move-options-v2 {
-    gap: 8px;
+    gap: 6px !important;
   }
   
   .move-option-v2 {
-    padding: 12px 14px;
-    gap: 12px;
+    padding: 8px 10px !important;
+    gap: 8px !important;
   }
   
   .move-option-v2:hover {
-    transform: none; /* Disable on touch */
+    transform: none !important; /* Disable on touch */
   }
   
   .move-option-v2:active {
-    transform: scale(0.98);
+    transform: scale(0.98) !important;
   }
   
   .option-label {
-    width: 32px;
-    height: 32px;
-    font-size: 14px;
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 11px !important;
   }
   
   .move-san-v2 {
-    font-size: 16px;
+    font-size: 13px !important;
   }
   
   .move-arrow {
-    font-size: 11px;
+    font-size: 9px !important;
   }
   
   .move-purpose {
-    font-size: 11px;
+    font-size: 9px !important;
+    line-height: 1.2 !important;
   }
   
-  /* Fixed action bar at bottom on mobile */
+  /* Fixed action bar at bottom on mobile - COMPACT */
   .predict-actions-v2 {
-    position: sticky;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    gap: 10px;
-    padding: 12px 16px;
-    background: linear-gradient(to top, var(--bg-primary) 95%, transparent);
-    z-index: 100;
-    margin: 0;
-    margin-top: auto; /* Push to bottom of container */
-    flex-shrink: 0; /* Don't shrink the action bar */
+    position: sticky !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    gap: 6px !important;
+    padding: 8px 12px !important;
+    background: linear-gradient(to top, var(--bg-primary) 95%, transparent) !important;
+    z-index: 100 !important;
+    margin: 0 !important;
+    margin-top: auto !important; /* Push to bottom of container */
+    flex-shrink: 0 !important; /* Don't shrink the action bar */
   }
 
   .btn-ghost {
-    padding: 12px 16px;
-    font-size: 13px;
-    flex: 0 0 auto;
+    padding: 8px 12px !important;
+    font-size: 11px !important;
+    flex: 0 0 auto !important;
   }
 
   .predict-actions-v2 .btn-primary {
-    padding: 14px 20px;
-    font-size: 15px;
-    flex: 1;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+    padding: 10px 16px !important;
+    font-size: 12px !important;
+    flex: 1 !important;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.3) !important;
   }
   
   .predict-reward {
-    padding: 8px;
+    padding: 4px 6px !important;
   }
   
   .reward-icon {
-    font-size: 14px;
+    font-size: 12px !important;
   }
   
   .reward-text {
-    font-size: 12px;
+    font-size: 10px !important;
   }
   
   /* Maia specific */
@@ -793,31 +841,50 @@
 
 @media (max-width: 375px) {
   .predict-opponent-v2 {
-    padding: 12px;
-    gap: 12px;
+    padding: 8px !important;
+    gap: 8px !important;
   }
   
   .timer-ring {
-    width: 42px;
-    height: 42px;
+    width: 32px !important;
+    height: 32px !important;
   }
   
   .timer-value-v2 {
-    font-size: 13px;
+    font-size: 11px !important;
   }
   
   .move-option-v2 {
-    padding: 10px 12px;
-    gap: 10px;
+    padding: 6px 8px !important;
+    gap: 6px !important;
   }
   
   .option-label {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 10px !important;
   }
   
   .move-san-v2 {
-    font-size: 14px;
+    font-size: 12px !important;
+  }
+  
+  .move-purpose {
+    font-size: 8px !important;
+  }
+  
+  .predict-actions-v2 {
+    padding: 6px 8px !important;
+    gap: 4px !important;
+  }
+  
+  .btn-ghost {
+    padding: 6px 10px !important;
+    font-size: 10px !important;
+  }
+  
+  .predict-actions-v2 .btn-primary {
+    padding: 8px 12px !important;
+    font-size: 11px !important;
   }
 }

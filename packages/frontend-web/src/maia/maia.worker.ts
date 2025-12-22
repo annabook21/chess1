@@ -32,9 +32,25 @@ ort.env.wasm.wasmPaths = `${workerOrigin}/assets/`;
 // SharedArrayBuffer can cause issues on iOS/iPadOS with COEP/COOP headers
 ort.env.wasm.numThreads = 1;
 
-// Keep SIMD enabled for performance (widely supported now)
-// Set to false if you encounter issues on older browsers
-ort.env.wasm.simd = true;
+// Try to detect if SIMD is supported - fallback to false on error
+// Some mobile browsers report SIMD support but have issues with protobuf parsing
+let simdSupported = true;
+try {
+  // Check if WebAssembly.SIMD is available
+  if (typeof WebAssembly !== 'undefined' && typeof WebAssembly.validate === 'function') {
+    // Test a simple SIMD instruction
+    const simdTest = new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11]);
+    simdSupported = WebAssembly.validate(simdTest);
+  } else {
+    simdSupported = false;
+  }
+} catch (e) {
+  console.warn('[MaiaWorker] SIMD test failed, using fallback:', e);
+  simdSupported = false;
+}
+
+// Disable SIMD if not properly supported (fixes mobile protobuf errors)
+ort.env.wasm.simd = simdSupported;
 
 // Disable proxy since we're already in a worker
 ort.env.wasm.proxy = false;
@@ -47,6 +63,7 @@ console.log('[MaiaWorker] ONNX Runtime configured:', {
   wasmPaths: ort.env.wasm.wasmPaths,
   numThreads: ort.env.wasm.numThreads,
   simd: ort.env.wasm.simd,
+  simdSupported: simdSupported,
   proxy: ort.env.wasm.proxy,
 });
 
@@ -121,11 +138,29 @@ async function loadModel(rating: MaiaRating): Promise<void> {
       }, 30000);
     });
     
-    // Race between model loading and timeout
-    session = await Promise.race([
-      ort.InferenceSession.create(modelPath, options),
-      timeoutPromise,
-    ]);
+    try {
+      // Race between model loading and timeout
+      session = await Promise.race([
+        ort.InferenceSession.create(modelPath, options),
+        timeoutPromise,
+      ]);
+    } catch (firstError: any) {
+      // If SIMD is enabled and we got a protobuf error (ERROR_CODE: 7), retry without SIMD
+      if (ort.env.wasm.simd && (firstError?.message?.includes('protobuf') || firstError?.message?.includes('ERROR_CODE: 7'))) {
+        console.warn('[MaiaWorker] SIMD loading failed with protobuf error, retrying without SIMD...');
+        ort.env.wasm.simd = false;
+        
+        // Retry with SIMD disabled
+        session = await Promise.race([
+          ort.InferenceSession.create(modelPath, options),
+          timeoutPromise,
+        ]);
+        
+        console.log('[MaiaWorker] ✅ Successfully loaded without SIMD');
+      } else {
+        throw firstError;
+      }
+    }
     
     currentRating = rating;
     

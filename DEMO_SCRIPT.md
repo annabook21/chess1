@@ -197,7 +197,35 @@
 
 ---
 
-### Step 10: Technical Showcase (1 min)
+### Step 10: UI/UX Walkthrough (2 min)
+
+**What to do:**
+1. Point to the **bottom toolbar** — the fixed bar with choices and actions
+2. Show how choices scroll horizontally (swipe on mobile, drag on desktop)
+3. Hover over a choice card to see the tooltip with strategy description
+4. Toggle **Settings** to show device mode selector
+
+**What to say:**
+> "Notice our UI design philosophy — the board is always fully visible. All actions live in this compact bottom toolbar.
+>
+> The choice cards for Karpov, Fischer, and Tal are displayed inline. On mobile, you swipe horizontally. On desktop, you can scroll or click directly.
+>
+> Hover over a card to see the strategy tooltip — this keeps the UI clean while making info accessible."
+
+**Show the device mode:**
+> "In Settings, users can switch between Mobile and Desktop layouts. Mobile mode hides the sidebar for a full-screen board experience. Desktop mode shows move history and evaluation graphs."
+
+**Show the prediction UI:**
+> "When predicting opponent moves, we use the exact same toolbar format — no full-screen modal that blocks the board. You can see the position while making predictions."
+
+**What to point out:**
+- Glassmorphism effect (semi-transparent, blurred background)
+- Horizontal scrolling with scroll-snap
+- Consistent toolbar design across features
+
+---
+
+### Step 11: Technical Showcase (1 min)
 
 **What to do:**
 1. Open **DevTools → Network tab**
@@ -216,7 +244,7 @@
 
 ---
 
-### Step 11: Day Streak (30 sec)
+### Step 12: Day Streak (30 sec)
 
 **What to do:**
 1. Look at the **stats panel** or header
@@ -227,7 +255,7 @@
 
 ---
 
-### Step 12: Game End (30 sec)
+### Step 13: Game End (30 sec)
 
 **What to do:**
 1. Finish a game (or set up a quick checkmate position)

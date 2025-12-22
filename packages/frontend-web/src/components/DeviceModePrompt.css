@@ -1,0 +1,227 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   DEVICE MODE PROMPT
+   Modal for selecting mobile vs desktop view preference
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.device-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  
+  /* Glassmorphism background */
+  background: rgba(10, 10, 20, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.device-prompt-modal {
+  width: 100%;
+  max-width: 600px;
+  padding: 32px;
+  
+  /* Glassmorphism card */
+  background: rgba(30, 30, 50, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header */
+.device-prompt-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.device-prompt-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.device-prompt-header h2 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 18px;
+  color: #e8d5a3;
+  margin: 0 0 8px 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.device-prompt-header p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Options */
+.device-prompt-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.device-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 20px;
+  
+  /* Glassmorphism button */
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  text-align: center;
+  color: inherit;
+}
+
+.device-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.device-option.recommended {
+  border-color: rgba(229, 192, 123, 0.4);
+  background: rgba(229, 192, 123, 0.1);
+}
+
+.device-option.recommended:hover {
+  border-color: rgba(229, 192, 123, 0.6);
+  background: rgba(229, 192, 123, 0.15);
+}
+
+.device-option-icon {
+  font-size: 40px;
+}
+
+.device-option-content h3 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
+
+.device-option-content p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 12px 0;
+}
+
+.device-option-content ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.device-option-content li {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 4px 0;
+  padding-left: 18px;
+  position: relative;
+}
+
+.device-option-content li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #86b81b;
+}
+
+.recommended-badge {
+  position: absolute;
+  top: -10px;
+  right: 12px;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #e5c07b, #c09a58);
+  color: #1a1a2e;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(229, 192, 123, 0.4);
+}
+
+/* Footer */
+.device-prompt-footer {
+  text-align: center;
+}
+
+.device-prompt-skip {
+  padding: 12px 24px;
+  font-size: 13px;
+  font-weight: 500;
+  
+  /* Transparent/ghost button */
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.device-prompt-skip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+.device-prompt-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 12px 0 0 0;
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+  .device-prompt-modal {
+    padding: 24px 16px;
+  }
+  
+  .device-prompt-options {
+    grid-template-columns: 1fr;
+  }
+  
+  .device-prompt-header h2 {
+    font-size: 14px;
+  }
+  
+  .device-option {
+    padding: 20px 16px;
+  }
+}

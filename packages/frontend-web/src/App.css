@@ -10,6 +10,7 @@
   flex-direction: column;
   background: var(--bg-primary);
   overflow: hidden; /* Prevent any scroll */
+  padding-bottom: 0; /* No padding - we'll handle spacing per-section */
 }
 
 /* Loading State */
@@ -76,6 +77,7 @@
   grid-template-columns: 1fr 320px;
   gap: 24px;
   padding: 24px;
+  padding-bottom: 80px; /* Space for ULTRA compact bottom bar (70px max) */
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
@@ -143,29 +145,46 @@
   align-items: center;
 }
 
-/* Choices overlay - floats OVER the board */
+/* Choices overlay - FIXED bottom bar with master choices (Karpov/Fischer/Tal) */
 .choices-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 50; /* Below modals (1000+) but above board */
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 1000; /* Above everything except modals */
+  max-height: 80px !important; /* Slightly taller for readability */
   
-  /* Glassmorphism effect */
-  background: rgba(15, 12, 25, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  /* TRANSPARENT GLASSMORPHISM - as requested */
+  background: rgba(15, 12, 25, 0.85) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
   
-  /* Styling */
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px 16px 0 0;
-  padding: 16px;
+  /* Styling - COMPACT but readable */
+  border: none !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0 !important;
+  padding: 8px 12px !important;
+  padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
   
   /* Shadow for depth */
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 
+    0 -4px 30px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
   
   /* Animation */
   animation: overlaySlideUp 0.25s ease-out;
+}
+
+/* Override sierra-theme styles for choices-overlay */
+.sierra-theme .choices-overlay {
+  background: rgba(15, 12, 25, 0.85) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: none !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 
+    0 -4px 30px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 
 @keyframes overlaySlideUp {
@@ -181,21 +200,242 @@
 
 .choices-overlay-content {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start; /* Left-align for scroll hint */
+  gap: 8px;
+  max-width: 1100px; /* Wider to fit prediction toggle + choices + confirm */
+  margin: 0 auto;
+  padding: 0 12px;
+  min-height: 0; /* Allow compact height */
+  max-height: 65px; /* Slightly taller for readability */
+  overflow-x: auto; /* Allow horizontal scrolling */
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Hide scrollbar on Firefox */
+  scroll-snap-type: x proximity; /* Snap to cards */
+  position: relative;
 }
 
-/* Confirm button inside overlay - TRANSPARENT glassmorphism style */
+.choices-overlay-content::-webkit-scrollbar {
+  display: none; /* Hide scrollbar on Chrome/Safari */
+}
+
+/* Fade gradient at edges to show more content (scroll hint) */
+.choices-overlay-content::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  background: linear-gradient(to left, rgba(15, 12, 25, 0.85), transparent);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* Scroll snap for cards */
+.choices-overlay .choice-card,
+.toolbar-toggle-btn,
+.toolbar-icon-btn,
 .btn-confirm-overlay {
-  width: 100%;
-  padding: 12px 24px;
-  font-size: 15px;
+  scroll-snap-align: start;
+}
+
+/* The MoveChoices grid inside the overlay should be horizontal */
+.choices-overlay .move-choices-grid {
+  display: flex;
+  flex-direction: row !important;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.choices-overlay .move-choices-grid::-webkit-scrollbar {
+  display: none;
+}
+
+/* Choice cards in the bottom bar - ULTRA COMPACT horizontal layout */
+.choices-overlay .choice-card {
+  flex: 0 0 auto;
+  min-width: 160px;
+  max-width: 220px;
+  max-height: 60px !important; /* FORCE small height - slightly taller for readability */
+  padding: 6px 10px !important;
+  gap: 8px !important;
+  font-size: 12px !important;
+  flex-direction: row !important; /* HORIZONTAL layout */
+  align-items: center !important;
+  position: relative;
+}
+
+/* Hide avatar/emoji in bottom bar to save space */
+.choices-overlay .choice-card .master-avatar {
+  display: none !important;
+}
+
+.choices-overlay .choice-card .master-info {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 2px !important;
+  flex: 1;
+  min-width: 0;
+}
+
+.choices-overlay .choice-card .master-name-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.choices-overlay .choice-card .master-name {
+  font-size: 12px !important;
   font-weight: 600;
-  margin-top: 8px;
+  white-space: nowrap;
+}
+
+.choices-overlay .choice-card .master-title {
+  display: none !important; /* Hide subtitle */
+}
+
+.choices-overlay .choice-card .choice-header {
+  gap: 6px !important;
+}
+
+.choices-overlay .choice-card .move-notation-display {
+  font-size: 14px !important;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.choices-overlay .choice-card .choice-plan {
+  display: none !important; /* Hide description - show in tooltip instead */
+}
+
+.choices-overlay .choice-card .choice-move {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 2px !important;
+}
+
+.choices-overlay .choice-card .move-eval {
+  font-size: 11px !important;
+  white-space: nowrap;
+}
+
+.choices-overlay .choice-card .choice-tags {
+  display: none !important; /* Hide tags */
+}
+
+.choices-overlay .choice-card .choice-selected-indicator {
+  width: 16px !important;
+  height: 16px !important;
+  top: 4px !important;
+  right: 4px !important;
+}
+
+/* Toolbar toggle button (Prediction, etc.) in the choices overlay */
+.toolbar-toggle-btn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  height: 48px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s;
   
-  /* Override solid button styling with glassmorphism */
+  /* TRANSPARENT button styling */
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 8px;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.toolbar-toggle-btn:hover {
   background: rgba(255, 255, 255, 0.15) !important;
-  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  transform: translateY(-1px);
+}
+
+.toolbar-toggle-btn.active {
+  background: rgba(134, 184, 27, 0.25) !important;
+  border-color: rgba(134, 184, 27, 0.5) !important;
+  color: #fff !important;
+}
+
+.toolbar-toggle-btn.active:hover {
+  background: rgba(134, 184, 27, 0.35) !important;
+  border-color: rgba(134, 184, 27, 0.7) !important;
+}
+
+/* Override sierra theme for toolbar toggle */
+.sierra-theme .toolbar-toggle-btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: none !important;
+}
+
+/* Toolbar icon button (Settings, etc.) - compact square button */
+.toolbar-icon-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  /* TRANSPARENT button styling */
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.toolbar-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  transform: translateY(-1px);
+}
+
+/* Override sierra theme for toolbar icon button */
+.sierra-theme .toolbar-icon-btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: none !important;
+}
+
+/* Confirm button inside overlay - COMPACT but readable */
+.btn-confirm-overlay {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0; /* No margin - inline with choices */
+  white-space: nowrap;
+  height: 48px; /* Readable height */
+  line-height: 1;
+  
+  /* TRANSPARENT button styling - matches glassmorphism theme */
+  background: rgba(134, 184, 27, 0.25) !important;
+  border: 1px solid rgba(134, 184, 27, 0.5) !important;
   color: #fff !important;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
@@ -205,14 +445,78 @@
 }
 
 .btn-confirm-overlay:hover {
-  background: rgba(255, 255, 255, 0.25) !important;
-  border-color: rgba(255, 255, 255, 0.4) !important;
+  background: rgba(134, 184, 27, 0.4) !important;
+  border-color: rgba(134, 184, 27, 0.7) !important;
   transform: translateY(-1px);
 }
 
 .btn-confirm-overlay:active {
-  background: rgba(255, 255, 255, 0.3) !important;
+  background: rgba(134, 184, 27, 0.5) !important;
   transform: translateY(0);
+}
+
+/* Sierra theme override for confirm button */
+.sierra-theme .btn-confirm-overlay {
+  background: rgba(134, 184, 27, 0.25) !important;
+  border: 1px solid rgba(134, 184, 27, 0.5) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPACT PREDICTION TOOLBAR STYLES
+   Same format as master choices - inline in bottom bar
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.prediction-toolbar {
+  /* Inherits from choices-overlay */
+}
+
+.prediction-timer-compact {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 48px;
+  padding: 0 12px;
+  background: rgba(232, 185, 35, 0.2);
+  border: 2px solid rgba(232, 185, 35, 0.5);
+  border-radius: 8px;
+  font-weight: 700;
+  color: #e8b923;
+}
+
+.prediction-timer-compact.urgent {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #ef4444;
+  animation: pulse 0.5s ease-in-out infinite;
+}
+
+.timer-value-compact {
+  font-size: 14px;
+  font-family: var(--font-mono);
+}
+
+.prediction-loading-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+}
+
+.loading-spinner-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Legacy choices-section (for fallback/other uses) */
@@ -244,19 +548,103 @@
   animation: pulse 1s ease-in-out infinite;
 }
 
-/* Feedback Section */
+/* Feedback Section - TOAST notification above board */
 .feedback-section {
-  margin-top: 8px;
+  position: fixed !important;
+  top: 80px !important; /* Below header */
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 1050 !important; /* Above board, below prediction/modals */
+  max-width: 500px !important;
+  width: 90% !important;
+  pointer-events: auto !important;
 }
 
-/* Prediction Section */
+/* Toast close button */
+.toast-close-btn {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  z-index: 10 !important;
+  width: 28px !important;
+  height: 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 50% !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+}
+
+.toast-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  color: #fff !important;
+  transform: scale(1.1) !important;
+}
+
+/* Prediction Section - BOTTOM SHEET so board is visible above */
 .prediction-section {
-  margin-top: 16px;
-  display: flex;
-  flex-direction: column;
-  max-height: calc(100vh - 200px); /* Leave space for header, board, etc */
-  min-height: 0;
-  overflow: hidden; /* Let child handle scrolling */
+  position: fixed !important;
+  top: auto !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  max-height: 70vh !important; /* Larger - 70% of screen for prediction cards */
+  z-index: 1100 !important; /* ABOVE the choices overlay */
+  
+  /* Dark glassmorphism bottom sheet */
+  background: rgba(15, 15, 30, 0.98) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 20px 20px 0 0 !important;
+  
+  /* Scrollable content */
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  align-items: stretch !important; /* Stretch children to full width */
+  padding: 8px 16px 16px !important;
+  padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6) !important;
+  animation: slideUpFromBottom 0.3s ease-out !important;
+}
+
+/* Make PredictOpponent fill the prediction-section properly */
+.prediction-section .predict-opponent-v2 {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important; /* Allow content to flow */
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+
+/* Bottom sheet handle indicator for swipe gesture */
+.bottom-sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  margin: 4px auto 12px;
+  flex-shrink: 0;
+}
+
+@keyframes slideUpFromBottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 /* Prediction Result */
@@ -332,46 +720,6 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   COMPACT PREDICTION TOOLBAR STYLES
-   Same format as master choices - inline in bottom bar
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-.prediction-toolbar {
-  /* Inherits from choices-overlay */
-}
-
-.prediction-toolbar .choices-overlay-content {
-  /* Allow horizontal scrolling for prediction cards + timer + skip button */
-  display: flex !important;
-  flex-direction: row !important;
-  justify-content: flex-start !important;
-  align-items: center !important;
-  gap: 8px !important;
-  overflow-x: auto !important;
-  flex-wrap: nowrap !important;
-}
-
-/* Skip button in prediction toolbar */
-.prediction-toolbar .toolbar-toggle-btn {
-  flex-shrink: 0;
-  padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.prediction-toolbar .toolbar-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: var(--text-primary);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
    RESPONSIVE - MOBILE OPTIMIZED
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -441,71 +789,127 @@
      ═══════════════════════════════════════════════════════════════════════════ */
   
   .choices-overlay {
-    padding: 12px;
-    border-radius: 12px 12px 0 0;
+    padding: 8px !important;
+    border-radius: 12px 12px 0 0 !important;
+    max-height: 85px !important;
+  }
+  
+  .choices-overlay-content {
+    justify-content: flex-start !important; /* Left-align for scroll */
+    padding: 0 4px !important;
+    padding-right: 40px !important; /* Extra padding on right for fade gradient hint */
+    gap: 6px !important;
+    max-height: 70px !important;
+  }
+  
+  /* Mobile: Show fade gradient on right edge to hint at more content */
+  .choices-overlay-content::after {
+    width: 60px !important; /* Wider gradient on mobile */
   }
   
   .choices-overlay .move-choices-grid {
-    flex-direction: row;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
   }
   
   .choices-overlay .move-choices-grid::-webkit-scrollbar {
-    display: none;
+    display: none !important;
   }
   
   .choices-overlay .choice-card {
-    flex: 0 0 auto;
-    min-width: 140px;
-    max-width: 200px;
-    scroll-snap-align: center;
+    flex: 0 0 auto !important;
+    min-width: 120px !important;
+    max-width: 160px !important;
+    scroll-snap-align: center !important;
+  }
+  
+  .toolbar-toggle-btn {
+    flex-shrink: 0 !important;
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+    height: 40px !important;
+  }
+  
+  .toolbar-icon-btn {
+    flex-shrink: 0 !important;
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 16px !important;
   }
   
   .btn-confirm-overlay {
-    padding: 10px 20px;
-    font-size: 14px;
+    padding: 8px 16px !important;
+    font-size: 12px !important;
+    height: 40px !important;
   }
   
-  /* Feedback section - part of overlay */
+  /* Feedback section - TOAST on mobile too */
   .feedback-section {
-    margin-top: 4px;
+    position: fixed !important;
+    top: 60px !important; /* Below header, less space */
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 1050 !important;
+    max-width: 95% !important;
+    width: 95% !important;
   }
   
-  /* Prediction section - legacy overlay style (kept for non-compact mode) */
+  /* Prediction section - BOTTOM SHEET on mobile so board visible above */
   .prediction-section {
     position: fixed !important;
-    bottom: 60px;
-    left: 0;
-    right: 0;
-    z-index: 100;
+    top: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    max-height: 75vh !important; /* Take 75% of screen - prediction needs more space */
+    z-index: 1100 !important; /* ABOVE the choices overlay (z-index 1000) */
     
-    /* Glassmorphism */
-    background: rgba(15, 15, 25, 0.9);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px 16px 0 0;
+    /* Dark glassmorphism bottom sheet */
+    background: rgba(15, 15, 30, 0.98) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 20px 20px 0 0 !important;
     
-    padding: 12px;
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
-    max-height: 40vh;
-    overflow-y: auto;
+    /* Scrollable content */
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important; /* Stretch to full width */
+    padding: 8px 12px 12px !important;
+    padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
     
-    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.4);
-    animation: overlaySlideUp 0.3s ease-out;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6) !important;
+    animation: slideUpFromBottom 0.3s ease-out !important;
   }
   
-  /* Prediction toolbar - inherits choices-overlay styles but adds horizontal scrolling */
-  .prediction-toolbar .choices-overlay-content {
-    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  /* Mobile: Make prediction content scrollable */
+  .prediction-section .predict-opponent-v2 {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    flex: 1 !important;
+    min-height: 0 !important;
   }
   
-  .prediction-toolbar .predict-opponent-compact {
-    flex: 1;
-    min-width: 0;
+  .prediction-section .prediction-choices-wrapper {
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+  }
+  
+  /* Make handle more prominent on mobile */
+  .bottom-sheet-handle {
+    width: 48px !important;
+    height: 5px !important;
+    background: rgba(255, 255, 255, 0.4) !important;
+    margin: 6px auto 10px !important;
   }
   
   .prediction-result {
@@ -571,7 +975,7 @@
   
   .prediction-section {
     padding: 10px 8px;
-    max-height: 35vh;
+    max-height: 70vh; /* Still show 70% even on small screens */
   }
 }
 
@@ -624,6 +1028,94 @@
   background: var(--castle-surface-alt, var(--bg-elevated));
   border-color: var(--castle-accent, var(--accent-primary));
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Coach's Logs Modal */
+.coach-logs-modal {
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.coach-logs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empty-logs {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 20px;
+  font-size: 14px;
+}
+
+.coach-log-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  transition: all 0.2s;
+}
+
+.coach-log-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.log-move-number {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.log-timestamp {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.log-eval {
+  margin-bottom: 8px;
+}
+
+.eval-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.eval-badge.positive {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.eval-badge.neutral {
+  background: rgba(156, 163, 175, 0.2);
+  color: #9ca3af;
+  border: 1px solid rgba(156, 163, 175, 0.3);
+}
+
+.eval-badge.negative {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.log-coach-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 0;
 }
 
 /* Castle Map Modal */
@@ -1071,6 +1563,68 @@ body.effect-pixel-scale * {
       0 4px 32px rgba(255, 0, 0, 0.6),
       inset 0 1px 0 rgba(255, 100, 100, 0.3),
       0 0 50px rgba(255, 0, 0, 0.5);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DEVICE MODE SPECIFIC STYLES
+   These apply based on USER PREFERENCE (not just screen size)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* MOBILE MODE - User chose mobile layout */
+.app.device-mode-mobile {
+  padding-bottom: 70px; /* Space for action bar */
+}
+
+.app.device-mode-mobile .app-main {
+  grid-template-columns: 1fr;
+  padding: 8px;
+  padding-bottom: 80px; /* Space for ULTRA compact bottom bar */
+  gap: 8px;
+}
+
+.app.device-mode-mobile .sidebar {
+  display: none !important;
+}
+
+.app.device-mode-mobile .board-container .eval-bar-container {
+  display: none;
+}
+
+.app.device-mode-mobile .castle-quick-actions {
+  display: none;
+}
+
+.app.device-mode-mobile .game-area {
+  flex: 1;
+  justify-content: center;
+}
+
+/* DESKTOP MODE - User chose desktop layout */
+.app.device-mode-desktop {
+  padding-bottom: 70px; /* Space for action bar */
+}
+
+.app.device-mode-desktop .app-main {
+  grid-template-columns: 1fr 320px;
+}
+
+.app.device-mode-desktop .sidebar {
+  display: flex;
+}
+
+.app.device-mode-desktop .castle-quick-actions {
+  display: none; /* Actions are in the action bar now */
+}
+
+/* Responsive overrides for very small screens (even in desktop mode) */
+@media (max-width: 480px) {
+  .app.device-mode-desktop .app-main {
+    grid-template-columns: 1fr;
+  }
+  
+  .app.device-mode-desktop .sidebar {
+    display: none;
   }
 }
 

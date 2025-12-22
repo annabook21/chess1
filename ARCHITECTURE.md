@@ -61,13 +61,59 @@ Master Academy Chess is built as a microservices architecture with strict separa
   - `game-store.ts`: In-memory game state (replace with DB)
 
 ### 6. Frontend (`packages/frontend-web`)
-- **Purpose**: React-based UI
-- **Tech**: React + Vite + TypeScript
+- **Purpose**: React-based UI with responsive design
+- **Tech**: React + Vite + TypeScript + CSS Modules
 - **Port**: 5173
-- **Components**:
-  - `ChessBoard`: Chessboard display
-  - `MoveChoices`: 3 choice buttons
-  - `Feedback`: Move feedback display
+
+#### UI/UX Architecture
+
+**Core Components:**
+- `App.tsx`: Main application shell with device mode detection
+- `BoardVisualization.tsx`: Chess board with overlays (threats, attacks, key squares)
+- `MoveChoices.tsx`: Compact horizontal choice cards for master moves
+- `PredictOpponent.tsx`: Prediction quiz with inline/compact modes
+- `SettingsPanel.tsx`: Device mode selection, play mode, opponent type
+
+**Layout System:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Header: Logo, Stats, Quick Actions                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────────────┐  ┌────────────────────────┐       │
+│  │                          │  │  Sidebar (Desktop)     │       │
+│  │      Chess Board         │  │  - Move History        │       │
+│  │                          │  │  - Evaluation Graph    │       │
+│  │                          │  │  - Spirit Narrator     │       │
+│  └──────────────────────────┘  └────────────────────────┘       │
+│                                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│  Fixed Bottom Toolbar: [Choices] [Prediction] [Settings] [+]    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Design Tokens (CSS Variables):**
+```css
+--bg-primary: #1a1a2e;       /* Dark background */
+--accent-primary: #e94560;   /* Highlight color */
+--text-primary: #e8d5b7;     /* Light text */
+--gold: #e8b923;             /* Achievement/reward color */
+```
+
+**Responsive Breakpoints:**
+- Desktop: > 768px (two-column layout with sidebar)
+- Mobile: ≤ 768px (single-column, board-focused)
+
+**User Preference Storage:**
+- Device mode: `localStorage` with key `deviceModePreference`
+- Theme selection: Context-based with `ThemeProvider`
+
+**Key UI Patterns:**
+1. **Choices Overlay**: Fixed bottom bar with horizontal scrolling cards
+2. **Glassmorphism**: `backdrop-filter: blur()` for semi-transparent UI
+3. **Toast Notifications**: Auto-dismiss coach feedback
+4. **Bottom Sheet**: Swipe-down to dismiss on mobile
+5. **Compact Mode**: Inline rendering for predictions in toolbar
 
 ### 7. Drill Worker (`packages/drill-worker`)
 - **Purpose**: Puzzle generation and spaced repetition

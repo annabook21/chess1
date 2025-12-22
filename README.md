@@ -45,6 +45,70 @@ Identifies your weakest concepts (e.g., "Open file control", "Knight outposts") 
 
 ---
 
+## UI/UX Design
+
+### Responsive Design Philosophy
+
+The app supports both desktop and mobile views with **user-selectable device modes**:
+
+| Mode | Layout | Key Features |
+|------|--------|--------------|
+| **Desktop** | Two-column with sidebar | Full move history, evaluation graphs |
+| **Mobile** | Single-column, board-focused | Touch-optimized, compact toolbar |
+
+### Compact Bottom Toolbar
+
+All primary actions are accessible from a **fixed bottom toolbar** with glassmorphism styling:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  [Timer] [Choice 1] [Choice 2] [Choice 3] [Confirm] [Settings] [+]  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Design Principles:**
+- **Board visibility**: Toolbar never obscures the chess board
+- **Horizontal scrolling**: Choices scroll horizontally with snap points
+- **Glassmorphism**: Semi-transparent background with blur for modern aesthetic
+- **No pagination**: All choices visible in one row, no scrolling vertically
+
+### Master Choices (Karpov/Fischer/Tal)
+
+During guided play, master move suggestions appear as compact cards in the toolbar:
+
+```typescript
+// Each choice card shows:
+- Master name (colored by personality)
+- Move notation (e.g., "Nf3")
+- Hover/tap for strategy tooltip
+```
+
+### Prediction Mode
+
+When predicting opponent moves, the **same compact toolbar** is used:
+- Prediction cards show probability percentages
+- Timer countdown displays inline
+- Skip button at the end
+- No full-screen modal that blocks the board
+
+### Visual Theme: Sierra VGA Style
+
+The UI pays homage to classic Quest for Glory-style adventure games:
+- **16-color inspired palette** with CRT scanline effects
+- **Pixel art icons** for pieces and UI elements
+- **"Press Start 2P" pixel font** for headings
+- **Vignette darkening** at screen edges
+- **Phosphor glow** on interactive elements
+
+### Toast Notifications
+
+Coach feedback appears as **auto-dismissing toast notifications**:
+- Appears briefly (5 seconds) above the board
+- Manual dismiss with close button
+- Stored in "Coach's Logs" for later review
+
+---
+
 ## Architecture Overview
 
 ```

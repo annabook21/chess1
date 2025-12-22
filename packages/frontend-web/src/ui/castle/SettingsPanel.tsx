@@ -12,6 +12,7 @@ export type OpponentType = 'ai-master' | 'human-like';
 export type MaiaRating = 1100 | 1200 | 1300 | 1400 | 1500 | 1600 | 1700 | 1800 | 1900;
 export type PlayMode = 'guided' | 'free';
 export type PlayerColor = 'white' | 'black';
+export type DeviceMode = 'mobile' | 'desktop';
 
 export interface CastleSettings {
   tone: NarrationTone;
@@ -53,6 +54,11 @@ interface SettingsPanelProps {
   onPlayModeChange?: (mode: PlayMode) => void;
   playerColor?: PlayerColor;
   onPlayerColorChange?: (color: PlayerColor) => void;
+  // Device mode settings
+  deviceMode?: DeviceMode;
+  onDeviceModeChange?: (mode: DeviceMode) => void;
+  // Coach logs
+  onOpenCoachLogs?: () => void;
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
@@ -67,6 +73,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onPlayModeChange,
   playerColor = 'white',
   onPlayerColorChange,
+  deviceMode = 'desktop',
+  onDeviceModeChange,
+  onOpenCoachLogs,
 }) => {
   const [settings, setSettings] = useState<CastleSettings>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -112,6 +121,55 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <div className="settings-header">
           <h2 className="settings-title"><PixelIcon name="gear" size="medium" /> Castle Settings</h2>
           <button className="settings-close" onClick={onClose}>✕</button>
+        </div>
+
+        {/* Coach's Logs */}
+        {onOpenCoachLogs && (
+          <div className="settings-section">
+            <h3 className="settings-section-title">📋 Coach's Logs</h3>
+            <p className="settings-section-desc">
+              Review past coaching feedback and analysis
+            </p>
+            
+            <button
+              className="coach-logs-open-btn"
+              onClick={() => {
+                onClose();
+                onOpenCoachLogs();
+              }}
+            >
+              <span className="btn-icon">📋</span>
+              View Coach's Logs
+            </button>
+          </div>
+        )}
+
+        {/* Device Mode */}
+        <div className="settings-section">
+          <h3 className="settings-section-title">📱 Display Mode</h3>
+          <p className="settings-section-desc">
+            Choose your preferred layout
+          </p>
+          
+          <div className="device-mode-selector">
+            <button
+              className={`device-mode-btn ${deviceMode === 'mobile' ? 'active' : ''}`}
+              onClick={() => onDeviceModeChange?.('mobile')}
+            >
+              <span className="device-mode-icon">📱</span>
+              <span className="device-mode-label">Mobile</span>
+              <span className="device-mode-desc">Touch-friendly, full-screen board</span>
+            </button>
+            
+            <button
+              className={`device-mode-btn ${deviceMode === 'desktop' ? 'active' : ''}`}
+              onClick={() => onDeviceModeChange?.('desktop')}
+            >
+              <span className="device-mode-icon">🖥️</span>
+              <span className="device-mode-label">Desktop</span>
+              <span className="device-mode-desc">Sidebar with move history</span>
+            </button>
+          </div>
         </div>
 
         {/* Play Mode */}

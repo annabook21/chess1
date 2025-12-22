@@ -860,3 +860,114 @@
 .color-btn.black .color-desc {
   color: #888;
 }
+
+/* Coach Logs Open Button */
+.coach-logs-open-btn {
+  width: 100%;
+  padding: 14px 18px;
+  background: rgba(134, 184, 27, 0.15);
+  border: 2px solid rgba(134, 184, 27, 0.3);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.coach-logs-open-btn:hover {
+  background: rgba(134, 184, 27, 0.25);
+  border-color: rgba(134, 184, 27, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(134, 184, 27, 0.2);
+}
+
+.coach-logs-open-btn .btn-icon {
+  font-size: 18px;
+}
+
+/* Device Mode Selector */
+.device-mode-selector {
+  display: flex;
+  gap: 12px;
+}
+
+.device-mode-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 12px;
+  
+  /* Glassmorphism style */
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.device-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.device-mode-btn.active {
+  background: rgba(134, 184, 27, 0.15);
+  border-color: rgba(134, 184, 27, 0.5);
+  box-shadow: 0 0 12px rgba(134, 184, 27, 0.2);
+}
+
+.device-mode-icon {
+  font-size: 28px;
+}
+
+.device-mode-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: var(--castle-text, #e8e8e8);
+}
+
+.device-mode-desc {
+  font-size: 10px;
+  color: var(--castle-text-muted, #7a7a8c);
+  text-align: center;
+}
+
+.device-mode-btn.active .device-mode-label {
+  color: #86b81b;
+}
+
+/* Maia Rating Select */
+.maia-rating-select {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 13px;
+  background: var(--castle-surface, #252a40);
+  border: 2px solid var(--castle-border, #3d3d5c);
+  border-radius: 6px;
+  color: var(--castle-text, #e8e8e8);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a7a8c' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.maia-rating-select:focus {
+  outline: none;
+  border-color: #8b5cf6;
+}
+
+.maia-rating-select option {
+  background: var(--castle-bg, #1a1a2e);
+  color: var(--castle-text, #e8e8e8);
+  padding: 8px;
+}
