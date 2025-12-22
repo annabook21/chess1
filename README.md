@@ -2,6 +2,12 @@
 
 An AI-powered chess learning platform that lets you learn from legendary grandmaster playing styles (Karpov, Fischer, Tal) with real-time position analysis, human-like opponent move prediction, and personalized coaching.
 
+## Architecture Diagram
+
+![Architecture Diagram](./architecture.drawio.svg)
+
+*Complete system architecture showing all services, data flows, and AWS infrastructure components.*
+
 ## Table of Contents
 
 - [Features](#features)
@@ -110,6 +116,8 @@ Coach feedback appears as **auto-dismissing toast notifications**:
 ---
 
 ## Architecture Overview
+
+The system architecture is visualized in the diagram above. Below is a simplified text representation:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
