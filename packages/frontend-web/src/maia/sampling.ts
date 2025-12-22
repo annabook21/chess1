@@ -180,10 +180,14 @@ export function calculatePredictionReward(
   actualProbability: number; // Probability of what actually happened
   pickProbability: number;  // Probability of user's pick
 } {
-  const isCorrect = userPick === actualMove;
+  // Normalize UCI moves for comparison (lowercase, trim)
+  const normalizedPick = userPick.toLowerCase().trim();
+  const normalizedActual = actualMove.toLowerCase().trim();
+  const isCorrect = normalizedPick === normalizedActual;
   
-  const actualPred = predictions.find(p => p.uci === actualMove);
-  const pickPred = predictions.find(p => p.uci === userPick);
+  // Find predictions with normalized comparison
+  const actualPred = predictions.find(p => p.uci.toLowerCase() === normalizedActual);
+  const pickPred = predictions.find(p => p.uci.toLowerCase() === normalizedPick);
   
   const actualProbability = actualPred?.probability ?? 0;
   const pickProbability = pickPred?.probability ?? 0;
@@ -251,6 +255,9 @@ export function getPredictionDifficulty(
   if (entropy < 1.8) return 'medium';  // A few contenders
   return 'hard';                        // Many viable options
 }
+
+
+
 
 
 

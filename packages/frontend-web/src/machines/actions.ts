@@ -128,17 +128,25 @@ export function updatePlayerStatsAfterGame(
 
 /**
  * Calculate prediction result based on Maia probabilities
+ * 
+ * FIXED: Now compares full UCI moves, not just destination squares.
+ * Previously only compared slice(2,4) which would incorrectly mark
+ * different moves to the same square as "correct".
  */
 export function calculatePredictionResult(
   predictedMoveUci: string,
   actualMoveUci: string,
   predictions: Array<{ uci: string; probability: number }>
 ): PredictionResult {
-  const isCorrect = predictedMoveUci.slice(2, 4) === actualMoveUci.slice(2, 4);
+  // FIXED: Compare full UCI moves, not just destinations
+  // Normalize to lowercase and trim for safety
+  const normalizedPredicted = predictedMoveUci.toLowerCase().trim();
+  const normalizedActual = actualMoveUci.toLowerCase().trim();
+  const isCorrect = normalizedPredicted === normalizedActual;
   
   // Find probabilities
-  const actualPred = predictions.find(p => p.uci === actualMoveUci);
-  const pickPred = predictions.find(p => p.uci === predictedMoveUci);
+  const actualPred = predictions.find(p => p.uci.toLowerCase() === normalizedActual);
+  const pickPred = predictions.find(p => p.uci.toLowerCase() === normalizedPredicted);
   
   const actualProbability = actualPred?.probability || 0;
   const pickProbability = pickPred?.probability || 0;

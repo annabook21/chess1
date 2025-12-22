@@ -1624,21 +1624,18 @@ function App() {
       return;
     }
 
-    // Use scoring utilities (already imported at top)
-
-    // Get actual AI move in UCI format (convert from SAN)
+    // Get actual AI move - use UCI from ref if available (more accurate than SAN parsing)
     const aiMoveSan = pendingResponse.feedback.aiMove.moveSan;
-
-    // Check if prediction matches - compare destination squares
-    const predictedTo = predictedMoveUci.slice(2, 4);
-
-    // Extract destination from SAN (e.g., "Nf6" -> "f6", "e5" -> "e5")
-    const sanClean = aiMoveSan.replace(/[+#x=]/g, '');
-    const actualTo = sanClean.length === 2
-      ? sanClean.toLowerCase()
-      : sanClean.slice(-2).toLowerCase();
-
-    const isCorrect = predictedTo === actualTo;
+    
+    // FIXED: Use the actual UCI from pendingOpponentMoveRef instead of 
+    // fragile SAN-to-destination extraction. This is the ground truth.
+    const actualMoveUci = pendingOpponentMoveRef.current || '';
+    
+    // FIXED: Compare full UCI moves, not just destinations
+    // Normalize to lowercase for safety
+    const normalizedPredicted = predictedMoveUci.toLowerCase().trim();
+    const normalizedActual = actualMoveUci.toLowerCase().trim();
+    const isCorrect = normalizedPredicted === normalizedActual;
 
     // Use proper probability-based scoring if we have Maia predictions
     let reward = {
@@ -1651,16 +1648,15 @@ function App() {
     };
 
     if (currentMaiaPredictions.length > 0 && opponentType === 'human-like') {
-      // Find the actual move in predictions by matching destination square
+      // FIXED: Find predictions by exact UCI match, not destination-only
       const actualPred = currentMaiaPredictions.find(p => 
-        p.to.toLowerCase() === actualTo
+        p.uci.toLowerCase() === normalizedActual
       );
       const pickPred = currentMaiaPredictions.find(p => 
-        p.to.toLowerCase() === predictedTo
+        p.uci.toLowerCase() === normalizedPredicted
       );
 
       // Use proper scoring based on probabilities
-      const actualMoveUci = actualPred?.uci || '';
       reward = calculatePredictionReward(
         currentMaiaPredictions,
         predictedMoveUci,
@@ -1670,10 +1666,13 @@ function App() {
       console.log('[Prediction Scoring]', {
         predicted: predictedMoveUci,
         actual: actualMoveUci,
+        actualSan: aiMoveSan,
         isCorrect: reward.isCorrect,
         actualProb: `${(reward.actualProbability * 100).toFixed(1)}%`,
         pickProb: `${(reward.pickProbability * 100).toFixed(1)}%`,
         points: reward.totalPoints,
+        foundActualInPredictions: !!actualPred,
+        foundPickInPredictions: !!pickPred,
       });
     }
 
@@ -2479,6 +2478,7 @@ function App() {
                   targetRating={maiaOpponentRating}
                   compact={true}
                   startTimer={!feedback}
+                  precomputedPredictions={currentMaiaPredictions}
                 />
                 
                 {/* Skip button */}

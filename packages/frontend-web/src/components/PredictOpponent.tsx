@@ -29,6 +29,12 @@ interface PredictOpponentProps {
   compact?: boolean;
   /** Whether to start the countdown timer (waits for feedback dismissal) */
   startTimer?: boolean;
+  /** 
+   * CRITICAL: Pre-computed predictions from the SAME Maia call that sampled the actual move.
+   * This ensures the predictions shown match the source of truth for scoring.
+   * If not provided, falls back to calling useMaiaPredictions (legacy behavior).
+   */
+  precomputedPredictions?: MovePrediction[];
 }
 
 interface CandidateMove {
@@ -52,6 +58,7 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
   isHumanLike = false,
   compact = false,
   startTimer = true,
+  precomputedPredictions,
 }) => {
   const [selectedMove, setSelectedMove] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(timeLimit);
@@ -59,15 +66,22 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
   const [isLockingIn, setIsLockingIn] = useState(false); // Visual feedback when auto-submitting
   const [timerStarted, setTimerStarted] = useState(false);
 
-  // Use Maia for predictions
+  // Use Maia for predictions (only if precomputed not provided)
+  // CRITICAL: When precomputedPredictions is provided, we use those to ensure
+  // the predictions shown match the source that sampled the actual move.
   const {
-    predictions: maiaPredictions,
+    predictions: maiaPredictionsFetched,
     isLoading: maiaLoading,
     isReady: maiaReady,
     error: maiaError,
     inferenceTime,
     modelRating,
-  } = useMaiaPredictions(fen);
+  } = useMaiaPredictions(precomputedPredictions ? '' : fen); // Skip fetch if precomputed
+  
+  // Use precomputed predictions if available, otherwise use fetched
+  const maiaPredictions = precomputedPredictions && precomputedPredictions.length > 0 
+    ? precomputedPredictions 
+    : maiaPredictionsFetched;
 
   // Track if we've waited too long for Maia (show fallback after 5 seconds)
   const [showFallback, setShowFallback] = useState(false);
