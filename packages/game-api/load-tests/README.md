@@ -52,3 +52,4 @@ k6 run -e API_URL=https://api.yourdomain.com game-api.js
 
 
 
+

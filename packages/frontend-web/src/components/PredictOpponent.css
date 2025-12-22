@@ -525,6 +525,107 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   COMPACT MODE - Inline toolbar rendering
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Compact mode wrapper - renders inline in toolbar */
+.predict-opponent-compact {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  max-width: 100%;
+}
+
+.predict-opponent-compact::-webkit-scrollbar {
+  display: none;
+}
+
+/* Compact timer styling */
+.prediction-timer-compact {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 48px;
+  padding: 0 12px;
+  background: rgba(232, 185, 35, 0.2);
+  border: 2px solid rgba(232, 185, 35, 0.5);
+  border-radius: 8px;
+  font-weight: 700;
+  color: #e8b923;
+}
+
+.prediction-timer-compact.urgent {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #ef4444;
+  animation: pulse 0.5s ease-in-out infinite;
+}
+
+/* Paused timer state - shown while waiting for feedback dismissal */
+.prediction-timer-compact.paused {
+  background: rgba(156, 163, 175, 0.2);
+  border-color: rgba(156, 163, 175, 0.5);
+  color: #9ca3af;
+}
+
+.predict-timer-v2.paused .timer-fill {
+  stroke: #9ca3af;
+}
+
+.predict-timer-v2.paused .timer-value-v2 {
+  color: #9ca3af;
+}
+
+.timer-value-compact {
+  font-size: 14px;
+  font-family: var(--font-mono);
+}
+
+/* Loading spinner for compact mode */
+.prediction-loading-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+}
+
+.loading-spinner-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Make MoveChoices render horizontally in compact mode */
+.predict-opponent-compact .move-choices-grid {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  scroll-snap-type: x mandatory !important;
+}
+
+/* Compact choice cards */
+.predict-opponent-compact .choice-card {
+  flex: 0 0 auto !important;
+  min-width: 160px !important;
+  max-width: 220px !important;
+  max-height: 60px !important;
+  padding: 6px 10px !important;
+  scroll-snap-align: center !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MOBILE RESPONSIVE
    ═══════════════════════════════════════════════════════════════════════════ */
 

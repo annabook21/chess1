@@ -332,6 +332,46 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   COMPACT PREDICTION TOOLBAR STYLES
+   Same format as master choices - inline in bottom bar
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.prediction-toolbar {
+  /* Inherits from choices-overlay */
+}
+
+.prediction-toolbar .choices-overlay-content {
+  /* Allow horizontal scrolling for prediction cards + timer + skip button */
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 8px !important;
+  overflow-x: auto !important;
+  flex-wrap: nowrap !important;
+}
+
+/* Skip button in prediction toolbar */
+.prediction-toolbar .toolbar-toggle-btn {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.prediction-toolbar .toolbar-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    RESPONSIVE - MOBILE OPTIMIZED
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -434,7 +474,7 @@
     margin-top: 4px;
   }
   
-  /* Prediction section - overlay style */
+  /* Prediction section - legacy overlay style (kept for non-compact mode) */
   .prediction-section {
     position: fixed !important;
     bottom: 60px;
@@ -456,6 +496,16 @@
     
     box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.4);
     animation: overlaySlideUp 0.3s ease-out;
+  }
+  
+  /* Prediction toolbar - inherits choices-overlay styles but adds horizontal scrolling */
+  .prediction-toolbar .choices-overlay-content {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  
+  .prediction-toolbar .predict-opponent-compact {
+    flex: 1;
+    min-width: 0;
   }
   
   .prediction-result {

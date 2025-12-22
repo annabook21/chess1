@@ -25,6 +25,10 @@ interface PredictOpponentProps {
   targetRating?: number;
   /** Whether opponent is human-like (Maia) or AI Master */
   isHumanLike?: boolean;
+  /** Compact mode for inline toolbar rendering */
+  compact?: boolean;
+  /** Whether to start the countdown timer (waits for feedback dismissal) */
+  startTimer?: boolean;
 }
 
 interface CandidateMove {
@@ -46,11 +50,14 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
   onHoverMove,
   targetRating = 1500,
   isHumanLike = false,
+  compact = false,
+  startTimer = true,
 }) => {
   const [selectedMove, setSelectedMove] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(timeLimit);
   const [hoveredMove, setHoveredMove] = useState<string | null>(null);
   const [isLockingIn, setIsLockingIn] = useState(false); // Visual feedback when auto-submitting
+  const [timerStarted, setTimerStarted] = useState(false);
 
   // Use Maia for predictions
   const {
@@ -128,8 +135,19 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
     return predictionChoices.find(c => c.moveUci === selectedMove)?.id || null;
   }, [selectedMove, predictionChoices]);
 
-  // Countdown timer
+  // Countdown timer - only runs when startTimer is true
   useEffect(() => {
+    // Don't start countdown until startTimer is true
+    if (!startTimer) {
+      setTimerStarted(false);
+      return;
+    }
+
+    // Mark timer as started
+    if (!timerStarted) {
+      setTimerStarted(true);
+    }
+
     if (timeRemaining <= 0) {
       // If user selected a move, auto-submit it; otherwise skip
       if (selectedMove) {
@@ -145,16 +163,17 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeRemaining, onSkip, onPredictionSubmit, selectedMove]);
+  }, [timeRemaining, onSkip, onPredictionSubmit, selectedMove, startTimer, timerStarted]);
 
   // Hover is now handled by MoveChoices component via onHoverChoice callback
   // No need for separate hover tracking here
 
-  // Reset selection when FEN changes
+  // Reset selection and timer when FEN changes
   useEffect(() => {
     setSelectedMove(null);
     setTimeRemaining(timeLimit);
     setIsLockingIn(false);
+    setTimerStarted(false);
   }, [fen, timeLimit]);
 
   const handleSkip = () => {
@@ -190,6 +209,61 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
 
   // getMoveLabel and formatProbability no longer needed - MoveChoices handles display
 
+  // COMPACT MODE: Just render the choices inline for toolbar use
+  if (compact) {
+    if (shouldShowLoading) {
+      return (
+        <div className="prediction-loading-compact">
+          <span className="loading-spinner-small"></span>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="predict-opponent-compact">
+        {/* Compact timer - show paused state if not started */}
+        <div className={`prediction-timer-compact ${
+          timeRemaining <= 5 && timerStarted ? 'urgent' : ''
+        } ${!timerStarted ? 'paused' : ''}`}>
+          <span className="timer-value-compact">
+            {!timerStarted && '⏸ '}
+            {timeRemaining}s
+          </span>
+        </div>
+        
+        {/* Just the choices inline */}
+        <MoveChoices
+          choices={predictionChoices}
+          selectedChoice={selectedChoiceId}
+          onSelectChoice={(choiceId) => {
+            const choice = predictionChoices.find(c => c.id === choiceId);
+            if (choice && !isLockingIn) {
+              setSelectedMove(choice.moveUci);
+              if (onHoverMove) {
+                const from = choice.moveUci.slice(0, 2);
+                const to = choice.moveUci.slice(2, 4);
+                onHoverMove(from, to);
+              }
+              setIsLockingIn(true);
+              setTimeout(() => {
+                onPredictionSubmit(choice.moveUci);
+              }, 400); // Faster for compact mode
+            }
+          }}
+          onHoverChoice={(choice) => {
+            if (choice && onHoverMove) {
+              const from = choice.moveUci.slice(0, 2);
+              const to = choice.moveUci.slice(2, 4);
+              onHoverMove(from, to);
+            } else if (!choice && onHoverMove) {
+              onHoverMove(null, null);
+            }
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="predict-opponent-v2">
       <div className="predict-header-v2">
@@ -200,7 +274,9 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
             <p className="subtitle">What will {masterName} play?</p>
           </div>
         </div>
-        <div className={`predict-timer-v2 ${timeRemaining <= 5 ? 'urgent' : ''}`}>
+        <div className={`predict-timer-v2 ${
+          timeRemaining <= 5 && timerStarted ? 'urgent' : ''
+        } ${!timerStarted ? 'paused' : ''}`}>
           <div className="timer-ring">
             <svg viewBox="0 0 36 36">
               <path
@@ -213,7 +289,10 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
               />
             </svg>
-            <span className="timer-value-v2">{timeRemaining}</span>
+            <span className="timer-value-v2">
+              {!timerStarted && '⏸ '}
+              {timeRemaining}
+            </span>
           </div>
         </div>
       </div>
