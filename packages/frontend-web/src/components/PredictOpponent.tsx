@@ -5,7 +5,7 @@
  * for human-like move probability prediction.
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Chess, Square } from 'chess.js';
 import { useMaiaPredictions, MovePrediction, formatProbabilityValue } from '../maia';
 import { PixelIcon } from '../ui/castle/PixelIcon';
@@ -61,6 +61,7 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
   precomputedPredictions,
 }) => {
   const [selectedMove, setSelectedMove] = useState<string | null>(null);
+  const selectedMoveRef = useRef<string | null>(null); // Fix race condition with timer
   const [timeRemaining, setTimeRemaining] = useState(timeLimit);
   const [hoveredMove, setHoveredMove] = useState<string | null>(null);
   const [isLockingIn, setIsLockingIn] = useState(false); // Visual feedback when auto-submitting
@@ -69,6 +70,7 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
   // Use Maia for predictions (only if precomputed not provided)
   // CRITICAL: When precomputedPredictions is provided, we use those to ensure
   // the predictions shown match the source that sampled the actual move.
+  const shouldFetchMaia = !precomputedPredictions || precomputedPredictions.length === 0;
   const {
     predictions: maiaPredictionsFetched,
     isLoading: maiaLoading,
@@ -76,21 +78,23 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
     error: maiaError,
     inferenceTime,
     modelRating,
-  } = useMaiaPredictions(precomputedPredictions ? '' : fen); // Skip fetch if precomputed
+  } = useMaiaPredictions(shouldFetchMaia ? fen : ''); // Skip fetch if precomputed provided
   
   // Use precomputed predictions if available, otherwise use fetched
   const maiaPredictions = precomputedPredictions && precomputedPredictions.length > 0 
     ? precomputedPredictions 
     : maiaPredictionsFetched;
 
-  // Track if we've waited too long for Maia (show fallback after 5 seconds)
+  // Track if we've waited too long for Maia (show fallback after timeout)
+  const MAIA_TIMEOUT_MS = 10000; // 10 seconds (generous for first load)
   const [showFallback, setShowFallback] = useState(false);
-  
+
   useEffect(() => {
     if (maiaLoading && !maiaReady) {
       const timer = setTimeout(() => {
+        console.warn('[Maia] Timeout after 10s, using fallback heuristics');
         setShowFallback(true);
-      }, 5000); // Show fallback after 5 seconds
+      }, MAIA_TIMEOUT_MS);
       return () => clearTimeout(timer);
     } else {
       setShowFallback(false);
@@ -117,11 +121,11 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
         return {
           id: `prediction-${p.uci}-${index}`,
           moveUci: p.uci,
-          planOneLiner: `${probDisplay}% of ${targetRating}-rated players play this move. ${explanation}`,
+          planOneLiner: `${probDisplay} of ${targetRating}-rated players play this move. ${explanation}`,
           styleId: 'human-like', // Use special human-like style for Maia predictions
           pv: [p.uci], // Principal variation - just the move itself for predictions
-          eval: Math.round(p.probability * 1000), // Convert probability to eval-like score
-          conceptTags: ['human-like', `~${probDisplay}%`],
+          eval: 0, // Predictions don't have engine evaluations
+          conceptTags: ['human-like', probDisplay],
         };
       });
     }
@@ -149,23 +153,27 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
     return predictionChoices.find(c => c.moveUci === selectedMove)?.id || null;
   }, [selectedMove, predictionChoices]);
 
+  // Reset timer when startTimer changes to true
+  useEffect(() => {
+    if (startTimer && !timerStarted) {
+      setTimeRemaining(timeLimit);
+      setTimerStarted(true);
+    } else if (!startTimer) {
+      setTimerStarted(false);
+    }
+  }, [startTimer, timerStarted, timeLimit]);
+
   // Countdown timer - only runs when startTimer is true
   useEffect(() => {
     // Don't start countdown until startTimer is true
     if (!startTimer) {
-      setTimerStarted(false);
       return;
     }
 
-    // Mark timer as started
-    if (!timerStarted) {
-      setTimerStarted(true);
-    }
-
     if (timeRemaining <= 0) {
-      // If user selected a move, auto-submit it; otherwise skip
-      if (selectedMove) {
-        onPredictionSubmit(selectedMove);
+      // Use ref to avoid race condition with state updates
+      if (selectedMoveRef.current) {
+        onPredictionSubmit(selectedMoveRef.current);
       } else {
         onSkip();
       }
@@ -177,7 +185,7 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeRemaining, onSkip, onPredictionSubmit, selectedMove, startTimer, timerStarted]);
+  }, [timeRemaining, onSkip, onPredictionSubmit, startTimer]);
 
   // Hover is now handled by MoveChoices component via onHoverChoice callback
   // No need for separate hover tracking here
@@ -185,6 +193,7 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
   // Reset selection and timer when FEN changes
   useEffect(() => {
     setSelectedMove(null);
+    selectedMoveRef.current = null; // Also reset ref
     setTimeRemaining(timeLimit);
     setIsLockingIn(false);
     setTimerStarted(false);
@@ -253,10 +262,10 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
             const choice = predictionChoices.find(c => c.id === choiceId);
             if (choice && !isLockingIn) {
               setSelectedMove(choice.moveUci);
+              selectedMoveRef.current = choice.moveUci; // Update ref immediately for timer
+              // Clear hover immediately on selection
               if (onHoverMove) {
-                const from = choice.moveUci.slice(0, 2);
-                const to = choice.moveUci.slice(2, 4);
-                onHoverMove(from, to);
+                onHoverMove(null, null);
               }
               setIsLockingIn(true);
               setTimeout(() => {
@@ -370,13 +379,12 @@ export const PredictOpponent: React.FC<PredictOpponentProps> = ({
               const choice = predictionChoices.find(c => c.id === choiceId);
               if (choice && !isLockingIn) {
                 setSelectedMove(choice.moveUci);
-                // Trigger hover on board
+                selectedMoveRef.current = choice.moveUci; // Update ref immediately for timer
+                // Clear hover immediately on selection
                 if (onHoverMove) {
-                  const from = choice.moveUci.slice(0, 2);
-                  const to = choice.moveUci.slice(2, 4);
-                  onHoverMove(from, to);
+                  onHoverMove(null, null);
                 }
-                
+
                 // Auto-submit after brief visual feedback (like quiz apps)
                 setIsLockingIn(true);
                 setTimeout(() => {
@@ -521,12 +529,17 @@ function getFallbackMoves(fen: string): CandidateMove[] {
       };
     });
     
+    // Add slight random jitter to avoid deterministic predictions
+    scoredMoves.forEach(m => {
+      m.probability += Math.random() * 0.05; // ±5% variation
+    });
+
     scoredMoves.sort((a, b) => b.probability - a.probability);
-    
+
     // Normalize probabilities
     const total = scoredMoves.reduce((sum, m) => sum + m.probability, 0) || 1;
     scoredMoves.forEach(m => m.probability /= total);
-    
+
     return scoredMoves.slice(0, 4);
   } catch {
     return [];
