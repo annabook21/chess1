@@ -2209,7 +2209,7 @@ function App() {
   // being called after early returns (which causes React error #300)
 
   return (
-    <div className={`app castle-theme sierra-theme device-mode-${viewConfig.mode}`} data-device-mode={viewConfig.mode}>
+    <div className={`app castle-theme sierra-theme device-mode-${viewConfig.mode}`} data-device-mode={viewConfig.mode} data-play-mode={playMode}>
       {/* Game End Screens (Phase 3) */}
       {gameEndState === 'defeat' && (
         <GameOverScreen

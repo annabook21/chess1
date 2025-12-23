@@ -1601,13 +1601,14 @@ body.effect-pixel-scale * {
 }
 
 /* DESKTOP MODE - User chose desktop layout */
-.app.device-mode-desktop {
+/* Padding only in guided mode (action bar is visible) */
+.app.device-mode-desktop[data-play-mode="guided"] {
   padding-bottom: 70px; /* Space for action bar */
 }
 
-/* Remove padding when no bottom bar is present */
-.app.device-mode-desktop.no-bottom-bar {
-  padding-bottom: 0 !important;
+/* No padding in free play mode (action bar is hidden) */
+.app.device-mode-desktop[data-play-mode="free"] {
+  padding-bottom: 0;
 }
 
 .app.device-mode-desktop .app-main {
