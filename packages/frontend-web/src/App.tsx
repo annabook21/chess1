@@ -113,6 +113,8 @@ function App() {
     turnPackage: TurnPackage;
   } | null>(null);
   const [feedback, setFeedback] = useState<MoveResponse['feedback'] | null>(null);
+  // Persistent eval state - decoupled from feedback toast to prevent reset when feedback is dismissed
+  const [currentEval, setCurrentEval] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Illegal move notification
@@ -573,6 +575,7 @@ function App() {
       setError(null);
       setMoveHistory([]);
       setFeedback(null);
+      setCurrentEval(0); // Reset eval on new game
       setOptimisticFen(null); // Clear optimistic FEN on new game
       
       const { gameId } = await createGame(1200);
@@ -1140,6 +1143,7 @@ function App() {
                   console.log('[App] NOT clearing optimisticFen (user made another move)');
                 }
                 setFeedback(response.feedback);
+                setCurrentEval(response.feedback.evalAfter ?? 0);
                 setSelectedChoice(null);
                 
                 // Update move history - user's move is already there from optimistic update
@@ -1176,6 +1180,7 @@ function App() {
                 pendingMoveFenRef.current = null;
               }
               setFeedback(response.feedback);
+              setCurrentEval(response.feedback.evalAfter ?? 0);
             }
           } else {
             // Game is over
@@ -1188,6 +1193,7 @@ function App() {
               pendingMoveFenRef.current = null;
             }
             setFeedback(response.feedback);
+            setCurrentEval(response.feedback.evalAfter ?? 0);
             console.log('[App] Game ended after free move');
           }
         } catch (err) {
@@ -1801,6 +1807,7 @@ function App() {
         optimisticFenRef.current = null;
         pendingMoveFenRef.current = null;
         setFeedback(pendingResponse.feedback);
+        setCurrentEval(pendingResponse.feedback.evalAfter ?? 0);
         setSelectedChoice(null);
         
         // Update move history - user's move is already there from optimistic update
@@ -1855,11 +1862,12 @@ function App() {
   };
 
   const processMoveResponse = (
-    response: MoveResponse, 
-    choice: { moveUci: string }, 
+    response: MoveResponse,
+    choice: { moveUci: string },
     currentTurn: TurnPackage
   ) => {
     setFeedback(response.feedback);
+    setCurrentEval(response.feedback.evalAfter ?? 0);
 
     // Update move history
     const moveNum = Math.ceil((moveHistory.length + 1) / 2);
@@ -2392,7 +2400,7 @@ function App() {
                 <div
                   className="eval-bar-white"
                   style={{
-                    height: `${50 + (feedback?.evalAfter || 0) / 10}%`
+                    height: `${Math.max(0, Math.min(100, 50 + currentEval / 10))}%`
                   }}
                 />
               </div>
@@ -2627,10 +2635,10 @@ function App() {
 
         {/* Right: Sidebar - only show based on view config */}
         {viewConfig.gameArea.showSidebar && (
-          <Sidebar 
+          <Sidebar
             moveHistory={moveHistory}
             playerStats={playerStats}
-            currentEval={feedback?.evalAfter || 0}
+            currentEval={currentEval}
           />
         )}
       </main>

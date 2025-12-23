@@ -1605,6 +1605,11 @@ body.effect-pixel-scale * {
   padding-bottom: 70px; /* Space for action bar */
 }
 
+/* Remove padding when no bottom bar is present */
+.app.device-mode-desktop.no-bottom-bar {
+  padding-bottom: 0 !important;
+}
+
 .app.device-mode-desktop .app-main {
   grid-template-columns: 1fr 320px;
 }
