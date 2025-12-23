@@ -26,7 +26,8 @@ interface QueuedRequest {
   fen: string;
   depth?: number;
   timeMs?: number;
-  resolve: (result: EngineAnalysis) => void;
+  multiPV?: number;
+  resolve: (result: EngineAnalysis | EngineAnalysis[]) => void;
 }
 
 export class StockfishWrapper {
@@ -200,7 +201,18 @@ export class StockfishWrapper {
     // Queue the request and process
     return new Promise((resolve) => {
       const requestId = `req-${++this.requestCounter}`;
-      this.requestQueue.push({ id: requestId, fen, depth, resolve });
+      this.requestQueue.push({
+        id: requestId,
+        fen,
+        depth,
+        resolve: (result) => {
+          if (Array.isArray(result)) {
+            resolve(result[0] || this.fallbackAnalysis(fen));
+          } else {
+            resolve(result);
+          }
+        }
+      });
       this.processNextRequest();
     });
   }
@@ -218,7 +230,18 @@ export class StockfishWrapper {
 
     return new Promise((resolve) => {
       const requestId = `req-${++this.requestCounter}`;
-      this.requestQueue.push({ id: requestId, fen, timeMs, resolve });
+      this.requestQueue.push({
+        id: requestId,
+        fen,
+        timeMs,
+        resolve: (result) => {
+          if (Array.isArray(result)) {
+            resolve(result[0] || this.fallbackAnalysis(fen));
+          } else {
+            resolve(result);
+          }
+        }
+      });
       this.processNextRequest();
     });
   }
@@ -233,42 +256,81 @@ export class StockfishWrapper {
 
     this.isProcessing = true;
     const request = this.requestQueue.shift()!;
-    
+
     if (this.debugging) {
       console.log(`[STOCKFISH] Processing ${request.id} for FEN: ${request.fen.substring(0, 30)}...`);
     }
 
-    this.outputBuffer = [];
+    try {
+      this.outputBuffer = [];
 
-    // Set up callback for this specific request
-    this.pendingCallbacks.set(request.id, (lines: string[]) => {
-      const result = this.parseAnalysisOutput(lines, request.fen);
-      this.isProcessing = false;
-      request.resolve(result);
-      // Process next request in queue
-      this.processNextRequest();
-    });
+      // Set up callback for this specific request with error handling
+      this.pendingCallbacks.set(request.id, (lines: string[]) => {
+        try {
+          let result;
+          if (request.multiPV && request.multiPV > 1) {
+            result = this.parseMultiPVOutput(lines, request.fen, request.multiPV);
+          } else {
+            result = this.parseAnalysisOutput(lines, request.fen);
+          }
+          request.resolve(result);
+        } catch (err) {
+          console.error(`[STOCKFISH] Parse error for ${request.id}:`, err);
+          // Return fallback on parse error
+          if (request.multiPV && request.multiPV > 1) {
+            request.resolve([this.fallbackAnalysis(request.fen)]);
+          } else {
+            request.resolve(this.fallbackAnalysis(request.fen));
+          }
+        } finally {
+          this.isProcessing = false;
+          this.processNextRequest();
+        }
+      });
 
-    this.send(`position fen ${request.fen}`);
-    
-    if (request.timeMs) {
-      this.send(`go movetime ${request.timeMs}`);
-    } else {
-      this.send(`go depth ${request.depth || 15}`);
-    }
-
-    // Timeout fallback
-    const timeoutMs = request.timeMs ? request.timeMs + 5000 : 10000;
-    setTimeout(() => {
-      if (this.pendingCallbacks.has(request.id)) {
-        console.warn(`[STOCKFISH] Request ${request.id} timed out, using fallback`);
-        this.pendingCallbacks.delete(request.id);
-        this.send('stop');
-        this.isProcessing = false;
-        request.resolve(this.fallbackAnalysis(request.fen));
-        this.processNextRequest();
+      // Set Multi-PV if requested
+      if (request.multiPV && request.multiPV > 1) {
+        this.send(`setoption name MultiPV value ${request.multiPV}`);
+      } else {
+        this.send(`setoption name MultiPV value 1`);
       }
-    }, timeoutMs);
+
+      this.send(`position fen ${request.fen}`);
+
+      if (request.timeMs) {
+        this.send(`go movetime ${request.timeMs}`);
+      } else {
+        this.send(`go depth ${request.depth || 15}`);
+      }
+
+      // Timeout fallback - prevent race condition by checking before clearing
+      const timeoutMs = request.timeMs ? request.timeMs + 5000 : 10000;
+      let timedOut = false;
+      setTimeout(() => {
+        if (this.pendingCallbacks.has(request.id) && !timedOut) {
+          timedOut = true;
+          console.warn(`[STOCKFISH] Request ${request.id} timed out, using fallback`);
+          this.pendingCallbacks.delete(request.id);
+          this.send('stop');
+          this.isProcessing = false;
+          if (request.multiPV && request.multiPV > 1) {
+            request.resolve([this.fallbackAnalysis(request.fen)]);
+          } else {
+            request.resolve(this.fallbackAnalysis(request.fen));
+          }
+          this.processNextRequest();
+        }
+      }, timeoutMs);
+    } catch (err) {
+      console.error(`[STOCKFISH] Request ${request.id} failed:`, err);
+      this.isProcessing = false;
+      if (request.multiPV && request.multiPV > 1) {
+        request.resolve([this.fallbackAnalysis(request.fen)]);
+      } else {
+        request.resolve(this.fallbackAnalysis(request.fen));
+      }
+      this.processNextRequest();
+    }
   }
 
   private parseAnalysisOutput(lines: string[], fen: string): EngineAnalysis {
@@ -325,6 +387,66 @@ export class StockfishWrapper {
   }
 
   /**
+   * Parse Multi-PV output from Stockfish
+   */
+  private parseMultiPVOutput(lines: string[], fen: string, numPV: number): EngineAnalysis[] {
+    const pvResults: Map<number, EngineAnalysis> = new Map();
+
+    for (const line of lines) {
+      if (line.startsWith('info') && line.includes('multipv') && line.includes('score')) {
+        const multiPVMatch = line.match(/multipv (\d+)/);
+        const depthMatch = line.match(/depth (\d+)/);
+        const scoreMatch = line.match(/score (cp|mate) (-?\d+)/);
+        const pvMatch = line.match(/ pv (.+)/);
+
+        if (!multiPVMatch) continue;
+
+        const pvIndex = parseInt(multiPVMatch[1]);
+        let eval_score = 0;
+        let mate: number | undefined;
+
+        if (scoreMatch) {
+          if (scoreMatch[1] === 'cp') {
+            eval_score = parseInt(scoreMatch[2]);
+          } else if (scoreMatch[1] === 'mate') {
+            mate = parseInt(scoreMatch[2]);
+            eval_score = mate > 0 ? 10000 - mate * 100 : -10000 - mate * 100;
+          }
+        }
+
+        const pv = pvMatch ? pvMatch[1].trim().split(' ').filter(m => m.length >= 4) : [];
+        const depth = depthMatch ? parseInt(depthMatch[1]) : 0;
+
+        // Keep the deepest analysis for each PV line
+        const existing = pvResults.get(pvIndex);
+        if (!existing || depth >= existing.depth) {
+          pvResults.set(pvIndex, {
+            eval: eval_score,
+            pv,
+            depth,
+            mate,
+          });
+        }
+      }
+    }
+
+    // Convert map to sorted array (by PV index)
+    const results: EngineAnalysis[] = [];
+    for (let i = 1; i <= numPV; i++) {
+      if (pvResults.has(i)) {
+        results.push(pvResults.get(i)!);
+      }
+    }
+
+    // If we didn't get enough results, fill with fallback
+    while (results.length < numPV) {
+      results.push(this.fallbackAnalysis(fen));
+    }
+
+    return results;
+  }
+
+  /**
    * Check if a move is legal
    */
   async isLegalMove(fen: string, moveUci: string): Promise<boolean> {
@@ -341,15 +463,98 @@ export class StockfishWrapper {
   }
 
   /**
-   * Score multiple moves - OPTIMIZED with reduced depth and simple heuristics
-   * Avoids multiple engine calls to prevent timeouts
+   * Score multiple moves using Stockfish Multi-PV analysis
+   * Uses Multi-PV mode to analyze all candidate moves in ONE engine call
    */
   async scoreMoves(fen: string, moves: string[]): Promise<Array<{ move: string; evalDelta: number; pv: string[] }>> {
+    await this.waitReady();
+
+    if (this.useFallback || moves.length === 0) {
+      return this.fallbackScoreMoves(fen, moves);
+    }
+
     const chess = new Chess(fen);
     const sideToMove = chess.turn();
 
-    // Use heuristics instead of multiple engine calls to avoid timeouts
-    // Engine calls are expensive and sequential - this causes 504 timeouts
+    // First, get the current position evaluation
+    const currentEval = await this.analyzePosition(fen, 15);
+
+    // Use Multi-PV to analyze all candidate moves in ONE engine call
+    // This is much faster than sequential analysis and provides real engine evals
+    const numMoves = Math.min(moves.length, 10); // Stockfish supports up to 500 but 10 is reasonable
+
+    return new Promise((resolve) => {
+      const requestId = `multiPV-${++this.requestCounter}`;
+      this.requestQueue.push({
+        id: requestId,
+        fen,
+        depth: 15,
+        multiPV: numMoves,
+        resolve: (result: EngineAnalysis | EngineAnalysis[]) => {
+          if (Array.isArray(result)) {
+            // Parse Multi-PV results and match them to requested moves
+            const scored = this.matchMultiPVToMoves(result, moves, currentEval.eval, sideToMove);
+            resolve(scored);
+          } else {
+            // Fallback if not multi-PV
+            resolve(this.fallbackScoreMoves(fen, moves));
+          }
+        },
+      });
+
+      this.processNextRequest();
+    });
+  }
+
+  /**
+   * Match Multi-PV results to requested moves
+   */
+  private matchMultiPVToMoves(
+    pvResults: EngineAnalysis[],
+    requestedMoves: string[],
+    currentEval: number,
+    sideToMove: 'w' | 'b'
+  ): Array<{ move: string; evalDelta: number; pv: string[] }> {
+    const results: Array<{ move: string; evalDelta: number; pv: string[] }> = [];
+
+    for (const moveUci of requestedMoves) {
+      // Find matching PV in results (first move of PV should match our move)
+      const matchingPV = pvResults.find(pv => pv.pv.length > 0 && pv.pv[0] === moveUci);
+
+      if (matchingPV) {
+        // Calculate eval delta from current position
+        // Positive delta = good for side to move, negative = bad
+        let evalAfter = matchingPV.eval;
+        if (sideToMove === 'b') {
+          evalAfter = -evalAfter; // Flip for black's perspective
+        }
+
+        const delta = evalAfter - currentEval;
+
+        results.push({
+          move: moveUci,
+          evalDelta: delta,
+          pv: matchingPV.pv,
+        });
+      } else {
+        // Move not found in Multi-PV results, use heuristic fallback
+        const heuristicScore = this.fallbackMoveScore(moveUci, sideToMove);
+        results.push({
+          move: moveUci,
+          evalDelta: heuristicScore,
+          pv: [moveUci],
+        });
+      }
+    }
+
+    return results.sort((a, b) => b.evalDelta - a.evalDelta);
+  }
+
+  /**
+   * Fallback scoring using heuristics when engine not available
+   */
+  private fallbackScoreMoves(fen: string, moves: string[]): Array<{ move: string; evalDelta: number; pv: string[] }> {
+    const chess = new Chess(fen);
     const results: Array<{ move: string; evalDelta: number; pv: string[] }> = [];
 
     for (const moveUci of moves) {
@@ -366,11 +571,7 @@ export class StockfishWrapper {
           continue;
         }
 
-        // Use simple heuristics instead of engine analysis
-        // This is much faster and avoids timeout issues
         const evalDelta = this.quickMoveScore(move, testChess);
-        
-        // Build a simple PV using heuristics
         const simplePv = this.buildQuickPv(testChess, moveUci);
 
         results.push({
@@ -384,6 +585,14 @@ export class StockfishWrapper {
     }
 
     return results.sort((a, b) => b.evalDelta - a.evalDelta);
+  }
+
+  /**
+   * Fallback move scoring for single move
+   */
+  private fallbackMoveScore(moveUci: string, sideToMove: 'w' | 'b'): number {
+    // Simple heuristic - would need position to be more accurate
+    return 0;
   }
 
   /**

@@ -26,11 +26,15 @@ router.post('/analyze', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'fen is required' });
     }
 
+    // Cap depth and time to prevent abuse
+    const cappedDepth = depth ? Math.min(depth, 20) : undefined;
+    const cappedTime = timeMs ? Math.min(timeMs, 10000) : undefined; // 10s max
+
     let analysis;
-    if (depth) {
-      analysis = await engine.analyzePosition(fen, depth);
-    } else if (timeMs) {
-      analysis = await engine.analyzePositionWithTime(fen, timeMs);
+    if (cappedDepth) {
+      analysis = await engine.analyzePosition(fen, cappedDepth);
+    } else if (cappedTime) {
+      analysis = await engine.analyzePositionWithTime(fen, cappedTime);
     } else {
       return res.status(400).json({ error: 'depth or timeMs is required' });
     }
