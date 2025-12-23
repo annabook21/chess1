@@ -2656,11 +2656,12 @@ function App() {
       )}
 
       {/* 
-        Action Bar - ONLY show when NOT in guided gameplay
+        Action Bar - ONLY show when NOT in guided gameplay AND NOT in free play mode
         During guided play, the master move choices (Karpov/Fischer/Tal) are the primary UI
+        In free play mode, the board itself is the primary interaction - no toolbar needed
         The action bar is for secondary actions when there's no active move to make
       */}
-      {!showDevicePrompt && (playMode === 'free' || !turnPackage?.choices?.length) && (
+      {!showDevicePrompt && playMode !== 'free' && !turnPackage?.choices?.length && (
         <ActionBar
           config={viewConfig}
           predictionEnabled={predictionEnabled}
