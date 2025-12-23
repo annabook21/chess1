@@ -303,7 +303,8 @@ export class ChoiceBuilder {
       engineAnalysis,
       styleResults,
       legalMovesUci,
-      masters
+      masters,
+      difficulty
     );
 
     console.log(`[TIMING] TOTAL buildChoices: ${Date.now() - totalStart}ms`);
@@ -367,12 +368,13 @@ export class ChoiceBuilder {
   /**
    * Build 3 diverse choices from engine + style results.
    * Uses the Strategy Pattern to generate appropriate plan descriptions.
-   * 
+   *
    * @param fen - Position in FEN notation
    * @param engineAnalysis - Engine analysis results
    * @param styleResults - Style service suggestions
    * @param legalMovesUci - All legal moves in UCI format
    * @param masters - Master styles for this turn
+   * @param difficulty - Difficulty settings (for hint level)
    * @returns Array of move choices with previews
    */
   private async buildChoicesFromResults(
@@ -380,7 +382,8 @@ export class ChoiceBuilder {
     engineAnalysis: EngineAnalysis,
     styleResults: Map<MasterStyle, string[]>,
     legalMovesUci: string[],
-    masters: MasterStyle[]
+    masters: MasterStyle[],
+    difficulty: DifficultySettings
   ): Promise<MoveChoiceWithPreview[]> {
     const choices: MoveChoiceWithPreview[] = [];
     const usedMoves = new Set<string>();
@@ -452,7 +455,7 @@ export class ChoiceBuilder {
           id: String.fromCharCode(65 + i), // 'A', 'B', 'C'
           moveUci: moveToUse,
           styleId: styleId,
-          planOneLiner: strategy.generatePlan(), // Use Strategy Pattern
+          planOneLiner: this.enhancePlanWithHints(strategy.generatePlan(), difficulty.hintLevel, moveToUse),
           pv: movePv,
           eval: this.estimateEval(moveToUse, bestMove, engineAnalysis.eval),
           conceptTags: ['development'],
@@ -618,7 +621,43 @@ export class ChoiceBuilder {
     
     return score;
   }
-  
+
+  /**
+   * Enhance plan description with hints based on difficulty level.
+   *
+   * Hint levels:
+   * - 1 (minimal): Just the base plan
+   * - 2 (moderate): Add basic tactical hints
+   * - 3 (obvious): Add detailed explanations and piece coordinates
+   *
+   * @param basePlan - Base plan from strategy
+   * @param hintLevel - Hint level (1-3)
+   * @param moveUci - The move in UCI notation
+   * @returns Enhanced plan with appropriate hints
+   */
+  private enhancePlanWithHints(basePlan: string, hintLevel: number, moveUci: string): string {
+    if (hintLevel === 1) {
+      // Minimal hints - just the plan
+      return basePlan;
+    }
+
+    // Extract move details for hints
+    const from = moveUci.slice(0, 2);
+    const to = moveUci.slice(2, 4);
+
+    if (hintLevel === 2) {
+      // Moderate hints - add basic tactical context
+      return `${basePlan} (develops pieces and improves position)`;
+    }
+
+    if (hintLevel === 3) {
+      // Obvious hints - include move coordinates and detailed explanation
+      return `${basePlan} (Move from ${from} to ${to} - this develops your pieces and controls key squares)`;
+    }
+
+    return basePlan;
+  }
+
   /**
    * Build preview data for hover visualization
    */

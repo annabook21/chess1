@@ -48,9 +48,10 @@ export class TurnController {
 
     const fen = chess.fen();
     const sideToMove = chess.turn() === 'w' ? 'w' : 'b';
-    
-    // Set engine strength
-    const difficulty = calculateDifficulty(elo);
+    const turnNumber = chess.moveNumber();
+
+    // Set engine strength with turn-aware difficulty
+    const difficulty = calculateDifficulty(elo, turnNumber);
     await this.deps.engineClient.setStrength(difficulty.engineElo);
 
     // Get engine's best move
@@ -60,7 +61,6 @@ export class TurnController {
     });
 
     // Build 3 choices (pass turn number for master rotation)
-    const turnNumber = chess.moveNumber();
     const choices = await this.deps.choiceBuilder.buildChoices(fen, difficulty, turnNumber);
 
     // Calculate time budget
