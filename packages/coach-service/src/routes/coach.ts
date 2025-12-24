@@ -181,9 +181,15 @@ router.post('/explain', rateLimiter, async (req: Request, res: Response) => {
       console.warn('[COACH] Prompt is large:', estimatedTokens, 'tokens');
     }
 
-    // Generate explanation with timeout
+    // Generate explanation with timeout and context
     const explanation = await generateWithTimeout(
-      bedrockClient.generateText(prompt),
+      bedrockClient.generateText(prompt, {
+        context: {
+          chosenMove: request.chosenMove,
+          bestMove: request.bestMove,
+          evalDelta,
+        },
+      }),
       15000, // 15 second timeout
       getFallbackExplanation(request)
     );

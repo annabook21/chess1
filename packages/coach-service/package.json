@@ -9,14 +9,17 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "express": "^5.1.0",
     "@aws-sdk/client-bedrock-runtime": "^3.948.0",
-    "@master-academy/contracts": "workspace:*"
+    "@master-academy/contracts": "workspace:*",
+    "chess.js": "^1.4.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^22.15.0",
-    "typescript": "^5.9.3",
-    "ts-node-dev": "^2.0.0"
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
   }
 }
