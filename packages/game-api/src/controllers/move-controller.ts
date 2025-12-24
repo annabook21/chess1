@@ -229,16 +229,17 @@ export class MoveController {
     // Check if game is over after user's move (use local chess instance)
     const isGameOverAfterUser = game.chess.isGameOver();
 
-    // PARALLEL: Get eval after + coach explanation + AI move (if game not over)
+    // First get eval after move
+    const evalAfter = await this.deps.engineClient.analyzePosition({ fen: fenAfterUserMove, depth: QUICK_ANALYSIS_DEPTH });
+
+    // PARALLEL: Get coach explanation + AI move (if game not over)
     // Skip AI move generation if frontend handles it (e.g., using Maia)
     const shouldGenerateAiMove = !isGameOverAfterUser && !request.skipAiMove;
-    
+
     const parallelPromises: [
-      Promise<{ eval: number; pv: string[] }>,
       Promise<{ explanation: string; conceptTags: string[] }>,
       Promise<{ moveUci: string; moveSan: string; styleId: string; justification: string } | null>
     ] = [
-      this.deps.engineClient.analyzePosition({ fen: fenAfterUserMove, depth: QUICK_ANALYSIS_DEPTH }),
       this.deps.coachClient.explainChoice({
         fen,
         chosenMove: request.moveUci,
@@ -246,20 +247,22 @@ export class MoveController {
         pv: chosenChoice?.pv || [],
         conceptTag,
         userSkill: game.userElo,
+        evalBefore: evalBefore.eval,
+        evalAfter: evalAfter.eval,
       }),
-      shouldGenerateAiMove 
+      shouldGenerateAiMove
         ? this.aiOpponent.generateMove(fenAfterUserMove).catch(err => {
             console.error('AI opponent error:', err);
             return null;
           })
         : Promise.resolve(null),
     ];
-    
+
     if (request.skipAiMove) {
       console.log('[PERF] Skipping backend AI move generation (frontend handles it)');
     }
 
-    const [evalAfter, coachResponse, aiMoveResult] = await Promise.all(parallelPromises);
+    const [coachResponse, aiMoveResult] = await Promise.all(parallelPromises);
 
     console.log(`[PERF] Parallel ops done: ${Date.now() - startTime}ms`);
 
@@ -282,8 +285,9 @@ export class MoveController {
         finalFen = game.chess.fen();
         await this.deps.gameStore.updateGame(gameId, { fen: finalFen });
 
-        // Determine AI color based on user's color
-        const aiColor = userMove.color === 'w' ? 'b' : 'w';
+        // Determine AI color based on user's color (opposite of sideToMove which was the user's turn)
+        const userColor = currentTurn.sideToMove;
+        const aiColor = userColor === 'w' ? 'b' : 'w';
 
         aiMoveInfo = {
           moveSan: aiMoveResult.moveSan,
@@ -307,8 +311,9 @@ export class MoveController {
             finalFen = game.chess.fen();
             await this.deps.gameStore.updateGame(gameId, { fen: finalFen });
 
-            // Determine AI color based on user's color
-            const aiColor = userMove.color === 'w' ? 'b' : 'w';
+            // Determine AI color based on user's color (opposite of sideToMove which was the user's turn)
+            const userColor = currentTurn.sideToMove;
+            const aiColor = userColor === 'w' ? 'b' : 'w';
 
             aiMoveInfo = {
               moveSan: fallback.san,
