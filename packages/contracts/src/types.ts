@@ -136,14 +136,20 @@ export interface ExplainChoiceRequest {
   fen: string;
   chosenMove: string; // UCI
   bestMove: string; // UCI
-  pv: string[]; // principal variation
-  conceptTag: string;
-  userSkill: number; // approximate ELO
+  pv?: string[]; // principal variation
+  conceptTag?: string;
+  userSkill?: number; // approximate ELO
+  evalBefore: number; // Evaluation before the move (in centipawns)
+  evalAfter: number; // Evaluation after the move (in centipawns)
 }
 
 export interface ExplainChoiceResponse {
   explanation: string; // Short coaching text
   conceptTags: string[]; // Refined tags
+  requestContext: {
+    chosenMove: string;
+    timestamp: number;
+  };
 }
 
 // Concept Tags (controlled vocabulary)
