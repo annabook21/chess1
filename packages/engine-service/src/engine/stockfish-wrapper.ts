@@ -148,8 +148,10 @@ export class StockfishWrapper {
       const pendingId = Array.from(this.pendingCallbacks.keys())[0];
       if (pendingId) {
         const cb = this.pendingCallbacks.get(pendingId);
+        // Delete BEFORE calling to prevent race condition with timeout
+        this.pendingCallbacks.delete(pendingId);
+
         if (cb) {
-          this.pendingCallbacks.delete(pendingId);
           cb([...this.outputBuffer]);
           this.outputBuffer = [];
         }
@@ -247,6 +249,58 @@ export class StockfishWrapper {
   }
 
   /**
+   * Calculate position complexity to determine appropriate search depth
+   * Complex positions (many pieces, open position) need lower depth to avoid timeouts
+   */
+  private calculateAdaptiveDepth(fen: string, requestedDepth?: number): number {
+    const chess = new Chess(fen);
+    const board = chess.board().flat().filter(Boolean);
+
+    // Count pieces and material
+    const pieceCount = board.length;
+    const minorPieces = board.filter(p => p && ['n', 'b'].includes(p.type)).length;
+    const majorPieces = board.filter(p => p && ['r', 'q'].includes(p.type)).length;
+
+    // Count legal moves (higher = more complex)
+    const legalMoves = chess.moves().length;
+
+    // Calculate complexity score (0-100)
+    let complexity = 0;
+
+    // Many pieces = higher complexity
+    complexity += pieceCount * 2;
+
+    // Many legal moves = higher branching factor
+    complexity += legalMoves;
+
+    // Major pieces increase complexity
+    complexity += majorPieces * 3;
+    complexity += minorPieces * 2;
+
+    // Default depth constraints
+    const maxDepth = requestedDepth || 15;
+    const minDepth = 8;
+
+    // Adjust depth based on complexity
+    // High complexity (>80): reduce depth by 40%
+    // Medium complexity (50-80): reduce depth by 20%
+    // Low complexity (<50): use full depth
+    let adaptiveDepth = maxDepth;
+
+    if (complexity > 80) {
+      adaptiveDepth = Math.max(minDepth, Math.floor(maxDepth * 0.6));
+    } else if (complexity > 50) {
+      adaptiveDepth = Math.max(minDepth, Math.floor(maxDepth * 0.8));
+    }
+
+    if (this.debugging) {
+      console.log(`[STOCKFISH] Position complexity: ${complexity}, adaptive depth: ${adaptiveDepth} (requested: ${maxDepth})`);
+    }
+
+    return adaptiveDepth;
+  }
+
+  /**
    * Process the next request in the queue (serializes engine access)
    */
   private processNextRequest(): void {
@@ -300,7 +354,9 @@ export class StockfishWrapper {
       if (request.timeMs) {
         this.send(`go movetime ${request.timeMs}`);
       } else {
-        this.send(`go depth ${request.depth || 15}`);
+        // Use adaptive depth limiting to prevent CloudFront timeouts on complex positions
+        const adaptiveDepth = this.calculateAdaptiveDepth(request.fen, request.depth);
+        this.send(`go depth ${adaptiveDepth}`);
       }
 
       // Timeout fallback - prevent race condition by checking before clearing
@@ -312,6 +368,8 @@ export class StockfishWrapper {
           console.warn(`[STOCKFISH] Request ${request.id} timed out, using fallback`);
           this.pendingCallbacks.delete(request.id);
           this.send('stop');
+          // Reset MultiPV to prevent state pollution
+          this.send('setoption name MultiPV value 1');
           this.isProcessing = false;
           if (request.multiPV && request.multiPV > 1) {
             request.resolve([this.fallbackAnalysis(request.fen)]);
@@ -388,9 +446,14 @@ export class StockfishWrapper {
 
   /**
    * Parse Multi-PV output from Stockfish
+   * IMPORTANT: Normalizes eval scores to White's perspective
    */
   private parseMultiPVOutput(lines: string[], fen: string, numPV: number): EngineAnalysis[] {
     const pvResults: Map<number, EngineAnalysis> = new Map();
+
+    // Determine side to move for eval normalization
+    const chess = new Chess(fen);
+    const sideToMove = chess.turn(); // 'w' or 'b'
 
     for (const line of lines) {
       if (line.startsWith('info') && line.includes('multipv') && line.includes('score')) {
@@ -411,6 +474,15 @@ export class StockfishWrapper {
           } else if (scoreMatch[1] === 'mate') {
             mate = parseInt(scoreMatch[2]);
             eval_score = mate > 0 ? 10000 - mate * 100 : -10000 - mate * 100;
+          }
+
+          // Stockfish returns eval from side to move's perspective
+          // Normalize to White's perspective (positive = white better)
+          if (sideToMove === 'b') {
+            eval_score = -eval_score;
+            if (mate !== undefined) {
+              mate = -mate;
+            }
           }
         }
 
