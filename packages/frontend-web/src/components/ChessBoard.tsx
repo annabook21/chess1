@@ -185,28 +185,60 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
 
   const isWhiteToMove = fen.includes(' w ');
 
+  // Track which piece images have failed to load
+  const [failedPieces, setFailedPieces] = useState<Set<string>>(new Set());
+
   // Pixel piece components (override default SVG pieces) using 16x16 wood sprites
+  // Use state-based conditional rendering instead of display:none for better performance
   const customPieces = useMemo(() => {
     const names = ['P', 'N', 'B', 'R', 'Q', 'K'] as const;
     const components: Record<string, React.FC> = {};
+
     names.forEach(letter => {
-      components[`w${letter}`] = () => (
-        <img
-          src={`/pixel-pieces-wood/w${letter}.png`}
-          alt={`White ${letter}`}
-          style={{ width: '100%', height: '100%', imageRendering: 'pixelated' }}
-        />
-      );
-      components[`b${letter}`] = () => (
-        <img
-          src={`/pixel-pieces-wood/b${letter}.png`}
-          alt={`Black ${letter}`}
-          style={{ width: '100%', height: '100%', imageRendering: 'pixelated' }}
-        />
-      );
+      const whiteKey = `w${letter}`;
+      const blackKey = `b${letter}`;
+
+      // White piece component with fallback
+      components[whiteKey] = () => {
+        if (failedPieces.has(whiteKey)) {
+          // Fallback: return null to let library use default SVG
+          return null;
+        }
+
+        return (
+          <img
+            src={`/pixel-pieces-wood/${whiteKey}.png`}
+            alt={`White ${letter}`}
+            style={{ width: '100%', height: '100%', imageRendering: 'pixelated' }}
+            onError={() => {
+              setFailedPieces(prev => new Set(prev).add(whiteKey));
+            }}
+          />
+        );
+      };
+
+      // Black piece component with fallback
+      components[blackKey] = () => {
+        if (failedPieces.has(blackKey)) {
+          // Fallback: return null to let library use default SVG
+          return null;
+        }
+
+        return (
+          <img
+            src={`/pixel-pieces-wood/${blackKey}.png`}
+            alt={`Black ${letter}`}
+            style={{ width: '100%', height: '100%', imageRendering: 'pixelated' }}
+            onError={() => {
+              setFailedPieces(prev => new Set(prev).add(blackKey));
+            }}
+          />
+        );
+      };
     });
+
     return components;
-  }, []);
+  }, [failedPieces]);
 
   return (
     <div className="chess-board-wrapper">
@@ -244,12 +276,18 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
           onPieceDrop={(sourceSquare, targetSquare, piece) => {
             if (!freePlayMode || !onMove) return false;
             // Check if it's a promotion (pawn reaching last rank)
-            const isPromotion = piece[1] === 'P' && 
+            const isPromotion = piece[1] === 'P' &&
               ((piece[0] === 'w' && targetSquare[1] === '8') ||
                (piece[0] === 'b' && targetSquare[1] === '1'));
-            const promotion = isPromotion ? 'q' : undefined;
-            // Call onMove - if it returns a promise, the move is processed async
-            const result = onMove(sourceSquare, targetSquare, promotion);
+
+            // For promotions, return false to prevent auto-move and trigger dialog
+            if (isPromotion) {
+              // The promotion dialog should handle the actual move
+              return false;
+            }
+
+            // Non-promotion moves
+            const result = onMove(sourceSquare, targetSquare);
             if (result instanceof Promise) {
               // For async, optimistically return true and let the callback handle errors
               result.catch(err => console.error('Move failed:', err));
