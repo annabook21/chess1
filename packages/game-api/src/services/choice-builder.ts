@@ -439,24 +439,24 @@ export class ChoiceBuilder {
       const styleId = masters[i];
       const strategy = STRATEGIES[styleId];
       const styleMoves = styleResults.get(styleId) || [];
-      
-      // Try to use a style move, fallback to engine moves
+
+      // Try to use a style move first to let each master express their unique style
       let moveToUse: string | undefined;
-      
-      // First choice: use engine best move for most precise master
-      if (i === 0 && bestMove && !usedMoves.has(bestMove)) {
-        moveToUse = bestMove;
-      } else {
-        // Look for unused style move
-        for (const m of styleMoves) {
-          if (!usedMoves.has(m)) {
-            moveToUse = m;
-            break;
-          }
+
+      // Prefer the master's style-specific move
+      for (const m of styleMoves) {
+        if (!usedMoves.has(m)) {
+          moveToUse = m;
+          break;
         }
       }
-      
-      // Fallback to any unused legal move
+
+      // Fallback to engine best move if style service failed
+      if (!moveToUse && bestMove && !usedMoves.has(bestMove)) {
+        moveToUse = bestMove;
+      }
+
+      // Last resort: use any unused legal move
       if (!moveToUse) {
         for (const m of legalMovesUci) {
           if (!usedMoves.has(m)) {

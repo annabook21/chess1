@@ -275,26 +275,46 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
           customPieces={customPieces}
           onPieceDrop={(sourceSquare, targetSquare, piece) => {
             if (!freePlayMode || !onMove) return false;
-            // Check if it's a promotion (pawn reaching last rank)
+
+            // Check if it's a promotion move
             const isPromotion = piece[1] === 'P' &&
               ((piece[0] === 'w' && targetSquare[1] === '8') ||
                (piece[0] === 'b' && targetSquare[1] === '1'));
 
-            // For promotions, return false to prevent auto-move and trigger dialog
-            if (isPromotion) {
-              // The promotion dialog should handle the actual move
-              return false;
+            // For promotion moves, library will show dialog and call onPromotionCheck
+            // For normal moves, execute immediately
+            if (!isPromotion) {
+              const result = onMove(sourceSquare, targetSquare);
+              if (result instanceof Promise) {
+                result.catch(err => console.error('Move failed:', err));
+                return true;
+              }
+              return result;
             }
 
-            // Non-promotion moves
-            const result = onMove(sourceSquare, targetSquare);
-            if (result instanceof Promise) {
-              // For async, optimistically return true and let the callback handle errors
-              result.catch(err => console.error('Move failed:', err));
-              return true;
-            }
-            return result;
+            // Return true to trigger promotion dialog
+            return true;
           }}
+          onPromotionCheck={(sourceSquare, targetSquare, piece) => {
+            // This is called to check if a move should trigger promotion dialog
+            // Return true if it's a pawn reaching the promotion rank
+            return piece[1] === 'P' &&
+              ((piece[0] === 'w' && targetSquare[1] === '8') ||
+               (piece[0] === 'b' && targetSquare[1] === '1'));
+          }}
+          onPromotionPieceSelect={(piece, promoteFromSquare, promoteToSquare) => {
+            // Called when user selects promotion piece from dialog
+            // piece will be 'q', 'r', 'b', or 'n'
+            if (onMove && promoteFromSquare && promoteToSquare) {
+              const result = onMove(promoteFromSquare, promoteToSquare, piece?.toLowerCase());
+              if (result instanceof Promise) {
+                result.catch(err => console.error('Promotion move failed:', err));
+              }
+            }
+            return true;
+          }}
+          showPromotionDialog={freePlayMode}
+          promotionDialogVariant="modal"
           boardOrientation={orientation}
           customSquareStyles={customSquareStyles}
           customArrows={customArrows}

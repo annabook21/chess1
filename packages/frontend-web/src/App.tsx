@@ -837,16 +837,21 @@ function App() {
       });
       
       // Update move history optimistically
-      const newMoveNum = Math.ceil(moveHistory.length / 2) + 1;
       setMoveHistory(prev => {
         const updated = [...prev];
         const isWhiteMove = turnPackage.sideToMove === 'w';
+
         if (isWhiteMove) {
+          // White move: always create a new entry
+          const newMoveNum = updated.length + 1;
           updated.push({ moveNumber: newMoveNum, white: moveSan });
         } else {
-          if (updated.length > 0) {
+          // Black move: add to the last entry if it exists and has white move
+          if (updated.length > 0 && updated[updated.length - 1].white && !updated[updated.length - 1].black) {
             updated[updated.length - 1].black = moveSan;
           } else {
+            // Edge case: black moves first (shouldn't happen in normal chess)
+            const newMoveNum = updated.length + 1;
             updated.push({ moveNumber: newMoveNum, black: moveSan });
           }
         }
@@ -1150,18 +1155,22 @@ function App() {
                 // Just add AI's move
                 if (response.feedback.aiMove) {
                   const aiMoveSan = response.feedback.aiMove.moveSan;
+                  const aiColor = response.feedback.aiMove.color;
                   setMoveHistory(prev => {
                     const updated = [...prev];
-                    // User's move should be the last entry
-                    if (updated.length > 0) {
-                      // If last entry has white but no black, add black (AI move)
-                      const last = updated[updated.length - 1];
-                      if (last.white && !last.black) {
-                        last.black = aiMoveSan;
-                      } else if (last.black && !last.white) {
-                        // If last entry has black, add new entry with white (AI move)
-                        const newMoveNum = Math.ceil(updated.length / 2) + 1;
-                        updated.push({ moveNumber: newMoveNum, white: aiMoveSan });
+
+                    if (aiColor === 'w') {
+                      // AI played white: create new entry
+                      const newMoveNum = updated.length + 1;
+                      updated.push({ moveNumber: newMoveNum, white: aiMoveSan });
+                    } else {
+                      // AI played black: add to last entry
+                      if (updated.length > 0 && updated[updated.length - 1].white && !updated[updated.length - 1].black) {
+                        updated[updated.length - 1].black = aiMoveSan;
+                      } else {
+                        // Edge case: AI plays black first
+                        const newMoveNum = updated.length + 1;
+                        updated.push({ moveNumber: newMoveNum, black: aiMoveSan });
                       }
                     }
                     return updated;
@@ -1870,32 +1879,49 @@ function App() {
     setCurrentEval(response.feedback.evalAfter ?? 0);
 
     // Update move history
-    const moveNum = Math.ceil((moveHistory.length + 1) / 2);
     const isWhiteMove = currentTurn.sideToMove === 'w';
-    
+
     // Convert UCI to display format
     const moveDisplay = `${choice.moveUci.slice(0, 2)}-${choice.moveUci.slice(2, 4)}`;
-    
+
     setMoveHistory(prev => {
       const updated = [...prev];
+
+      // Add user's move
       if (isWhiteMove) {
-        updated.push({ moveNumber: moveNum, white: moveDisplay, eval: response.feedback.evalAfter });
+        // White move: create new entry
+        const newMoveNum = updated.length + 1;
+        updated.push({ moveNumber: newMoveNum, white: moveDisplay, eval: response.feedback.evalAfter });
       } else {
-        if (updated.length > 0) {
+        // Black move: add to last entry
+        if (updated.length > 0 && updated[updated.length - 1].white && !updated[updated.length - 1].black) {
           updated[updated.length - 1].black = moveDisplay;
+        } else {
+          // Edge case
+          const newMoveNum = updated.length + 1;
+          updated.push({ moveNumber: newMoveNum, black: moveDisplay });
         }
       }
-      
+
       // Add AI move if present
       if (response.feedback.aiMove) {
-        const aiMoveNum = Math.ceil((updated.length + 1) / 2);
-        if (isWhiteMove && updated.length > 0) {
-          updated[updated.length - 1].black = response.feedback.aiMove.moveSan;
+        const aiColor = response.feedback.aiMove.color;
+        if (aiColor === 'w') {
+          // AI played white: create new entry
+          const newMoveNum = updated.length + 1;
+          updated.push({ moveNumber: newMoveNum, white: response.feedback.aiMove.moveSan });
         } else {
-          updated.push({ moveNumber: aiMoveNum, white: response.feedback.aiMove.moveSan });
+          // AI played black: add to last entry
+          if (updated.length > 0 && updated[updated.length - 1].white && !updated[updated.length - 1].black) {
+            updated[updated.length - 1].black = response.feedback.aiMove.moveSan;
+          } else {
+            // Edge case
+            const newMoveNum = updated.length + 1;
+            updated.push({ moveNumber: newMoveNum, black: response.feedback.aiMove.moveSan });
+          }
         }
       }
-      
+
       return updated;
     });
 
