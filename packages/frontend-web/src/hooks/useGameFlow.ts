@@ -144,10 +144,13 @@ export function applyMaiaOrFallbackMove(
     moveSan: string;
     styleId: string;
     justification: string;
+    color: 'w' | 'b';
   };
   predictions: MovePrediction[];
 } | null {
   const chessAfterMaia = new Chess(fenAfterUserMove);
+  // Determine AI color - the side to move in fenAfterUserMove is the AI's turn
+  const aiColor = chessAfterMaia.turn();
 
   if (maiaMove) {
     const maiaFrom = maiaMove.moveUci.slice(0, 2);
@@ -175,6 +178,7 @@ export function applyMaiaOrFallbackMove(
           moveSan: maiaMove.moveSan,
           styleId: 'capablanca',
           justification: `A ~${maiaOpponentRating} rated player played this move (${probPercent}% predicted).`,
+          color: aiColor,
         },
         predictions: maiaMove.allPredictions,
       };
@@ -207,6 +211,7 @@ export function applyMaiaOrFallbackMove(
       moveSan: randomMove.san,
       styleId: 'capablanca',
       justification: 'The opponent contemplates briefly before making a move.',
+      color: aiColor,
     },
     predictions: [],
   };

@@ -956,10 +956,13 @@ function App() {
               
               const probPercent = (maiaMove.probability * 100).toFixed(0);
               // Create or override the AI move with Maia's move
+              // AI plays opposite color from the user
+              const aiColor = turnPackage.sideToMove === 'w' ? 'b' : 'w';
               response.feedback.aiMove = {
                 moveSan: maiaMove.moveSan,
                 styleId: 'capablanca',
                 justification: `A ~${maiaOpponentRating} rated player played this move (${probPercent}% predicted).`,
+                color: aiColor,
               };
 
               const chessAfterMaia = new Chess(fenAfterUserMove);
@@ -1030,10 +1033,12 @@ function App() {
                   chessAfterMaia.move(randomMove);
                   
                   const fallbackUci = randomMove.from + randomMove.to + (randomMove.promotion || '');
+                  const aiColor = turnPackage.sideToMove === 'w' ? 'b' : 'w';
                   response.feedback.aiMove = {
                     moveSan: randomMove.san,
                     styleId: 'capablanca',
                     justification: 'The opponent plays a sensible move.',
+                    color: aiColor,
                   };
                   response.nextTurn.fen = chessAfterMaia.fen();
                   response.nextTurn.sideToMove = chessAfterMaia.turn();
@@ -1072,11 +1077,13 @@ function App() {
               if (legalMoves.length > 0) {
                 const randomMove = legalMoves[Math.floor(Math.random() * legalMoves.length)];
                 const fallbackUci = randomMove.from + randomMove.to + (randomMove.promotion || '');
-                
+                const aiColor = turnPackage.sideToMove === 'w' ? 'b' : 'w';
+
                 response.feedback.aiMove = {
                   moveSan: randomMove.san,
                   styleId: 'capablanca',
                   justification: 'The opponent contemplates briefly before making a move.',
+                  color: aiColor,
                 };
                 
                 chessForFallback.move(randomMove);
@@ -1436,10 +1443,12 @@ function App() {
           
           // Create the AI move with Maia's sampled prediction
           const probPercent = (maiaMove.probability * 100).toFixed(0);
+          const aiColor = turnPackage.sideToMove === 'w' ? 'b' : 'w';
           response.feedback.aiMove = {
             moveSan: maiaMove.moveSan,
             styleId: 'capablanca', // Use a neutral style for human-like
             justification: `A ~${maiaOpponentRating} rated player played this move (${probPercent}% predicted).`,
+            color: aiColor,
           };
 
           // Update the next turn FEN to reflect Maia's move
@@ -1513,12 +1522,14 @@ function App() {
               const randomMove = legalMoves[Math.floor(Math.random() * legalMoves.length)];
               chessAfterMaia.load(fenAfterUserMove); // Reset to apply fallback
               chessAfterMaia.move(randomMove);
-              
+
               const fallbackUci = randomMove.from + randomMove.to + (randomMove.promotion || '');
+              const aiColor = turnPackage.sideToMove === 'w' ? 'b' : 'w';
               response.feedback.aiMove = {
                 moveSan: randomMove.san,
                 styleId: 'capablanca',
                 justification: 'The opponent plays a sensible move.',
+                color: aiColor,
               };
               response.nextTurn.fen = chessAfterMaia.fen();
               response.nextTurn.sideToMove = chessAfterMaia.turn();
@@ -1557,11 +1568,13 @@ function App() {
           
           if (legalMoves.length > 0) {
             const randomMove = legalMoves[Math.floor(Math.random() * legalMoves.length)];
-            
+            const aiColor = turnPackage.sideToMove === 'w' ? 'b' : 'w';
+
             response.feedback.aiMove = {
               moveSan: randomMove.san,
               styleId: 'capablanca',
               justification: 'The opponent contemplates briefly before making a move.',
+              color: aiColor,
             };
             
             chessForFallback.move(randomMove);
