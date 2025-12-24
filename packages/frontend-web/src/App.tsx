@@ -2430,6 +2430,17 @@ function App() {
                 ♚ Black
               </button>
             </div>
+
+            {/* Settings button - consistent across all modes */}
+            <div className="mode-toggle-group">
+              <button
+                className="mode-btn settings-btn"
+                onClick={() => setShowSettings(true)}
+                title="Settings (opponent, difficulty, theme)"
+              >
+                ⚙️ Settings
+              </button>
+            </div>
           </div>
 
           {/* Board with overlay wrapper - allows choices to float over board */}
