@@ -272,7 +272,7 @@ export class MoveController {
     // Determine if blunder (threshold: -200 centipawns)
     const blunder = delta <= -200;
 
-    let aiMoveInfo: { moveSan: string; styleId: string; justification: string } | undefined;
+    let aiMoveInfo: { moveSan: string; styleId: string; justification: string; color: 'w' | 'b' } | undefined;
     let finalFen = fenAfterUserMove;
 
     // Apply AI move if generated
@@ -281,11 +281,15 @@ export class MoveController {
       if (aiMoveSuccess) {
         finalFen = game.chess.fen();
         await this.deps.gameStore.updateGame(gameId, { fen: finalFen });
-        
+
+        // Determine AI color based on user's color
+        const aiColor = userMove.color === 'w' ? 'b' : 'w';
+
         aiMoveInfo = {
           moveSan: aiMoveResult.moveSan,
           styleId: aiMoveResult.styleId,
           justification: aiMoveResult.justification,
+          color: aiColor,
         };
         console.log(`[PERF] AI (${aiMoveResult.styleId}) played: ${aiMoveResult.moveSan}`);
       } else {
@@ -302,11 +306,15 @@ export class MoveController {
           if (fallbackSuccess) {
             finalFen = game.chess.fen();
             await this.deps.gameStore.updateGame(gameId, { fen: finalFen });
-            
+
+            // Determine AI color based on user's color
+            const aiColor = userMove.color === 'w' ? 'b' : 'w';
+
             aiMoveInfo = {
               moveSan: fallback.san,
               styleId: 'fischer',
               justification: 'Playing a solid continuation.',
+              color: aiColor,
             };
             console.log(`[PERF] AI fallback move: ${fallback.san}`);
           }

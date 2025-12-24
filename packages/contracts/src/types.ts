@@ -75,6 +75,7 @@ export interface AIMoveInfo {
   moveSan: string; // e.g., "Nf6"
   styleId: string; // Which master style the AI used
   justification: string; // Why the AI made this move
+  color: 'w' | 'b'; // Which color the AI played
 }
 
 export interface MoveFeedback {
