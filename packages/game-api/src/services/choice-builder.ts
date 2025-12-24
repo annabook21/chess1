@@ -172,6 +172,48 @@ const STRATEGIES: Record<MasterStyle, MoveStrategy> = {
 };
 
 /**
+ * Master metadata for UI display
+ * Single source of truth for master names, nicknames, and colors
+ */
+export const MASTER_METADATA: Record<MasterStyle, {
+  name: string;
+  nickname: string;
+  iconName: string;
+  color: string;
+}> = {
+  fischer: {
+    name: 'Bobby Fischer',
+    nickname: 'The Perfectionist',
+    iconName: 'trophy',
+    color: '#86b81b',
+  },
+  tal: {
+    name: 'Mikhail Tal',
+    nickname: 'The Magician',
+    iconName: 'sword',
+    color: '#d13020',
+  },
+  capablanca: {
+    name: 'José Raúl Capablanca',
+    nickname: 'The Chess Machine',
+    iconName: 'crown',
+    color: '#e6b100',
+  },
+  karpov: {
+    name: 'Anatoly Karpov',
+    nickname: 'The Constrictor',
+    iconName: 'target',
+    color: '#4a9eff',
+  },
+  'human-like': {
+    name: 'Human-like',
+    nickname: 'Like You',
+    iconName: 'user',
+    color: '#9c27b0',
+  },
+};
+
+/**
  * Rotation of master combinations for variety across turns.
  * Each turn uses 3 masters to provide diverse choices.
  */

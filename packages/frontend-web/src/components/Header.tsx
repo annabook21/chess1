@@ -27,15 +27,42 @@ interface HeaderProps {
   onTogglePrediction?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ 
-  stats, 
-  onNewGame, 
+export const Header: React.FC<HeaderProps> = ({
+  stats,
+  onNewGame,
   onOpenWeaknessTracker,
   predictionEnabled,
   onTogglePrediction,
 }) => {
-  const xpForNextLevel = stats.level * 100;
-  const xpProgress = (stats.xp / xpForNextLevel) * 100;
+  // Calculate XP progress within current level (0-100%)
+  const xpForCurrentLevel = (stats.level - 1) * 100; // XP needed to reach current level
+  const xpForNextLevel = stats.level * 100; // XP needed for next level
+  const xpInCurrentLevel = Math.max(0, stats.xp - xpForCurrentLevel); // XP earned in current level
+  const xpNeededForLevel = xpForNextLevel - xpForCurrentLevel; // XP needed to level up
+  const xpProgress = Math.min(100, (xpInCurrentLevel / xpNeededForLevel) * 100);
+
+  // Calculate skill rating from performance metrics
+  const calculateSkillRating = (): number => {
+    if (stats.totalMoves === 0) return 1200; // Default rating
+
+    const baseRating = 1200;
+
+    // Accuracy bonus: ±500 points based on move accuracy
+    const accuracyPercent = stats.totalMoves > 0
+      ? (stats.accurateMoves / stats.totalMoves) * 100
+      : 50;
+    const accuracyBonus = (accuracyPercent - 50) * 10;
+
+    // Consistency bonus: Up to +200 for win streaks
+    const consistencyBonus = Math.min(stats.streak * 10, 200);
+
+    // Games played factor: Small bonus for experience
+    const experienceBonus = Math.min(stats.gamesPlayed * 5, 100);
+
+    return Math.round(baseRating + accuracyBonus + consistencyBonus + experienceBonus);
+  };
+
+  const skillRating = calculateSkillRating();
 
   return (
     <header className="app-header">
@@ -55,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="stat-item rating-badge">
             <span className="stat-icon"><PixelIcon name="chart" size="small" /></span>
             <div className="stat-content">
-              <span className="stat-value rating-value">{stats.skillRating}</span>
+              <span className="stat-value rating-value">{skillRating}</span>
               <span className="stat-label">Skill Rating</span>
             </div>
           </div>
@@ -94,20 +121,23 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Actions */}
         <div className="header-actions">
           {onTogglePrediction && (
-            <button 
+            <button
               className={`btn btn-toggle btn-predict ${predictionEnabled ? 'active' : ''}`}
               onClick={onTogglePrediction}
-              title={predictionEnabled 
-                ? 'Human Prediction: ON - Guess opponent moves for bonus XP!' 
+              aria-pressed={predictionEnabled}
+              title={predictionEnabled
+                ? 'Human Prediction: ON - Guess opponent moves for bonus XP!'
                 : 'Human Prediction: OFF - Click to enable move prediction challenges'}
             >
-              <span className="predict-icon">🧠</span>
+              <span className="predict-icon">
+                {predictionEnabled ? '🧠' : '💤'}
+              </span>
               <span className="predict-label">
-                {predictionEnabled ? 'Predicting' : 'Predict'}
+                Human Prediction
               </span>
-              <span className={`toggle-indicator ${predictionEnabled ? 'on' : 'off'}`}>
-                {predictionEnabled ? 'ON' : 'OFF'}
-              </span>
+              {predictionEnabled && (
+                <span className="pulse-dot" aria-hidden="true" />
+              )}
             </button>
           )}
           {onOpenWeaknessTracker && (
