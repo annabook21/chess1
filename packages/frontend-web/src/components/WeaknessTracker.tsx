@@ -212,10 +212,11 @@ function analyzeWeaknesses(moves: MoveRecord[]): WeaknessProfile {
     }
   }
   
-  // Sort by impact (miss rate * occurrences * avg loss)
+  // Sort by impact (normalize to 0-100 scale to prevent unbounded growth)
   weaknesses.sort((a, b) => {
-    const impactA = a.missRate * a.occurrences * (a.avgEvalLoss / 100);
-    const impactB = b.missRate * b.occurrences * (b.avgEvalLoss / 100);
+    // Normalize: missRate (0-1), occurrences (cap at 10), avgEvalLoss (0-1)
+    const impactA = (a.missRate / 100) * Math.min(a.occurrences / 10, 10) * (a.avgEvalLoss / 100);
+    const impactB = (b.missRate / 100) * Math.min(b.occurrences / 10, 10) * (b.avgEvalLoss / 100);
     return impactB - impactA;
   });
   
@@ -349,8 +350,8 @@ export const WeaknessTracker: React.FC<WeaknessTrackerProps> = ({ isOpen, onClos
         return move.accuracy;
       }
       // Otherwise calculate from eval data
-      // Determine if it was Black's move from FEN
-      const isBlackMove = move.fen.includes(' b ');
+      // Determine if it was Black's move from FEN (check active color field)
+      const isBlackMove = move.fen.split(' ')[1] === 'b';
       return calculateAccuracyFromCentipawns(move.evalBefore, move.evalAfter, isBlackMove);
     });
     
@@ -464,9 +465,13 @@ export const WeaknessTracker: React.FC<WeaknessTrackerProps> = ({ isOpen, onClos
                 <div className="wt-insights">
                   {profile.topWeaknesses.length === 0 ? (
                     <div className="wt-empty">
-                      <span className="wt-empty-icon">📊</span>
-                      <p>Play more games to see your weakness patterns!</p>
-                      <p className="wt-empty-sub">We analyze your moves to find areas for improvement.</p>
+                      <span className="wt-empty-icon">{profile.totalMoves === 0 ? '📊' : '🎉'}</span>
+                      <p>{profile.totalMoves === 0
+                        ? 'Play more games to see your weakness patterns!'
+                        : 'No major weaknesses detected - great job!'}</p>
+                      <p className="wt-empty-sub">{profile.totalMoves === 0
+                        ? 'We analyze your moves to find areas for improvement.'
+                        : 'Your accuracy is strong across all concepts!'}</p>
                     </div>
                   ) : (
                     <>
@@ -521,9 +526,13 @@ export const WeaknessTracker: React.FC<WeaknessTrackerProps> = ({ isOpen, onClos
               <h3>⚔️ Your Weaknesses</h3>
               {profile.topWeaknesses.length === 0 ? (
                 <div className="wt-empty">
-                  <span className="wt-empty-icon">🎯</span>
-                  <p>No weaknesses detected yet!</p>
-                  <p className="wt-empty-sub">Keep playing to build your profile.</p>
+                  <span className="wt-empty-icon">{profile.totalMoves === 0 ? '🎯' : '🎉'}</span>
+                  <p>{profile.totalMoves === 0
+                    ? 'No weaknesses detected yet!'
+                    : 'No major weaknesses found!'}</p>
+                  <p className="wt-empty-sub">{profile.totalMoves === 0
+                    ? 'Keep playing to build your profile.'
+                    : 'Your play is strong across all tactics!'}</p>
                 </div>
               ) : (
                 <div className="wt-weakness-list">
