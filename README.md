@@ -1,4 +1,4 @@
-# Master Academy Chess
+# Quest for Grandmaster
 
 An AI-powered chess learning platform that lets you learn from legendary grandmaster playing styles (Karpov, Fischer, Tal) with real-time position analysis, human-like opponent move prediction, and personalized coaching.
 
